@@ -8,6 +8,7 @@ open FsCheck.NUnit
 open FableTranspiler.Parsers
 open FableTranspiler.Parsers.Types
 open FableTranspiler.Parsers.Identifier
+open FableTranspiler.Parsers.Import
 open FParsec
 open System
 open FableTranspiler
@@ -83,9 +84,31 @@ let readFile file =
 // #region import parser tests
 open FableTranspiler.Tests.ParsersTests
 
+let shouldSuccess res = function
+    | Success (s, _, _) -> s |> shouldL equal res
+    | Failure (t, _, _) -> raise (AssertionException($"Should be %A{res} but was %A{t}"))
+
+
 [<TestCaseSource(typeof<TestCases>, nameof TestCases.ImportCases)>]
-let ``import statements - module name test`` (content: string) =
-    run Import.importStatement content
+let ``import statements - module name test`` (content: string, expected: Statement) =
+    let result = run Import.importStatement content
+    result |> shouldSuccess expected
+
+
+[<Test>]
+let ``defaultAliasedEntity test`` () =
+    let input = "* as React "
+    let result = run Import.defaultAliasedEntity input
+    let expected = ImportEntity.AllAliased (Identifier.Create "React")
+    result |> shouldSuccess expected
+
+
+[<TestCase("'react'")>]
+[<TestCase("'~/react'")>]
+let ``nodeModule test`` (input) =
+    let result = run Import.nodeModule input
+    let expected = ImportModule.NodeModule (ModulePath (input.Replace("'", "")))
+    result |> shouldSuccess expected
 
 
 
@@ -197,3 +220,5 @@ let ``const expression with dereferencing member invokation`` () =
         document input
 
     Assert.That( actual, Is.EqualTo(expected), $"Actual: %A{actual}")
+
+

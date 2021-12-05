@@ -9,6 +9,8 @@ type Identifier = Identifier of string with
 type StringLiteral = StringLiteral of string with
     static member Create(v) = StringLiteral v
 
+type ModulePath = ModulePath of string with
+    static member Create(v) = ModulePath v
 
 
 type ImportEntity =
@@ -18,14 +20,14 @@ type ImportEntity =
     | All
     | AllAliased of alias: Identifier
 
-type ModulePath =
-    | NodeModule of System.Uri
-    | Relative of System.Uri
+type ImportModule =
+    | NodeModule of ModulePath
+    | Relative of ModulePath
 
 
 type Statement =
     | Const of Expression
-    | Import of ImportEntity list * modulePath: ModulePath
+    | Import of ImportEntity list * modulePath: ImportModule
 
 and
     [<RequireQualifiedAccess>]

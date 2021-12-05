@@ -11,11 +11,11 @@ let importKeyWord = str "import"
 let asterisk = pchar '*'
 
 
-let openBrace = pchar '{'
-let closedBrace = pchar '}'
+let openBrace : Parser<char, unit> = pchar '{'
+let closedBrace : Parser<char, unit> = pchar '}'
 
 let identifier = 
-    many1CharsTill anyChar (ws1 <|> skipSatisfy (isAnyOf notValidIdentifierSymbols))
+    many1CharsTill anyChar (ws1 <|> followedBy (anyOf notValidIdentifierSymbols))
         |>> Identifier.Create
 
 let namedEntity = identifier |>> ImportEntity.Named
@@ -33,7 +33,8 @@ let defaultEntity = asterisk .>> ws1 |>> (fun _ -> ImportEntity.All)
 let defaultAliasedEntity = 
     asterisk 
         >>. ws1 
-        >>. str "as" 
+        >>. str "as"
+        >>. ws1
         >>. identifier 
         |>> ImportEntity.AllAliased
 
@@ -51,23 +52,30 @@ let entity =
 
 open System
 
-let relativeModule = quote >>. (pchar '.' <|> pchar '~') >>. many1CharsTill anyChar quote |>> (fun path -> System.Uri(path, UriKind.Relative) |> Relative)
+let relativeModule = 
+    quote 
+    >>? (pchar '.') 
+    .>>.? many1CharsTill anyChar quote 
+    |>> (fun path -> ModulePath ((sprintf "%c%s" (fst path) (snd path))) |> Relative)
+
 let nodeModule = 
     quote 
-    >>. noneOf ['.'; '~'] 
-    .>>. many1CharsTill anyChar quote 
-    |>> (fun path -> System.Uri((sprintf "%c%s" (fst path) (snd path)).Replace("~", "."), UriKind.Relative) |> NodeModule)
+    >>? (noneOf ['.'; '/'; '\\'] <|> satisfy (fun ch -> ch = '~' || Char.IsLetterOrDigit(ch)))
+    .>>.? many1CharsTill anyChar quote 
+    |>> (fun path -> ModulePath ((sprintf "%c%s" (fst path) (snd path))) |> NodeModule)
+
+
 
 
 let importStatement =
     ws >>. importKeyWord >>. ws1  
         >>. choice [
-            openBrace >>. ws >>. many entity .>> ws .>> closedBrace
-            entity |>> List.singleton
+            openBrace >>? ws >>. many entity .>> ws .>> closedBrace
+            defaultAliasedEntity |>> List.singleton
         ]
         .>> choice [
             ws1
-            ws1 .>> str "from" .>> ws1
+            str "from" >>. ws1
         ]
         .>>. choice [
             relativeModule

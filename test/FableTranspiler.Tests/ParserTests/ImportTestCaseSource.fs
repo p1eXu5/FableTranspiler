@@ -6,14 +6,18 @@ open NUnit.Framework
 open FableTranspiler.Parsers.Types
 
 type TestCases () =
-    static member ImportCases : IEnumerable =
-        seq {
-            yield TestCaseData("""import * as React from 'react';""")
-                .Returns(
+    static member ImportCases : Object[] =
+        [|
+            [|
+                """import * as React from 'react';""" |> box
+                (
                     Statement.Import (
                         [ImportEntity.AllAliased ("React" |> Identifier.Create)]
-                        , ModulePath.NodeModule (System.Uri("react", UriKind.Relative))
-                    ) |> Ok)
+                        , ImportModule.NodeModule (ModulePath.Create "react")
+                    )
+                )
+            |]
+        |]
 
 
             //yield TestCaseData("""import * as scroller from './mixins/scroller';""")
@@ -55,4 +59,4 @@ type TestCases () =
             //            , ModulePath.NodeModule (System.Uri("jquery", UriKind.Relative))
             //        ) |> Ok)
 
-        }
+        //}
