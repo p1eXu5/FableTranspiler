@@ -4,38 +4,23 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:behaviors="http://schemas.microsoft.com/xaml/behaviors"
-        xmlns:local="clr-namespace:FableTranspiler.WpfClient"
+        xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
+        xmlns:local="clr-namespace:FableTranspiler.WpfClient.UserControls"
         mc:Ignorable="d"
-        Title="MainWindow" Height="450" Width="800">
-    <behaviors:Interaction.Triggers>
-        <behaviors:EventTrigger EventName="Past">
-            <behaviors:InvokeCommandAction Command="{Binding InitCommand}" />
-        </behaviors:EventTrigger>
-    </behaviors:Interaction.Triggers>
-    <Grid>
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition />
-            <ColumnDefinition Width="Auto" />
-            <ColumnDefinition />
-            <ColumnDefinition />
-        </Grid.ColumnDefinitions>
-        <RichTextBox
-            Block.LineHeight="2"
-            >
-            <RichTextBox.CommandBindings>
-                <CommandBinding Command="Paste" Executed="CommandBinding_OnExecuted"  >
-
-                </CommandBinding>
-            </RichTextBox.CommandBindings>
-        </RichTextBox>
-        <GridSplitter Grid.Column="1" Width="5" VerticalAlignment="Stretch" HorizontalAlignment="Center"></GridSplitter>
-        <RichTextBox Grid.Column="2"></RichTextBox>
-        <StackPanel Grid.Column="3" Orientation="Vertical">
-            <TextBlock Height="40" Text="{Binding CounterValue}" />
-            <Button Command="{Binding Decrement}" Content="-" />
-            <Button Command="{Binding Increment}" Content="+" />
-            <TextBlock Text="{Binding StepSize}" />
-            <Slider Value="{Binding StepSize}" TickFrequency="1" Minimum="1" Maximum="10" />
-        </StackPanel>
-    </Grid>
+        Title="MainWindow" Height="450" Width="800"
+        TextElement.Foreground="{DynamicResource MaterialDesignBody}"
+        TextElement.FontWeight="Regular"
+        TextElement.FontSize="13"
+        TextOptions.TextFormattingMode="Ideal"
+        TextOptions.TextRenderingMode="Auto"
+        Background="{DynamicResource MaterialDesignPaper}"
+        FontFamily="{DynamicResource MaterialDesignFont}"
+        >
+    
+    <DockPanel LastChildFill="True">
+        <local:MainMenu DockPanel.Dock="Top"/>
+        <Separator DockPanel.Dock="Top"/>
+        <local:SideBar DockPanel.Dock="Left" />
+        <local:Content DockPanel.Dock="Right" />
+    </DockPanel>
 </Window>

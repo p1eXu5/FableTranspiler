@@ -1,12 +1,19 @@
 ﻿module FableTranspiler.App
 
-type Model = { 
+open Types
+
+type Model = 
+    {
+        Actions: Command list
         Count: int
         StepSize: int 
     }
 
 let init () = 
     { 
+        Actions = [
+            
+        ]
         Count = 0
         StepSize = 1 
     }
