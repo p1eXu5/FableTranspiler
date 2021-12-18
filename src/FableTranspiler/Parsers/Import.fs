@@ -5,13 +5,13 @@ open Types
 open Common
 
 
-let importKeyWord = str "import"
+let importKeyWord = skipString "import"
 
-let asterisk = pchar '*'
+let asterisk = skipChar '*'
 
 
-let openBrace : Parser<char, unit> = pchar '{'
-let closedBrace : Parser<char, unit> = pchar '}'
+let openBrace : Parser<unit, unit> = skipChar '{'
+let closedBrace : Parser<unit, unit> = skipChar '}'
 
 
 let namedEntity = Common.identifier .>>? notFollowedByL (str " as") "named entity must not followed by 'as'" |>> ImportEntity.Named
@@ -20,7 +20,7 @@ let namedEntity = Common.identifier .>>? notFollowedByL (str " as") "named entit
 let aliased = 
     Common.identifier 
         .>> ws1
-        .>>? str "as " 
+        .>>? skipString "as " 
         .>>.? identifier 
         |>> (fun t -> ((fst t), snd t) |> ImportEntity.Aliased)
 
@@ -31,7 +31,7 @@ let all = asterisk .>> ws1 |>> (fun _ -> ImportEntity.All)
 let allAliased = 
     asterisk 
         >>? ws1 
-        >>? str "as"
+        >>? skipString "as"
         >>? ws1
         >>? identifier 
         |>> ImportEntity.AllAliased
@@ -76,7 +76,7 @@ let importStatement =
                     allAliased |>> List.singleton
                 ]
                 .>> ws1 
-                .>> str "from "
+                .>> skipString "from "
 
             noEntity |>> List.singleton
         ]
@@ -84,5 +84,6 @@ let importStatement =
             relativeModule
             nodeModule
         ]
-        .>> pchar ';'
+        .>> ws
+        .>> skipChar ';'
         |>> Statement.Import

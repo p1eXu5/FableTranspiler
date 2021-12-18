@@ -5,7 +5,7 @@ open Types
 open Common
 
 
-let exportKeyword = str "export"
+let exportKeyword = skipString "export"
 
 let exportStatement =
-    exportKeyword >>. ws >>. pchar '=' >>. ws >>. Common.identifier |>> Statement.Export .>> ws .>> pchar ';'
+    exportKeyword >>. ws >>. skipChar '=' >>. ws >>. Common.identifier |>> Statement.Export .>> ws .>> skipChar ';'
