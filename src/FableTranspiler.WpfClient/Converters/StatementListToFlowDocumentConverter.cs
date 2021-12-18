@@ -25,19 +25,15 @@ namespace FableTranspiler.WpfClient.Converters
                     while (vm[i].Tag != Tag.EndOfLine) 
                     {
                         // TODO: if last keyword is import then not insert line break
-                        switch (vm[i].Tag) {
-                            case Tag.Keyword:
-                                paragraph.Inlines.Add(
-                                    new Run(vm[i].Content) {
-                                        Style = Application.Current.FindResource("st_Keyword") as Style
-                                    }
-                                );
-                                break;
+                        Style? style = vm[i].Tag switch {
+                            Tag.Keyword => Application.Current.FindResource("st_Keyword") as Style,
+                            Tag.Type => Application.Current.FindResource("st_Type") as Style,
+                            Tag.Comment => Application.Current.FindResource("st_Comment") as Style,
+                            _ => null
+                        };
 
-                            case Tag.Text:
-                                paragraph.Inlines.Add(new Run(vm[i].Content));
-                                break;
-                        }
+                        paragraph.Inlines.Add(new Run(vm[i].Content) { Style = style });
+
                         ++i;
                     }
 

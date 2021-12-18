@@ -5,6 +5,15 @@
 
 
     <Style x:Key="st_Keyword" TargetType="Run">
-        <Setter Property="Foreground" Value="#31B0CD"/>
+        <Setter Property="Foreground" Value="#3987D6"/>
     </Style>
+
+    <Style x:Key="st_Type" TargetType="Run">
+        <Setter Property="Foreground" Value="#4EC9B0"/>
+    </Style>
+
+    <Style x:Key="st_Comment" TargetType="Run">
+        <Setter Property="Foreground" Value="#39904A"/>
+    </Style>
+
 </ResourceDictionary>

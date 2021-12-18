@@ -18,6 +18,6 @@ let main window =
           .WriteTo.Console()
           .CreateLogger()
 
-    WpfProgram.mkProgram init update bindings
+    WpfProgram.mkProgram Model.Init update bindings
     |> WpfProgram.withLogger (new SerilogLoggerFactory(logger))
     |> WpfProgram.startElmishLoop window

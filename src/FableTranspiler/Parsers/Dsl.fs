@@ -63,5 +63,5 @@ module Export =
 
 [<RequireQualifiedAccess>]
 module Comment =
-    let create () =
-        Statement.Comment
+    let create comment =
+        Statement.Comment comment

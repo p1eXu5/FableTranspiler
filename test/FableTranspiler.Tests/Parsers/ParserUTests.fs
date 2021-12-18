@@ -71,12 +71,16 @@ module Statements =
             let! input = readFile ``types/reac-scroll/index.d.ts``
             let doc = document input
             let expeced : Statements =
-                Dsl.Comment.create () |> List.replicate 6
-                |> List.append
-                <| [
-                       Dsl.Import.allAliased "ReactScroll" "./modules/index"
-                       Dsl.Export.create "ReactScroll"
-                   ]
+                [
+                    Dsl.Comment.create "// Type definitions for react-scroll 1.8"
+                    Dsl.Comment.create "// Project: https://github.com/fisshy/react-scroll"
+                    Dsl.Comment.create "// Definitions by: Ioannis Kokkinidis <https://github.com/sudoplz>"
+                    Dsl.Comment.create "//                 Giedrius Grabauskas <https://github.com/GiedriusGrabauskas>"
+                    Dsl.Comment.create "// Definitions: https://github.com/DefinitelyTyped/DefinitelyTyped"
+                    Dsl.Comment.create "// TypeScript Version: 2.8"
+                    Dsl.Import.allAliased "ReactScroll" "./modules/index"
+                    Dsl.Export.create "ReactScroll"
+                 ]
             return
                 doc |> beOk expeced
         }

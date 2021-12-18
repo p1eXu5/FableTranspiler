@@ -15,5 +15,5 @@ module CommentTests =
     let ``comments test`` () =
         let input = """// sdfsfsfd// sdfsdf"""
         let result = run Comment.statement input
-        let expected = Statement.Comment
+        let expected = Statement.Comment "// sdfsfsfd// sdfsdf"
         result |> shouldSuccess expected

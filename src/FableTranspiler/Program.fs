@@ -1,14 +1,9 @@
 ﻿module FableTranspiler.Program
 
 open Types
+open Infrastruture
 open Implementation
 open Elmish
-
-let init () =
-    {
-        SelectedModule = None
-    },
-    Cmd.none
 
 
 let update (msg: Msg) (model: Model) =
@@ -16,6 +11,15 @@ let update (msg: Msg) (model: Model) =
     | ParseFile -> 
         {
             model with
-                SelectedModule = fakeModule () |> Some
+                IsBusy = true
         },
-        Cmd.none
+        Cmd.OfTask.either openFile () FileParsed Failed
+
+    | FileParsed (Ok statements) ->
+        {
+            model with 
+                SelectedModule = statements |> Some
+                IsBusy = false
+        }, Cmd.none
+
+    | _ -> {model with IsBusy = false}, Cmd.none

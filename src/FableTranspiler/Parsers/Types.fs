@@ -41,7 +41,7 @@ type Statement =
     | Const of Expression
     | Import of ImportEntity list * modulePath: ImportModule
     | Export of Identifier
-    | Comment
+    | Comment of string
 
 and
     [<RequireQualifiedAccess>]
