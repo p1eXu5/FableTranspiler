@@ -39,7 +39,7 @@ module ImportTests =
 
     [<TestCaseSource(typeof<TestCases>, nameof TestCases.ImportCases)>]
     let ``import statements - module name test`` (content: string, expected: Statement) =
-        let result = run Import.importStatement content
+        let result = run Import.statement content
         result |> shouldSuccess expected
 
 

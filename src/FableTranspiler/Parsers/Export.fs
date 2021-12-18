@@ -1,11 +1,12 @@
-﻿module FableTranspiler.Parsers.Export
+﻿[<RequireQualifiedAccess>]
+module FableTranspiler.Parsers.Export
 
 open FParsec
 open Types
 open Common
 
 
-let exportKeyword = skipString "export"
+let keyword = skipString "export"
 
-let exportStatement =
-    exportKeyword >>. ws >>. skipChar '=' >>. ws >>. Common.identifier |>> Statement.Export .>> ws .>> skipChar ';'
+let statement =
+    keyword >>. ws >>. skipChar '=' >>. ws >>. Common.identifier |>> Statement.Export .>> ws .>> skipChar ';'

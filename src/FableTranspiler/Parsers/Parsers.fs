@@ -98,15 +98,22 @@ opp.AddOperator <| InfixOperator("as", ws, 30, Associativity.Right, (binary Expr
 
 
 
-let constStmt = skipString "const" >>. ws1 >>. expr .>> ws |>> Statement.Const
+let constStmt = skipString "const" >>? ws1 >>. expr .>> ws |>> Statement.Const
 
 let stmt = choice [
     constStmt
 ]
 
-let query : Parser<Statements, _> = sepEndBy stmt skipNewline
+let statement = 
+    choice [
+        Import.statement
+        Export.statement
+        Comment.statement
+    ]
 
-let queryFull = spaces >>. query .>> spaces .>> eof
+let query : Parser<Statements, _> = sepEndBy statement skipNewline
+
+let queryFull = ws >>. query .>> spaces .>> eof
 
 let document input =
     run queryFull input

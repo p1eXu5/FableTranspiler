@@ -54,3 +54,14 @@ module Import =
             [ImportEntity.No]
             , ``module`` path
         )
+
+[<RequireQualifiedAccess>]
+module Export =
+    let create name =
+        Statement.Export (Identifier.Create name)
+
+
+[<RequireQualifiedAccess>]
+module Comment =
+    let create () =
+        Statement.Comment

@@ -14,6 +14,6 @@ module ExportTests =
     [<TestCase("export = ReactScroll;")>]
     [<TestCase("export=ReactScroll;")>]
     let ``export statement test`` (input: string) =
-        let result = run Export.exportStatement input
+        let result = run Export.statement input
         let expected = Statement.Export (Identifier.Create "ReactScroll")
         result |> shouldSuccess expected

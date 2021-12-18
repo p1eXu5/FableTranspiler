@@ -1,4 +1,5 @@
-﻿module FableTranspiler.Parsers.Import
+﻿[<RequireQualifiedAccess>]
+module FableTranspiler.Parsers.Import
 
 open FParsec
 open Types
@@ -66,13 +67,13 @@ let nodeModule =
 
 
 
-let importStatement =
+let statement =
     ws 
         >>. importKeyWord 
         >>. choice [
             ws1  
                 >>? choice [
-                    openBrace >>? ws >>. many entity .>> ws .>> closedBrace
+                    openBrace >>? ws >>. sepEndBy1 entity (skipChar ',') .>> ws .>> closedBrace
                     allAliased |>> List.singleton
                 ]
                 .>> ws1 

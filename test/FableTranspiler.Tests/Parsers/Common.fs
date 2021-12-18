@@ -9,17 +9,18 @@ open FsCheck.NUnit
 open FableTranspiler.Parsers
 open FableTranspiler.Parsers.Types
 open FableTranspiler.Parsers.Identifier
-open FableTranspiler.Parsers.Import
 open FParsec
 open System
 open FableTranspiler
 open System.Diagnostics
 open NUnit.Framework.Constraints
+open System.Threading.Tasks
 
 
 
 let inline writeLine s = TestContext.WriteLine(sprintf "%A" s)
 
+let toTask computation : Task = Async.StartAsTask computation :> _
 
 [<DebuggerNonUserCode>]
 let shouldL (f: 'a -> #Constraint) x (y: obj) =
@@ -44,7 +45,7 @@ let shouldSuccess res = function
 
 
 [<DebuggerStepThrough>]
-let beOk expected = function
-    | Result.Ok ok -> Assert.That( ok, FsUnit.Equality.IsEqualTo(expected))
-    | Result.Error err -> failwithf "There is an error: %A" err
+let inline beOk expected = function
+    | Result.Ok ok -> ok |> shouldL equal expected
+    | Result.Error err -> raise (AssertionException($"Should be %A{expected} but there is an error: %A{err}"))
 

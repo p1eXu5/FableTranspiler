@@ -1,172 +1,196 @@
-module FableTranspiler.Tests.Parsers.Expressions
+namespace FableTranspiler.Tests.Parsers
 
 open NUnit.Framework
-open FsUnit
-open FsCheck
-open FsCheck.NUnit
+open System.Threading.Tasks
 
-open FableTranspiler.Parsers
-open FableTranspiler.Parsers.Types
-open FableTranspiler.Parsers.Identifier
-open FableTranspiler.Parsers.Import
-open FParsec
-open System
-open FableTranspiler
-open System.Diagnostics
-open NUnit.Framework.Constraints
-open FableTranspiler.Tests.Parsers.Common
+[<Category("Statements")>]
+module Statements =
 
+    open FsUnit
+    open FsCheck
+    open FsCheck.NUnit
 
-
-
-type IdentifierInput = IdentifierInput of string with
-    static member op_Explicit(IdentifierInput i) = i
-
-type ArbitraryModifiers =
-    static member IdentifierInput() =
-        let xs = 
-            seq { 
-                for ch in 'a' .. 'c' do
-                    yield ch
-                yield '_'
-            }
-
-        Gen.elements xs
-        |> Gen.listOfLength 10
-        |> Gen.map (Array.ofList >> String)
-        |> Arb.fromGen
-        |> Arb.convert IdentifierInput string
+    open FableTranspiler.Parsers
+    open FableTranspiler.Parsers.Types
+    open FableTranspiler.Parsers.Identifier
+    open FParsec
+    open System
+    open FableTranspiler
+    open System.Diagnostics
+    open NUnit.Framework.Constraints
+    open FableTranspiler.Tests.Parsers.Common
 
 
 
 
-[<OneTimeSetUp>]
-let registerArbitraryModifiers () =
-    Arb.register<ArbitraryModifiers> ()
-    |> ignore
+    type IdentifierInput = IdentifierInput of string with
+        static member op_Explicit(IdentifierInput i) = i
+
+    type ArbitraryModifiers =
+        static member IdentifierInput() =
+            let xs = 
+                seq { 
+                    for ch in 'a' .. 'c' do
+                        yield ch
+                    yield '_'
+                }
+
+            Gen.elements xs
+            |> Gen.listOfLength 10
+            |> Gen.map (Array.ofList >> String)
+            |> Arb.fromGen
+            |> Arb.convert IdentifierInput string
 
 
 
-let [<Literal>] node_mudules = __SOURCE_DIRECTORY__ + @"\..\..\..\node_modules"
-let [<Literal>] ``types/reac-scroll/index.d.ts`` = node_mudules + @"\@types\react-scroll\index.d.ts"
 
-open FSharp.Control
-open System.IO
-
-let readFile file =
-    task {
-        return! File.ReadAllLinesAsync(file)
-    }
+    [<OneTimeSetUp>]
+    let registerArbitraryModifiers () =
+        Arb.register<ArbitraryModifiers> ()
+        |> ignore
 
 
 
+    let [<Literal>] node_mudules = __SOURCE_DIRECTORY__ + @"\..\..\..\node_modules"
+    let [<Literal>] ``types/reac-scroll/index.d.ts`` = node_mudules + @"\@types\react-scroll\index.d.ts"
+
+    open FSharp.Control
+    open System.IO
+
+    let readFile file =
+        task {
+            use stream = File.OpenText(file)
+            return! stream.ReadToEndAsync()
+        }
 
 
-[<Property>]
-let ``identifier tests`` (IdentifierInput i) =
-    let d = run Identifier.identifier i
-    d
-    |> function
-        | ParserResult.Success (_,_,_) -> true
-        | _ -> false
+    [<Test>]
+    [<Category("Statements")>]
+    let ``test react-scroll index_d_ts parsing`` () : Task =
+        task {
+            let! input = readFile ``types/reac-scroll/index.d.ts``
+            let doc = document input
+            let expeced : Statements =
+                Dsl.Comment.create () |> List.replicate 6
+                |> List.append
+                <| [
+                       Dsl.Import.allAliased "ReactScroll" "./modules/index"
+                       Dsl.Export.create "ReactScroll"
+                   ]
+            return
+                doc |> beOk expeced
+        }
 
 
-[<Test>]
-let ``const object expression test`` () =
 
-    let input = """
-        const mimeTypes = Object.freeze({
-          allFiles: '*/*',
-          audio: 'audio/*',
-          csv: 'text/csv',
-        } as const)
-    """
+    [<Property>]
+    let ``identifier tests`` (IdentifierInput i) =
+        let d = run Identifier.identifier i
+        d
+        |> function
+            | ParserResult.Success (_,_,_) -> true
+            | _ -> false
 
-    let output =
-        [
-            Statement.Const (
-                Expression.Binary (
-                    ExpressionKind.Assignment
-                    , Expression.Identifier ("mimeTypes" |> Identifier.Create)
-                    , Expression.Binary ( 
-                        ExpressionKind.Dereferentiation
-                        , Expression.Identifier ("Object" |> Identifier.Create)
-                        , Expression.Function (
-                            "freeze"
-                            , Expression.Binary (
-                                ExpressionKind.AsCast
-                                , Expression.ObjectLiteral [
-                                    Expression.Binary (ExpressionKind.Typification, Expression.Identifier ("allFiles" |> Identifier.Create), Expression.StringLiteral ("*/*" |> StringLiteral.Create)) 
-                                    Expression.Binary (ExpressionKind.Typification, Expression.Identifier ("audio" |> Identifier.Create), Expression.StringLiteral ("audio/*" |> StringLiteral.Create)) 
-                                    Expression.Binary (ExpressionKind.Typification, Expression.Identifier ("csv" |> Identifier.Create), Expression.StringLiteral ("text/csv" |> StringLiteral.Create)) 
-                                ]
-                                , Expression.Identifier ("const" |> Identifier.Create)
+
+    [<Test>]
+    [<Ignore("add after")>]
+    let ``const object expression test`` () =
+
+        let input = """
+            const mimeTypes = Object.freeze({
+              allFiles: '*/*',
+              audio: 'audio/*',
+              csv: 'text/csv',
+            } as const)
+        """
+
+        let output =
+            [
+                Statement.Const (
+                    Expression.Binary (
+                        ExpressionKind.Assignment
+                        , Expression.Identifier ("mimeTypes" |> Identifier.Create)
+                        , Expression.Binary ( 
+                            ExpressionKind.Dereferentiation
+                            , Expression.Identifier ("Object" |> Identifier.Create)
+                            , Expression.Function (
+                                "freeze"
+                                , Expression.Binary (
+                                    ExpressionKind.AsCast
+                                    , Expression.ObjectLiteral [
+                                        Expression.Binary (ExpressionKind.Typification, Expression.Identifier ("allFiles" |> Identifier.Create), Expression.StringLiteral ("*/*" |> StringLiteral.Create)) 
+                                        Expression.Binary (ExpressionKind.Typification, Expression.Identifier ("audio" |> Identifier.Create), Expression.StringLiteral ("audio/*" |> StringLiteral.Create)) 
+                                        Expression.Binary (ExpressionKind.Typification, Expression.Identifier ("csv" |> Identifier.Create), Expression.StringLiteral ("text/csv" |> StringLiteral.Create)) 
+                                    ]
+                                    , Expression.Identifier ("const" |> Identifier.Create)
+                                )
                             )
                         )
                     )
                 )
+            ]
+
+        let a = StringLiteral "sdf"
+        let b = StringLiteral "sdf"
+
+        document input |> shouldL equal (Result<Statements, string>.Ok output)
+
+
+    [<Test>]
+    [<Ignore("add after")>]
+    let ``const expression with dereferencing member`` () =
+
+        let input = """
+            const mimeTypes = Object.freeze
+        """
+
+        let expected : Result<Statements, string> =
+            Statement.Const (
+                Expression.Binary (
+                    ExpressionKind.Assignment
+                    , Expression.Identifier ("mimeTypes"  |> Identifier.Create)
+                    , Expression.Binary (
+                        ExpressionKind.Dereferentiation
+                        ,Expression.Identifier ("Object"  |> Identifier.Create) 
+                        ,Expression.Identifier ("freeze"  |> Identifier.Create))
+                )
             )
-        ]
-
-    let a = StringLiteral "sdf"
-    let b = StringLiteral "sdf"
-
-    document input |> shouldL equal (Result<Statements, string>.Ok output)
+            |> List.replicate 1
+            |> Result.Ok
 
 
-[<Test>]
-let ``const expression with dereferencing member`` () =
+        let actual = 
+            document input
 
-    let input = """
-        const mimeTypes = Object.freeze
-    """
+        Assert.That( actual, Is.EqualTo(expected), $"Actual: %A{actual}")
 
-    let expected : Result<Statements, string> =
-        Statement.Const (
-            Expression.Binary (
-                ExpressionKind.Assignment
-                , Expression.Identifier ("mimeTypes"  |> Identifier.Create)
-                , Expression.Binary (
-                    ExpressionKind.Dereferentiation
-                    ,Expression.Identifier ("Object"  |> Identifier.Create) 
-                    ,Expression.Identifier ("freeze"  |> Identifier.Create))
+
+    [<Test>]
+    [<Ignore("add after")>]
+    let ``const expression with dereferencing member invokation`` () =
+
+        let input = """
+            const mimeTypes = Object.freeze()
+        """
+
+        let expected : Result<Statements, string> =
+            Statement.Const (
+                Expression.Binary (
+                    ExpressionKind.Assignment
+                    , Expression.Identifier ("mimeTypes"  |> Identifier.Create)
+                    , Expression.Binary (
+                        ExpressionKind.Dereferentiation
+                        , Expression.Identifier ("Object" |> Identifier.Create)
+                        , Expression.Function ("freeze", Expression.Empty))
+                )
             )
-        )
-        |> List.replicate 1
-        |> Result.Ok
+            |> List.replicate 1
+            |> Result.Ok
 
 
-    let actual = 
-        document input
+        let actual = 
+            document input
 
-    Assert.That( actual, Is.EqualTo(expected), $"Actual: %A{actual}")
-
-
-[<Test>]
-let ``const expression with dereferencing member invokation`` () =
-
-    let input = """
-        const mimeTypes = Object.freeze()
-    """
-
-    let expected : Result<Statements, string> =
-        Statement.Const (
-            Expression.Binary (
-                ExpressionKind.Assignment
-                , Expression.Identifier ("mimeTypes"  |> Identifier.Create)
-                , Expression.Binary (
-                    ExpressionKind.Dereferentiation
-                    , Expression.Identifier ("Object" |> Identifier.Create)
-                    , Expression.Function ("freeze", Expression.Empty))
-            )
-        )
-        |> List.replicate 1
-        |> Result.Ok
-
-
-    let actual = 
-        document input
-
-    Assert.That( actual, Is.EqualTo(expected), $"Actual: %A{actual}")
+        Assert.That( actual, Is.EqualTo(expected), $"Actual: %A{actual}")
 
 

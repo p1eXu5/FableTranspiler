@@ -117,6 +117,18 @@ let ``backtracking operator test`` () =
     ()
 
 
+[<Test>]
+let ``backtracking operator test 2`` () =
+
+    let p = pchar 'a' .>>? pchar 'b' .>>? pchar 'c'
+    let input = "ac"
+
+    let res = run p input // failed
+    writeLine res
+
+    ()
+
+
 // Function or Identifier
 
 type Foo =
