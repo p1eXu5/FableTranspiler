@@ -21,7 +21,10 @@ namespace FableTranspiler.WpfClient.Converters
                 while (vm[i].Tag != Tag.EndOfDocument) 
                 {
                     var paragraph = new Paragraph() {  Margin = new Thickness(0) };
-                    while (vm[i].Tag != Tag.EndOfLine) {
+                    
+                    while (vm[i].Tag != Tag.EndOfLine) 
+                    {
+                        // TODO: if last keyword is import then not insert line break
                         switch (vm[i].Tag) {
                             case Tag.Keyword:
                                 paragraph.Inlines.Add(

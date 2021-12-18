@@ -8,8 +8,11 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Include="ParserTests\ImportTestCaseSource.fs" />
-    <Compile Include="ParserTests\ParserUTests.fs" />
+    <Compile Include="Parsers\TestCaseSources\ImportTestCaseSource.fs" />
+    <Compile Include="Parsers\Common.fs" />
+    <Compile Include="Parsers\ImportTests.fs" />
+    <Compile Include="Parsers\ExportTests.fs" />
+    <Compile Include="Parsers\ParserUTests.fs" />
     <Compile Include="LibTests\FParsecTests.fs" />
     <Compile Include="LibTests\FsCheckTests.fs" />
     <Compile Include="Program.fs" />

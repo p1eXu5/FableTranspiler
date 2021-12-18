@@ -32,8 +32,8 @@ module internal Implementation =
     let flowDocumentInterpretator statements =
 
         let modulePath = function
-            | NodeModule (ModulePath path) -> { Tag = Tag.Text; Content = path}
-            | Relative (ModulePath path) -> { Tag = Tag.Text; Content = path}
+            | NodeModule (ModulePath path) -> { Tag = Tag.Text; Content = sprintf "'%s'" path}
+            | Relative (ModulePath path) -> { Tag = Tag.Text; Content = sprintf "'%s'" path}
 
         
         

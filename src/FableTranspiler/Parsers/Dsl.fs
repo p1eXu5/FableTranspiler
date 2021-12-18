@@ -48,3 +48,9 @@ module Import =
             )
             , ``module`` path
         )
+
+    let ``default`` (path: string) =
+        Statement.Import (
+            [ImportEntity.No]
+            , ``module`` path
+        )

@@ -14,41 +14,41 @@ let asterisk = pchar '*'
 let openBrace : Parser<char, unit> = pchar '{'
 let closedBrace : Parser<char, unit> = pchar '}'
 
-let identifier = 
-    many1CharsTill anyChar (ws1 <|> followedBy (anyOf notValidIdentifierSymbols))
-        |>> Identifier.Create
 
-let namedEntity = identifier |>> ImportEntity.Named
-
-let aliasEntity = 
-    many1CharsTill anyChar ws1 
-        .>> str "as" 
-        .>>. identifier 
-        |>> (fun t -> ((Identifier.Create (fst t)), snd t) |> ImportEntity.Aliased)
+let namedEntity = Common.identifier .>>? notFollowedByL (str " as") "named entity must not followed by 'as'" |>> ImportEntity.Named
 
 
+let aliased = 
+    Common.identifier 
+        .>> ws1
+        .>>? str "as " 
+        .>>.? identifier 
+        |>> (fun t -> ((fst t), snd t) |> ImportEntity.Aliased)
 
-let defaultEntity = asterisk .>> ws1 |>> (fun _ -> ImportEntity.All)
 
-let defaultAliasedEntity = 
+
+let all = asterisk .>> ws1 |>> (fun _ -> ImportEntity.All)
+
+let allAliased = 
     asterisk 
-        >>. ws1 
-        >>. str "as"
-        >>. ws1
-        >>. identifier 
+        >>? ws1 
+        >>? str "as"
+        >>? ws1
+        >>? identifier 
         |>> ImportEntity.AllAliased
 
-let noEntity = ws1 |>> (fun _ -> ImportEntity.No)
+let noEntity : Parser<ImportEntity, unit> = ws1 |>> (fun _ -> ImportEntity.No)
 
 
 let entity =
-    choice [
+    ws
+    >>. choice [
         namedEntity
-        aliasEntity
-        defaultEntity
-        defaultAliasedEntity
-        noEntity
+        aliased
+        all
+        allAliased
     ]
+    .>> ws
 
 open System
 
@@ -68,14 +68,18 @@ let nodeModule =
 
 
 let importStatement =
-    ws >>. importKeyWord >>. ws1  
+    ws 
+        >>. importKeyWord 
         >>. choice [
-            openBrace >>? ws >>. many entity .>> ws .>> closedBrace
-            defaultAliasedEntity |>> List.singleton
-        ]
-        .>> choice [
-            ws1
-            str "from" >>. ws1
+            ws1  
+                >>? choice [
+                    openBrace >>? ws >>. many entity .>> ws .>> closedBrace
+                    allAliased |>> List.singleton
+                ]
+                .>> ws1 
+                .>> str "from "
+
+            noEntity |>> List.singleton
         ]
         .>>. choice [
             relativeModule

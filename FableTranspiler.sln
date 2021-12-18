@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 16
-VisualStudioVersion = 16.0.30114.105
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.32014.148
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{936223DC-03A8-40AB-88C4-6F05B109AB89}"
 EndProject
@@ -11,7 +11,12 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FableTranspiler.WpfClient",
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "test", "test", "{C6301060-9B3D-4539-B206-948B36129937}"
 EndProject
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "FableTranspiler.Tests", "test\FableTranspiler.Tests\FableTranspiler.Tests.fsproj", "{F8B52129-F584-433C-9A00-90CF05BFD209}"
+Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "FableTranspiler.Tests", "test\FableTranspiler.Tests\FableTranspiler.Tests.fsproj", "{F8B52129-F584-433C-9A00-90CF05BFD209}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "node-modules", "node-modules", "{A571C6EA-E1C8-4FE9-8C53-EF52D3992A36}"
+	ProjectSection(SolutionItems) = preProject
+		node_modules\@types\react-scroll\index.d.ts = node_modules\@types\react-scroll\index.d.ts
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

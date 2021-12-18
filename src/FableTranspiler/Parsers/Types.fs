@@ -16,7 +16,15 @@ type ModulePath = ModulePath of string with
 type ImportEntity =
     | No
     | Named of Identifier
+    /// <summary>
+    /// For example:
+    /// <c>Foo as Bar</c>
+    /// </summary>
     | Aliased of name: Identifier * alias: Identifier
+    /// <summary>
+    /// For example:
+    /// <c>*</c>
+    /// </summary>
     | All
     /// <summary>
     /// For example:

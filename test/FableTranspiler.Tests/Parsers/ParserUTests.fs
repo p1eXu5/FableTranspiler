@@ -1,4 +1,4 @@
-module FableTranspiler.Tests.ParserTests
+module FableTranspiler.Tests.Parsers.Expressions
 
 open NUnit.Framework
 open FsUnit
@@ -14,29 +14,8 @@ open System
 open FableTranspiler
 open System.Diagnostics
 open NUnit.Framework.Constraints
+open FableTranspiler.Tests.Parsers.Common
 
-
-[<DebuggerStepThrough>]
-let beOk expected = function
-    | Result.Ok ok -> Assert.That( ok, FsUnit.Equality.IsEqualTo(expected))
-    | Result.Error err -> failwithf "There is an error: %A" err
-
-
-
-let inline writeLine s = TestContext.WriteLine(sprintf "%A" s)
-
-[<DebuggerNonUserCode>]
-let shouldL (f: 'a -> #Constraint) x (y: obj) =
-    let c = f x
-
-    let y =
-        match y with
-        | :? (unit -> unit) -> box(TestDelegate(y :?> unit -> unit))
-        | _ -> y
-
-    if isNull(box c) 
-    then Assert.That(y, Is.Null) 
-    else Assert.That(y, c, fun () -> sprintf "%A" y)
 
 
 
@@ -81,38 +60,7 @@ let readFile file =
 
 
 
-// #region import parser tests
-open FableTranspiler.Tests.ParsersTests
 
-let shouldSuccess res = function
-    | Success (s, _, _) -> s |> shouldL equal res
-    | Failure (t, _, _) -> raise (AssertionException($"Should be %A{res} but was %A{t}"))
-
-
-[<TestCaseSource(typeof<TestCases>, nameof TestCases.ImportCases)>]
-let ``import statements - module name test`` (content: string, expected: Statement) =
-    let result = run Import.importStatement content
-    result |> shouldSuccess expected
-
-
-[<Test>]
-let ``defaultAliasedEntity test`` () =
-    let input = "* as React "
-    let result = run Import.defaultAliasedEntity input
-    let expected = ImportEntity.AllAliased (Identifier.Create "React")
-    result |> shouldSuccess expected
-
-
-[<TestCase("'react'")>]
-[<TestCase("'~/react'")>]
-let ``nodeModule test`` (input) =
-    let result = run Import.nodeModule input
-    let expected = ImportModule.NodeModule (ModulePath (input.Replace("'", "")))
-    result |> shouldSuccess expected
-
-
-
-// #endregion
 
 [<Property>]
 let ``identifier tests`` (IdentifierInput i) =
