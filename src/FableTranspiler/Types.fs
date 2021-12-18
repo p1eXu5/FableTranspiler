@@ -10,3 +10,15 @@ type Command =
         Caption: string
         Action: CommandAction
     }
+
+
+open FableTranspiler.Parsers.Types
+
+type Model =
+    {
+        SelectedModule: Statement list option
+    }
+
+type Msg =
+    | ParseFile
+    

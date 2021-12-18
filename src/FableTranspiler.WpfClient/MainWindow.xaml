@@ -18,9 +18,9 @@
         >
     
     <DockPanel LastChildFill="True">
-        <local:MainMenu DockPanel.Dock="Top"/>
+        <local:MainMenu DockPanel.Dock="Top" DataContext="{Binding}"/>
         <Separator DockPanel.Dock="Top"/>
         <local:SideBar DockPanel.Dock="Left" />
-        <local:Content DockPanel.Dock="Right" />
+        <local:Content DockPanel.Dock="Right" DataContext="{Binding}" />
     </DockPanel>
 </Window>

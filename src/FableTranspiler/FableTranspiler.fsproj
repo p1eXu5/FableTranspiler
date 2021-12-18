@@ -9,12 +9,16 @@
 
   <ItemGroup>
     <Compile Include="Parsers\Types.fs" />
+    <Compile Include="Parsers\Dsl.fs" />
     <Compile Include="Parsers\Parsers.Common.fs" />
     <Compile Include="Parsers\Parsers.Literals.fs" />
     <Compile Include="Parsers\Parsers.Import.fs" />
     <Compile Include="Parsers\Parsers.fs" />
-    <Compile Include="Types.fs" />
     <Compile Include="Infrastruture.fs" />
+    <Compile Include="Implementation.fs" />
+    <Compile Include="Types.fs" />
+    <Compile Include="Program.fs" />
+    <Compile Include="Bindings.fs" />
     <Compile Include="App.fs" />
   </ItemGroup>
 

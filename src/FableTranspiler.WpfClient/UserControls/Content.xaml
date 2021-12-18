@@ -4,9 +4,14 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:local="clr-namespace:FableTranspiler.WpfClient.UserControls"
+             xmlns:conv="clr-namespace:FableTranspiler.WpfClient.Converters"
+             xmlns:prop="clr-namespace:FableTranspiler.WpfClient.AttachedProperties"
              xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
-             mc:Ignorable="d" 
+             mc:Ignorable="d"
              d:DesignHeight="450" d:DesignWidth="800">
+    <UserControl.Resources>
+        <conv:StatementListToFlowDocumentConverter x:Key="conv_StatementListToFlowDocumentConverter" />
+    </UserControl.Resources>
     <materialDesign:ColorZone Padding="16" VerticalAlignment="Stretch">
         <DockPanel LastChildFill="True">
             <local:ToolBar DockPanel.Dock="Top"/>
@@ -17,21 +22,8 @@
                          VerticalScrollBarVisibility="Auto"
                          SpellCheck.IsEnabled="True"
                          materialDesign:HintAssist.Hint="Multiline text"
+                        prop:RichTextBoxHelper.DtsDocument="{Binding SelectedModule, Mode=OneWay}"
                          >
-                <FlowDocument>
-                    <Paragraph>
-                        <Run
-              FontWeight="Bold">
-                            Rich Text Box.
-                        </Run>
-                        <LineBreak />
-                        <Run
-              FontStyle="Italic">
-                            With formatting support
-                        </Run>
-                        <LineBreak />
-                    </Paragraph>
-                </FlowDocument>
             </RichTextBox>
         </DockPanel>
     </materialDesign:ColorZone>

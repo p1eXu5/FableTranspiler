@@ -10,7 +10,9 @@
     <Menu IsMainMenu="True">
         <MenuItem Header="_File" >
             <MenuItem Header="Open..."
-                      Icon="{materialDesign:PackIcon Kind=OpenInApp}">
+                      Icon="{materialDesign:PackIcon Kind=OpenInApp}"
+                      Command="{Binding OpenFileCommand}"
+                      >
             </MenuItem>
             
             <MenuItem Header="Save"

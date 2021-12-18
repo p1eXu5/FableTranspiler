@@ -18,6 +18,10 @@ type ImportEntity =
     | Named of Identifier
     | Aliased of name: Identifier * alias: Identifier
     | All
+    /// <summary>
+    /// For example:
+    /// <c>* as alias</c>
+    /// </summary>
     | AllAliased of alias: Identifier
 
 type ImportModule =

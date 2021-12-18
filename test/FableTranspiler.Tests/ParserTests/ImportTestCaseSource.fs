@@ -4,36 +4,26 @@ open System
 open System.Collections
 open NUnit.Framework
 open FableTranspiler.Parsers.Types
+open FableTranspiler.Parsers.Dsl
 
 type TestCases () =
     static member ImportCases : Object[] =
         [|
             [|
                 """import * as React from 'react';""" |> box
-                (
-                    Statement.Import (
-                        [ImportEntity.AllAliased ("React" |> Identifier.Create)]
-                        , ImportModule.NodeModule (ModulePath.Create "react")
-                    )
-                )
+                Import.allAliased "React" "react"
+            |]
+
+            [|
+                """import * as scroller from './mixins/scroller';""" |> box
+                Import.allAliased "scroller" "./mixins/scroller"
+            |]
+
+            [|
+                """import { ReactScrollLinkProps } from './Link';""" |> box
+                Import.namedS "ReactScrollLinkProps" "./mixins/scroller"
             |]
         |]
-
-
-            //yield TestCaseData("""import * as scroller from './mixins/scroller';""")
-            //    .Returns(
-            //        Statement.Import (
-            //            [ImportEntity.AllAliased ("scroller" |> Identifier.Create)]
-            //            , ModulePath.Relative (System.Uri("./mixins/scroller", UriKind.Relative))
-            //        ) |> Ok)
-
-
-            //yield TestCaseData("""import { ReactScrollLinkProps } from './Link';""")
-            //    .Returns(
-            //        Statement.Import (
-            //            [ImportEntity.Named ("ReactScrollLinkProps" |> Identifier.Create)]
-            //            , ModulePath.Relative (System.Uri("./Link", UriKind.Relative))
-            //        ) |> Ok)
 
 
             //yield TestCaseData("""import { ZipCodeValidator as ZCV } from "./ZipCodeValidator";""")
