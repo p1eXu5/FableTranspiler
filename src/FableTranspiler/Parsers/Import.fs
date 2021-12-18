@@ -1,6 +1,5 @@
 ﻿module FableTranspiler.Parsers.Import
 
-
 open FParsec
 open Types
 open Common

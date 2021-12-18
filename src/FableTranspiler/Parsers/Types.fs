@@ -40,6 +40,7 @@ type ImportModule =
 type Statement =
     | Const of Expression
     | Import of ImportEntity list * modulePath: ImportModule
+    | Export of Identifier
 
 and
     [<RequireQualifiedAccess>]
