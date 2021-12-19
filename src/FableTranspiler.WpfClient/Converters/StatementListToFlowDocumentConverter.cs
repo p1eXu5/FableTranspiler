@@ -26,6 +26,7 @@ namespace FableTranspiler.WpfClient.Converters
                     {
                         // TODO: if last keyword is import then not insert line break
                         Style? style = vm[i].Tag switch {
+                            Tag.Modifier => Application.Current.FindResource("st_Modifier") as Style,
                             Tag.Keyword => Application.Current.FindResource("st_Keyword") as Style,
                             Tag.Type => Application.Current.FindResource("st_Type") as Style,
                             Tag.Comment => Application.Current.FindResource("st_Comment") as Style,

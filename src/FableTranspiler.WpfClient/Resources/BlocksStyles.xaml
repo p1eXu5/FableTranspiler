@@ -16,4 +16,8 @@
         <Setter Property="Foreground" Value="#39904A"/>
     </Style>
 
+    <Style x:Key="st_Modifier" TargetType="Run">
+        <Setter Property="Foreground" Value="#888888"/>
+    </Style>
+
 </ResourceDictionary>

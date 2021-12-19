@@ -9,6 +9,7 @@
              xmlns:behaviors="http://schemas.microsoft.com/xaml/behaviors"
              mc:Ignorable="d" 
              d:DesignHeight="160" d:DesignWidth="400"
+             MinWidth="250"
              >
     <materialDesign:ColorZone Padding="16">
         <TreeView x:Name="m_treeView" ItemsSource="{Binding ModuleTree}">
