@@ -12,6 +12,7 @@
     <Compile Include="Parsers\Dsl.fs" />
     <Compile Include="Parsers\Common.fs" />
     <Compile Include="Parsers\Literals.fs" />
+    <Compile Include="Parsers\Structures.fs" />
     <Compile Include="Parsers\Comment.fs" />
     <Compile Include="Parsers\Module.fs" />
     <Compile Include="Parsers\Import.fs" />
