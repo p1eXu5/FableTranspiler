@@ -13,7 +13,9 @@ open System.IO
 type FileTreeViewModel =
     {
         FileName: string
+        StatementsResult: StatementsResult
         Modules: FileTreeViewModel list
+
     }
 
 
@@ -25,6 +27,7 @@ module internal FileTree =
         | Leaf leaf ->
             {
                 FileName = Path.GetFileName(leaf.Path)
+                StatementsResult = leaf
                 Modules = []
             }
         | Branch (root, branch) ->
@@ -34,6 +37,7 @@ module internal FileTree =
 
             {
                 FileName = Path.GetFileName(root.Path)
+                StatementsResult = root
                 Modules = modules
             }
                     

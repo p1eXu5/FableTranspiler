@@ -7,8 +7,12 @@ open Types
 open Common
 
 
-let planeType = sepEndBy identifier (ws >>. skipChar '.' >>. ws)
-let genericType = planeType .>>? skipChar '<' .>> ws .>>. sepEndBy planeType (ws >>. skipChar ',' >>. ws) .>> ws .>> skipChar '>'
+let planeType = sepEndBy identifier (ws >>. skipChar '.' >>. ws) |>> TypeName.Plain
+
+let genericType = 
+    planeType 
+    .>>? skipChar '<' .>> ws .>>. sepEndBy planeType (ws >>. skipChar ',' >>. ws) .>> ws .>> skipChar '>'
+    |>> TypeName.Generis
 
 let ``type`` =
     choice [
@@ -17,5 +21,18 @@ let ``type`` =
     ]
 
 
-let typeComposition = sepEndBy ``type`` ((ws >>. skipChar '&' >>. ws)
-let typeUnion = sepEndBy ``type`` ((ws >>. skipChar '|' >>. ws)
+let typeKeyword = skipString "type"
+
+let typeComposition = 
+    sepEndBy1 ``type`` (ws >>. skipChar '&' >>. ws) |>> TypeCombination.Composition
+
+let typeUnion = 
+    sepEndBy1 ``type`` (ws >>. skipChar '|' >>. ws) |>> TypeCombination.Union
+
+let typeAlias =
+    typeKeyword >>. ws1 >>. identifier .>> ws .>> skipChar '=' .>> ws 
+        .>>. choice [
+            typeComposition
+            typeUnion // order make sense
+        ]
+        |>> TypeAlias

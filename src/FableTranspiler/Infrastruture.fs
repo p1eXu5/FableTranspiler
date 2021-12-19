@@ -66,6 +66,7 @@ let rec parseFile fileName : Task<ModuleTree> =
 let openFile () =
     task {
         let fd = OpenFileDialog()
+        fd.Filter <- "d.ts files (*.d.ts)|*.d.ts|All files (*.*)|*.*"
         match fd.ShowDialog() |> Option.ofNullable with
         | Some _ ->
             let! tree = parseFile fd.FileName

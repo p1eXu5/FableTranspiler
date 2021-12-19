@@ -23,6 +23,7 @@
                          SpellCheck.IsEnabled="True"
                          materialDesign:HintAssist.Hint="Multiline text"
                         prop:RichTextBoxHelper.DtsDocument="{Binding SelectedModule, Mode=OneWay}"
+                        prop:RichTextBoxHelper.DocumentError="{Binding LastError, Mode=OneWay}"
                          >
             </RichTextBox>
         </DockPanel>

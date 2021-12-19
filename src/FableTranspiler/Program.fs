@@ -3,10 +3,31 @@
 open Types
 open Infrastruture
 open Elmish
+open FableTranspiler.VmAdapters
 
 
 let update (msg: Msg) (model: Model) =
     match msg with
+    | SelectFile o ->
+        match o with
+        | :? FileTreeViewModel as fileTree ->
+            match fileTree.StatementsResult.Statements with
+            | Ok s -> 
+                { 
+                    model with 
+                        SelectedModule = s |> Some
+                        LastError = None
+                }, Cmd.none
+
+            | Error err -> 
+                { 
+                    model with 
+                        SelectedModule = None
+                        LastError = err |> Some
+                }, Cmd.none
+        | _ -> failwith "Unknown type SelectFile message"
+
+
     | ParseFile -> 
         {
             model with

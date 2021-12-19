@@ -13,14 +13,16 @@ type ModulePath = ModulePath of string with
     static member Create(v) = ModulePath v
 
 
-type TypeAlias =
-    | Composition
-    | Union
+type TypeName =
+    | Plain of Identifier list
+    | Generis of TypeName * TypeName list
+
+type TypeCombination =
+    | Composition of TypeName list
+    | Union of TypeName list
 
 type StructureStatement =
-    | Type
-    | Class
-    | Interface
+    | TypeAlias of Identifier * TypeCombination
 
 
 type ImportEntity =
@@ -65,6 +67,7 @@ type Statement =
     | Import of ImportEntity list * modulePath: DtsModule
     | Export of ExportStatement
     | Const of Expression
+    | Structure of StructureStatement
 
 
 
