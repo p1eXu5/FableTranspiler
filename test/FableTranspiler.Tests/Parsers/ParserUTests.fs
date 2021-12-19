@@ -53,6 +53,7 @@ module Statements =
 
     let [<Literal>] node_mudules = __SOURCE_DIRECTORY__ + @"\..\..\..\node_modules"
     let [<Literal>] ``types/reac-scroll/index.d.ts`` = node_mudules + @"\@types\react-scroll\index.d.ts"
+    let [<Literal>] ``types/reac-scroll/modules/index.d.ts`` = node_mudules + @"\@types\react-scroll\modules\index.d.ts"
 
     open FSharp.Control
     open System.IO
@@ -80,6 +81,30 @@ module Statements =
                     Dsl.Comment.create "// TypeScript Version: 2.8"
                     Dsl.Import.allAliased "ReactScroll" "./modules/index"
                     Dsl.Export.outAssignment "ReactScroll"
+                 ]
+            return
+                doc |> beOk expeced
+        }
+
+    [<Test>]
+    [<Category("Statements")>]
+    let ``test react-scroll modules index_d_ts parsing`` () : Task =
+        task {
+            let! input = readFile ``types/reac-scroll/modules/index.d.ts``
+            let doc = document input
+            let expeced : Statements =
+                [
+                    Dsl.Export.defaultAliasedS "Button" "./components/Button"
+                    Dsl.Export.defaultAliasedS "Element" "./components/Element"
+                    Dsl.Export.transit ["Link" |> Choice1Of2; "LinkProps" |> Choice2Of2] "./components/Link"
+                    Dsl.Export.namedS "Helpers" "./mixins/Helpers"
+                    Dsl.Export.defaultAliasedS "Events" "./mixins/scroll-events"
+                    Dsl.Export.transit ["ScrollElement" |> Choice1Of2; "ScrollElementProps" |> Choice2Of2] "./mixins/scroll-element"
+                    Dsl.Export.transit ["ScrollLink" |> Choice1Of2; "ScrollLinkProps" |> Choice2Of2] "./mixins/scroll-link"
+                    Dsl.Export.defaultAliasedS "scrollSpy" "./mixins/scroll-spy"
+                    Dsl.Import.allAliased "scroller" "./mixins/scroller"
+                    Dsl.Import.allAliased "animateScroll" "./mixins/animate-scroll"
+                    Dsl.Export.outList ["animateScroll"; "scroller"]
                  ]
             return
                 doc |> beOk expeced

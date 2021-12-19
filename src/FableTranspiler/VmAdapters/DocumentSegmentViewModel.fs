@@ -1,4 +1,4 @@
-﻿namespace FableTranspiler
+﻿namespace FableTranspiler.VmAdapters
 
 open FableTranspiler.Parsers.Types
 open FableTranspiler.Parsers.Dsl
@@ -23,7 +23,7 @@ and
         | Type = 6
 
 
-module internal Implementation =
+module internal DocumentSegment =
 
     type EntityOrder =
         | Single
@@ -31,7 +31,7 @@ module internal Implementation =
         | Last
         | Middle
 
-    let flowDocumentInterpretator statements =
+    let toDocumentSegmentVmList statements =
 
         let modulePath = function
             | NodeModule (ModulePath path) -> { Tag = Tag.Text; Content = sprintf "'%s'" path}
@@ -152,6 +152,7 @@ module internal Implementation =
             | [] -> result @ [{ Tag = Tag.EndOfDocument; Content = null }]
                     
         (interpret statements []).ToList()
+
 
 
     let fakeModule () =

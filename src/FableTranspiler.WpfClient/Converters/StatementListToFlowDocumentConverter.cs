@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Data;
 using System.Windows.Documents;
-using FableTranspiler.Parsers;
+using FableTranspiler.VmAdapters;
 
 namespace FableTranspiler.WpfClient.Converters
 {

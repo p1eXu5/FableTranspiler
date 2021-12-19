@@ -1,30 +1,19 @@
 ﻿module FableTranspiler.Types
 
-
-type CommandAction =
-    | GrabFile of (unit -> string)
-    | ProcessFile of string
-
-type Command =
-    {
-        Caption: string
-        Action: CommandAction
-    }
-
-
-
-
 open FableTranspiler.Parsers.Types
 open Elmish
+open Infrastruture
 
 type Model =
     {
+        ModuleTree: ModuleTree option
         SelectedModule: Statements option
         IsBusy: bool
     }
     with 
         static member Init () =
             {
+                ModuleTree = None
                 SelectedModule = None
                 IsBusy = false
             },
@@ -32,6 +21,6 @@ type Model =
 
 type Msg =
     | ParseFile
-    | FileParsed of Result<Statements, string>
+    | FileParsed of Result<ModuleTree, string>
     | Failed of exn
     

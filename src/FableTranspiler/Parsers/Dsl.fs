@@ -78,6 +78,22 @@ module Export =
             , ``module`` path
         )
 
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="entities"> Choise1 - defaulted, Choice2 - named</param>
+    /// <param name="path"></param>
+    let transit (entities: Choice<string, string> list) (path: string) =
+        Statement.Export <| Transit (
+            entities
+            |> List.map (function
+                | Choice1Of2 name -> 
+                    ExportEntity.DefaultAliased (name |> Identifier.Create)
+                | Choice2Of2 name -> ExportEntity.Named (name |> Identifier.Create)
+            )
+            , ``module`` path
+        )
+
 
 
 [<RequireQualifiedAccess>]

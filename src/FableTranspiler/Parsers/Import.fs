@@ -52,7 +52,7 @@ let entity =
 
 let statement =
     ws 
-        >>. keyword 
+        >>? keyword 
         >>. choice [
             ws1  
                 >>? choice [

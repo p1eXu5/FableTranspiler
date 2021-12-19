@@ -1,4 +1,5 @@
 ﻿using FableTranspiler.WpfClient.Converters;
+using FableTranspiler.VmAdapters;
 using System;
 using System.Collections.Generic;
 using System.Globalization;

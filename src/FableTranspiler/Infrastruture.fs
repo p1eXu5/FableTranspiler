@@ -22,21 +22,24 @@ type StatementsResult =
         Statements: Result<Statements, string>
     }
 
-type StatementsTree =
+type ModuleTree =
     | Leaf of StatementsResult
-    | Branch of StatementsResult * StatementsTree list
+    | Branch of StatementsResult * ModuleTree list
 
 
-let rec parseFile fileName : Task<StatementsTree> =
+let rec parseFile fileName : Task<ModuleTree> =
     task {
         let! content = readFile fileName
         match document content with
         | Ok statements ->
             let! results =
                 statements
-                |> List.choose (function | Statement.Import (_, Relative t) ->  t |> Some | _ -> None)
+                |> List.choose (function 
+                    | Statement.Import (_, Relative t) ->  t |> Some 
+                    | Statement.Export (Transit (_, (Relative t))) ->  t |> Some 
+                    | _ -> None)
                 |> List.map (fun (ModulePath m) ->
-                    let relativePath = Path.Combine(fileName, m + ".d.ts")
+                    let relativePath = Path.Combine(Path.GetDirectoryName(fileName), m + ".d.ts")
                     parseFile relativePath
                 )
                 |> Task.WhenAll
@@ -67,5 +70,5 @@ let openFile () =
         | Some _ ->
             let! tree = parseFile fd.FileName
             return tree |> Ok
-        | None -> return Error "open file canceled."
+        | None -> return Error "open file canceled"
     }

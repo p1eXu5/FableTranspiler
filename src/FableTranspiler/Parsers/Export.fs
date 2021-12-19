@@ -26,11 +26,11 @@ let namedEntity =
 
 
 let outAssignment =
-    ws >>. keyword >>. ws >>? skipChar '=' >>. ws >>. Common.identifier |>> ExportStatement.OutAssignment .>> ws .>> skipChar ';'
+    ws >>? keyword >>. ws >>? skipChar '=' >>. ws >>. Common.identifier |>> ExportStatement.OutAssignment .>> ws .>> skipChar ';'
 
 let outList =
     ws 
-        >>. keyword
+        >>? keyword
         >>. ws
         >>? openBrace 
         >>? ws 
@@ -54,7 +54,7 @@ let entity =
 
 let transit =
     ws 
-    >>. keyword
+    >>? keyword
     >>. ws
     >>. choice [
         openBrace

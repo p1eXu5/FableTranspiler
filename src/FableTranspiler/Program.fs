@@ -2,7 +2,6 @@
 
 open Types
 open Infrastruture
-open Implementation
 open Elmish
 
 
@@ -15,10 +14,10 @@ let update (msg: Msg) (model: Model) =
         },
         Cmd.OfTask.either openFile () FileParsed Failed
 
-    | FileParsed (Ok statements) ->
+    | FileParsed (Ok moduleTree) ->
         {
             model with 
-                SelectedModule = statements |> Some
+                ModuleTree = moduleTree |> Some
                 IsBusy = false
         }, Cmd.none
 
