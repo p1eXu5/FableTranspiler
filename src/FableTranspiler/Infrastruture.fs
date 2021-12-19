@@ -5,6 +5,9 @@ open System.IO
 open System.Windows
 open Microsoft.Win32
 open Parsers.Identifier
+open FableTranspiler.Parsers.Types
+open System.Threading.Tasks
+
 
 let readFile file =
     task {
@@ -12,16 +15,57 @@ let readFile file =
         return! stream.ReadToEndAsync()
     }
 
-let parseFile fileName =
+
+type StatementsResult =
+    {
+        Path: string
+        Statements: Result<Statements, string>
+    }
+
+type StatementsTree =
+    | Leaf of StatementsResult
+    | Branch of StatementsResult * StatementsTree list
+
+
+let rec parseFile fileName : Task<StatementsTree> =
     task {
         let! content = readFile fileName
-        return document content
+        match document content with
+        | Ok statements ->
+            let! results =
+                statements
+                |> List.choose (function | Statement.Import (_, Relative t) ->  t |> Some | _ -> None)
+                |> List.map (fun (ModulePath m) ->
+                    let relativePath = Path.Combine(fileName, m + ".d.ts")
+                    parseFile relativePath
+                )
+                |> Task.WhenAll
+
+            return 
+                (
+                    {
+                        Path = fileName
+                        Statements = (statements |> Ok)
+                    }
+                    , results |> Array.toList
+                ) 
+                |> Branch
+
+        | Error err -> 
+            return
+                {
+                    Path = fileName
+                    Statements = Error err
+                }
+                |> Leaf
     }
 
 let openFile () =
     task {
         let fd = OpenFileDialog()
         match fd.ShowDialog() |> Option.ofNullable with
-        | Some _ -> return! parseFile fd.FileName
-        | None -> return Error ""
+        | Some _ ->
+            let! tree = parseFile fd.FileName
+            return tree |> Ok
+        | None -> return Error "open file canceled."
     }
