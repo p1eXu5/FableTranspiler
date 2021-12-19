@@ -36,3 +36,10 @@ let typeAlias =
             typeUnion // order make sense
         ]
         |>> TypeAlias
+
+let statement =
+    choice [
+        skipString "export" >>? ws1 >>? typeAlias
+        typeAlias
+    ]
+    |>> Structure

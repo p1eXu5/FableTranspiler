@@ -109,6 +109,7 @@ let statement =
         Import.statement
         Export.statement
         Comment.statement
+        Structures.statement
     ]
 
 let query : Parser<Statements, _> = sepEndBy statement skipNewline

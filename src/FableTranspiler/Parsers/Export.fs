@@ -26,12 +26,11 @@ let namedEntity =
 
 
 let outAssignment =
-    ws >>? keyword >>. ws >>? skipChar '=' >>. ws >>. Common.identifier |>> ExportStatement.OutAssignment .>> ws .>> skipChar ';'
+    keyword >>. ws >>? skipChar '=' >>. ws >>. Common.identifier |>> ExportStatement.OutAssignment .>> ws .>> skipChar ';'
 
 let outList =
-    ws 
-        >>? keyword
-        >>. ws
+    keyword
+        >>. ws1
         >>? openBrace 
         >>? ws 
         >>? sepEndBy1 (ws >>. namedEntity .>> ws) (skipChar ',') 
@@ -44,19 +43,16 @@ let outList =
 
 
 let entity =
-    ws
-    >>. choice [
+    choice [
         namedEntity |>> ExportEntity.Named
         defaultAliased
     ]
-    .>> ws
 
 
 let transit =
-    ws 
-    >>? keyword
+    keyword
     >>. ws
-    >>. choice [
+    >>? choice [
         openBrace
             >>? sepEndBy1 (ws >>. entity .>> ws) (skipChar ',') 
             .>> ws 
@@ -75,7 +71,8 @@ let transit =
 
 
 let statement =
-    choice [
+    ws
+    >>? choice [
         outAssignment
         outList
         transit

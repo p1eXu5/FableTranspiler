@@ -141,6 +141,23 @@ let ``backtracking operator test 3`` () =
 
     let input = "abd"
 
+    let res = run p input // success
+    writeLine res
+
+    ()
+
+[<Test>]
+let ``backtracking operator test 4`` () =
+
+    let p1 = pchar 'a' .>> pchar 'f' .>>? pchar 'c'
+    let p2 = pchar 'a' .>> pchar 'b' .>>? pchar 'd'
+    let p = choice [
+        p1
+        p2
+    ]
+
+    let input = "abd"
+
     let res = run p input // failed
     writeLine res
 
