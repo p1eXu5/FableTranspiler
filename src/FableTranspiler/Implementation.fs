@@ -50,7 +50,7 @@ module internal Implementation =
 
             match entity with
             | No -> [{ Tag = Tag.NoContent; Content = null }]
-            | Named (Identifier identifier) -> [{ Tag = Tag.Text; Content = identifier |> insert}]
+            | ImportEntity.Named (Identifier identifier) -> [{ Tag = Tag.Text; Content = identifier |> insert}]
             | Aliased (Identifier name, Identifier alias) -> 
                 match entityOrder with
                 | First ->
@@ -132,7 +132,7 @@ module internal Implementation =
                             yield { Tag = Tag.EndOfLine; Content = ";" }
                         ]
 
-                | Export (Identifier identifier) ->
+                | Export (OutAssignment (Identifier identifier)) ->
                     continueInterpret tail
                         [
                             yield { Tag = Tag.Keyword; Content = "export" }

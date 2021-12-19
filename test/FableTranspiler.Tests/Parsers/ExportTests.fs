@@ -6,6 +6,7 @@ open NUnit.Framework
 module ExportTests =
 
     open FableTranspiler.Parsers
+    open FableTranspiler.Parsers.Dsl
     open FableTranspiler.Parsers.Types
     open FParsec
     open FableTranspiler.Tests.Parsers.Common
@@ -15,5 +16,11 @@ module ExportTests =
     [<TestCase("export=ReactScroll;")>]
     let ``export statement test`` (input: string) =
         let result = run Export.statement input
-        let expected = Statement.Export (Identifier.Create "ReactScroll")
+        let expected = Export.outAssignment "ReactScroll"
+        result |> shouldSuccess expected
+
+
+    [<TestCaseSource(typeof<TestCases>, nameof TestCases.ExportCases)>]
+    let ``import statements - module name test`` (content: string, expected: Statement) =
+        let result = run Export.statement content
         result |> shouldSuccess expected

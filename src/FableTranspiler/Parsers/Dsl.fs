@@ -3,15 +3,15 @@
 open Types
 open System
 
+let ``module`` path =
+    let modulePath = ModulePath.Create path
+    match Char.IsLetter(path.[0]) with
+    | true -> DtsModule.NodeModule modulePath
+    | false -> DtsModule.Relative modulePath
+
+
 [<RequireQualifiedAccess>]
 module Import =
-    let ``module`` path =
-        let modulePath = ModulePath.Create path
-        match Char.IsLetter(path.[0]) with
-        | true -> ImportModule.NodeModule modulePath
-        | false -> ImportModule.Relative modulePath
-
-
     let allAliased alias (path: string) =
         Statement.Import (
             [ImportEntity.AllAliased (alias |> Identifier.Create)]
@@ -55,10 +55,29 @@ module Import =
             , ``module`` path
         )
 
+
+
 [<RequireQualifiedAccess>]
 module Export =
-    let create name =
-        Statement.Export (Identifier.Create name)
+    let outAssignment name =
+        Statement.Export (Identifier.Create name |> OutAssignment)
+
+    let outList names =
+        Statement.Export (names |> List.map Identifier.Create |> OutList)
+
+
+    let namedS name (path: string) =
+        Statement.Export <| Transit (
+            [ExportEntity.Named (name |> Identifier.Create)]
+            , ``module`` path
+        )
+
+    let defaultAliasedS alias (path: string) =
+        Statement.Export <| Transit (
+            [ExportEntity.DefaultAliased (alias |> Identifier.Create)]
+            , ``module`` path
+        )
+
 
 
 [<RequireQualifiedAccess>]

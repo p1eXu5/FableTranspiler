@@ -47,6 +47,6 @@ module ImportTests =
     [<TestCase("'react'")>]
     [<TestCase("'~/react'")>]
     let ``nodeModule test`` (input) =
-        let result = run Import.nodeModule input
-        let expected = ImportModule.NodeModule (ModulePath (input.Replace("'", "")))
+        let result = run Module.node input
+        let expected = DtsModule.NodeModule (ModulePath (input.Replace("'", "")))
         result |> shouldSuccess expected

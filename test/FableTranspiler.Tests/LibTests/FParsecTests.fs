@@ -129,6 +129,24 @@ let ``backtracking operator test 2`` () =
     ()
 
 
+[<Test>]
+let ``backtracking operator test 3`` () =
+
+    let p1 = pchar 'a' .>> pchar 'b' .>>? pchar 'c'
+    let p2 = pchar 'a' .>> pchar 'b' .>>? pchar 'd'
+    let p = choice [
+        p1
+        p2
+    ]
+
+    let input = "abd"
+
+    let res = run p input // failed
+    writeLine res
+
+    ()
+
+
 // Function or Identifier
 
 type Foo =

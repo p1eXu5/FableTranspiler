@@ -32,16 +32,30 @@ type ImportEntity =
     /// </summary>
     | AllAliased of alias: Identifier
 
-type ImportModule =
+type DtsModule =
     | NodeModule of ModulePath
     | Relative of ModulePath
 
 
+
+type ExportEntity =
+    | Named of Identifier
+    | DefaultAliased of alias: Identifier
+
+
+type ExportStatement =
+    | OutAssignment of Identifier
+    | OutList of Identifier list
+    | Transit of ExportEntity list * DtsModule
+
+
 type Statement =
-    | Const of Expression
-    | Import of ImportEntity list * modulePath: ImportModule
-    | Export of Identifier
     | Comment of string
+    | Import of ImportEntity list * modulePath: DtsModule
+    | Export of ExportStatement
+    | Const of Expression
+
+
 
 and
     [<RequireQualifiedAccess>]

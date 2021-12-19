@@ -32,3 +32,25 @@ type TestCases () =
                     """import './my-module.js';""" |> box,
                     Import.``default`` "./my-module.js").SetName("Statement: no")
         }
+
+
+    static member ExportCases : IEnumerable =
+        seq {
+            yield 
+                TestCaseData(
+                    """export { default as Button } from './components/Button';""" |> box,
+                    Export.defaultAliasedS "Button" "./components/Button").SetName("Statement: defaultAliased 1")
+            yield 
+                TestCaseData(
+                    """export { Helpers } from './mixins/Helpers';""" |> box,
+                    Export.namedS "Helpers" "./mixins/Helpers").SetName("Statement: named")
+
+            yield 
+                TestCaseData(
+                    """export { animateScroll, scroller };""" |> box,
+                    Export.outList ["animateScroll"; "scroller"]).SetName("Statement: outList")
+            yield 
+                TestCaseData(
+                    """export = ReactScroll;""" |> box,
+                    Export.outAssignment "ReactScroll").SetName("Statement: outList")
+        }

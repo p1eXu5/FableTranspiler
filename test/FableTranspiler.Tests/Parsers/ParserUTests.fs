@@ -79,7 +79,7 @@ module Statements =
                     Dsl.Comment.create "// Definitions: https://github.com/DefinitelyTyped/DefinitelyTyped"
                     Dsl.Comment.create "// TypeScript Version: 2.8"
                     Dsl.Import.allAliased "ReactScroll" "./modules/index"
-                    Dsl.Export.create "ReactScroll"
+                    Dsl.Export.outAssignment "ReactScroll"
                  ]
             return
                 doc |> beOk expeced

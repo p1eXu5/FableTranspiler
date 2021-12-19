@@ -6,16 +6,13 @@ open Types
 open Common
 
 
-let importKeyWord = skipString "import"
+let keyword = skipString "import"
 
 let asterisk = skipChar '*'
 
 
-let openBrace : Parser<unit, unit> = skipChar '{'
-let closedBrace : Parser<unit, unit> = skipChar '}'
-
-
-let namedEntity = Common.identifier .>>? notFollowedByL (str " as") "named entity must not followed by 'as'" |>> ImportEntity.Named
+let namedEntity = 
+    Common.identifier .>>? notFollowedByL (str " as") "named entity must not followed by 'as'" |>> ImportEntity.Named
 
 
 let aliased = 
@@ -50,26 +47,12 @@ let entity =
     ]
     .>> ws
 
-open System
-
-let relativeModule = 
-    quote 
-    >>? (pchar '.') 
-    .>>.? many1CharsTill anyChar quote 
-    |>> (fun path -> ModulePath ((sprintf "%c%s" (fst path) (snd path))) |> Relative)
-
-let nodeModule = 
-    quote 
-    >>? (noneOf ['.'; '/'; '\\'] <|> satisfy (fun ch -> ch = '~' || Char.IsLetterOrDigit(ch)))
-    .>>.? many1CharsTill anyChar quote 
-    |>> (fun path -> ModulePath ((sprintf "%c%s" (fst path) (snd path))) |> NodeModule)
-
 
 
 
 let statement =
     ws 
-        >>. importKeyWord 
+        >>. keyword 
         >>. choice [
             ws1  
                 >>? choice [
@@ -82,8 +65,8 @@ let statement =
             noEntity |>> List.singleton
         ]
         .>>. choice [
-            relativeModule
-            nodeModule
+            Module.relative
+            Module.node
         ]
         .>> ws
         .>> skipChar ';'

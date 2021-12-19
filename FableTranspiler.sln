@@ -18,6 +18,11 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "node-modules", "node-module
 		node_modules\@types\react-scroll\index.d.ts = node_modules\@types\react-scroll\index.d.ts
 	EndProjectSection
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "modules", "modules", "{EAC0E465-4CA5-46B3-90C8-3917F830EA07}"
+	ProjectSection(SolutionItems) = preProject
+		node_modules\@types\react-scroll\modules\index.d.ts = node_modules\@types\react-scroll\modules\index.d.ts
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -44,6 +49,7 @@ Global
 		{1FF0EE9A-FB56-45F9-9D64-5F0D622DE019} = {936223DC-03A8-40AB-88C4-6F05B109AB89}
 		{71C3219B-379C-450C-AE62-87EEA286221A} = {936223DC-03A8-40AB-88C4-6F05B109AB89}
 		{F8B52129-F584-433C-9A00-90CF05BFD209} = {C6301060-9B3D-4539-B206-948B36129937}
+		{EAC0E465-4CA5-46B3-90C8-3917F830EA07} = {A571C6EA-E1C8-4FE9-8C53-EF52D3992A36}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {94509709-A3DE-4954-B4F0-0C9AE004BF3F}
