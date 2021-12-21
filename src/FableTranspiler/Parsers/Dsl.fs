@@ -100,3 +100,23 @@ module Export =
 module Comment =
     let create comment =
         Statement.Comment comment
+
+
+[<RequireQualifiedAccess>]
+module Structures =
+    let plainTypeName =
+        List.map Identifier.Create >> TypeName.Plain
+        
+    let genericTypeName qualifiers typeNames =
+        (
+            qualifiers |> List.map Identifier.Create
+            , typeNames
+        )
+        |> TypeName.Generic
+
+
+    let typeAlias name typeCombination =
+        (
+            name |> Identifier.Create
+            , typeCombination
+        ) |> TypeAlias

@@ -15,9 +15,10 @@ type ModulePath = ModulePath of string with
 
 type TypeName =
     | Plain of Identifier list
-    | Generis of TypeName * TypeName list
+    | Generic of Identifier list * TypeName list
 
 type TypeCombination =
+    /// choosen for single type alias
     | Composition of TypeName list
     | Union of TypeName list
 

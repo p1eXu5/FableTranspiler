@@ -6,28 +6,47 @@ open FParsec
 open Types
 open Common
 
-
-let planeType = sepEndBy identifier (ws >>. skipChar '.' >>. ws) |>> TypeName.Plain
+let notFollowedByChars chars = notFollowedBy (skipAnyOf chars)
+let attemptSep ch = attempt (ws >>. skipChar ch >>. ws)
+let qualifiers = sepBy identifier (attemptSep '.') 
+let planeType = qualifiers .>>? notFollowedByChars ['<'] |>> TypeName.Plain
 
 let genericType = 
-    planeType 
-    .>>? skipChar '<' .>> ws .>>. sepEndBy planeType (ws >>. skipChar ',' >>. ws) .>> ws .>> skipChar '>'
-    |>> TypeName.Generis
+    qualifiers
+    .>> ws
+    .>>? skipChar '<' .>> ws .>>. sepBy planeType (attemptSep ',') .>> ws .>> skipChar '>'
+    |>> TypeName.Generic
 
 let ``type`` =
-    choice [
+    choiceL [
         planeType
         genericType
-    ]
+    ] "expecting type name"
 
 
 let typeKeyword = skipString "type"
 
-let typeComposition = 
-    sepEndBy1 ``type`` (ws >>. skipChar '&' >>. ws) |>> TypeCombination.Composition
+let typeComposition =
+    ``type``
+    .>> ws
+    .>>? skipChar '&'
+    .>> ws
+    .>>. sepBy1 ``type`` (attemptSep '&') 
+    |>> (fun tpl -> 
+        let (t, l) = tpl
+        (t :: l) |> TypeCombination.Composition
+    )
 
 let typeUnion = 
-    sepEndBy1 ``type`` (ws >>. skipChar '|' >>. ws) |>> TypeCombination.Union
+    ``type``
+    .>> ws
+    .>>? skipChar '|'
+    .>> ws
+    .>>. sepBy1 ``type`` (attemptSep '|') 
+    |>> (fun tpl -> 
+        let (t, l) = tpl
+        (t :: l) |> TypeCombination.Union
+    )
 
 let typeAlias =
     typeKeyword >>. ws1 >>. identifier .>> ws .>> skipChar '=' .>> ws 

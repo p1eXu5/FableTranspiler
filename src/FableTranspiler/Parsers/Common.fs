@@ -8,7 +8,7 @@ let ws1   = spaces1
 let str s = pstring s
 
 
-let notValidIdentifierSymbols = ['-'; '/'; '\\'; '#'; '{'; '}'; '('; ')'; '?'; '+'; '*'; ':'; ';'; '~'; '!']
+let notValidIdentifierSymbols = ['-'; '/'; '\\'; '#'; '{'; '}'; '('; ')'; '?'; '+'; '*'; ':'; ';'; '~'; '!'; '&'; '|']
 
 let quote : Parser<_, unit> = skipChar '\''
 let doubleQuote : Parser<_, unit> = skipChar '\"'
