@@ -123,10 +123,71 @@ module internal DocumentSegment =
                 
 
 
-        let rec interpret statements result lastTag =
+        let rec interpretStructure structure : DocumentSegmentViewModel list =
 
-            let continueInterpret tail s =
-                interpret tail (List.append result s)
+            let constructType l : DocumentSegmentViewModel list =
+                l
+                |> List.map (fun t -> [{ Tag = Tag.Type; Content = Identifier.Value(t)}])
+                |> List.reduce (fun t1 t2 -> 
+                    [
+                        yield! t1
+                        { Tag = Tag.Text; Content = "." }
+                        yield! t2
+                    ]
+                )
+
+
+            let rec constructCombination sep combination res =
+                match combination with
+                | [] -> 
+                    res
+                    |> List.rev
+                    |> List.reduce (fun t1 t2 -> 
+                        [
+                            yield! t1
+                            { Tag = Tag.Text; Content = sep }
+                            yield! t2
+                        ]
+                    )
+                | head :: tail ->
+                    match head with
+                    | Plain p -> 
+                        constructType p
+                        |> (fun r -> constructCombination sep tail (r :: res))
+                    | Generic (p, i) ->
+                        let main = constructType p
+                        let inner = constructCombination ", " i []
+                        let l =
+                            [
+                                yield! main
+                                { Tag = Tag.Text; Content = "<" }
+                                yield! inner
+                                { Tag = Tag.Text; Content = "> " }
+                            ]
+                        constructCombination sep tail (l :: res)
+
+
+            match structure with
+            | TypeAlias (Identifier identifier, combination) ->
+                [
+                    yield { Tag = Tag.Keyword; Content = "type " }
+                    yield { Tag = Tag.Type; Content = identifier }
+                    yield { Tag = Tag.Text; Content = " = " }
+                    match combination with
+                    | Union l ->
+                        yield! constructCombination " | " l []
+                    | Composition l ->
+                        yield!  constructCombination " & " l []
+                ]
+            | _ -> []
+
+
+
+        let rec interpret statements result lastTag : DocumentSegmentViewModel list =
+
+            /// append generated view models to the result and invokes interpret
+            let continueInterpret tail xvm =
+                interpret tail (List.append result xvm)
 
             match statements with
             | head :: tail ->
@@ -211,6 +272,25 @@ module internal DocumentSegment =
                         "export"
 
 
+                | Export (ExportStatement.Structure structure) ->
+                    let xvm = interpretStructure structure
+
+                    continueInterpret tail
+                        [
+                            yield { Tag = Tag.EndOfLine; Content = "" }
+                            match structure with
+                            | ClassDefinition _ ->
+                                yield { Tag = Tag.Modifier; Content = "export default " }
+                            | _ ->
+                                yield { Tag = Tag.Modifier; Content = "export " }
+                            yield! xvm
+                            match structure with
+                            | ClassDefinition _ ->
+                                yield { Tag = Tag.EndOfLine; Content = null }
+                            | _ ->
+                                yield { Tag = Tag.EndOfLine; Content = ";" }
+                        ]
+                        ""
 
                 | Comment comment ->
                     let s =

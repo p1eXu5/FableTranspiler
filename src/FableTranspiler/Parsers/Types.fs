@@ -5,12 +5,15 @@ open Microsoft.FSharp.Quotations
 
 type Identifier = Identifier of string with
     static member Create(v) = Identifier v
+    static member Value(Identifier v) = v
 
 type StringLiteral = StringLiteral of string with
     static member Create(v) = StringLiteral v
+    static member Value(StringLiteral v) = v
 
 type ModulePath = ModulePath of string with
     static member Create(v) = ModulePath v
+    static member Value(ModulePath v) = v
 
 
 type TypeName =
