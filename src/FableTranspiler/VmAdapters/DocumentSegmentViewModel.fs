@@ -179,7 +179,13 @@ module internal DocumentSegment =
                     | Composition l ->
                         yield!  constructCombination " & " l []
                 ]
-            | _ -> []
+            | ClassDefinition (Extended (Identifier i, l)) -> 
+                [
+                    yield { Tag = Tag.Keyword; Content = "class " }
+                    yield { Tag = Tag.Type; Content = i }
+                    yield { Tag = Tag.Keyword; Content = " extends " }
+                    yield! constructCombination "" [l] []
+                ]
 
 
 
@@ -280,7 +286,8 @@ module internal DocumentSegment =
                             yield { Tag = Tag.EndOfLine; Content = "" }
                             match structure with
                             | ClassDefinition _ ->
-                                yield { Tag = Tag.Modifier; Content = "export default " }
+                                yield { Tag = Tag.Modifier; Content = "export " }
+                                yield { Tag = Tag.Keyword; Content = "default " }
                             | _ ->
                                 yield { Tag = Tag.Modifier; Content = "export " }
                             yield! xvm
