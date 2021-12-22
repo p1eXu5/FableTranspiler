@@ -68,7 +68,7 @@ open Literals
 let classKeyword = skipString "class"
 let extendsKeyword = skipString "extends"
 
-let classDeclaration = 
+let classDefinition = 
     classKeyword
     >>. ws1
     >>. identifier
@@ -85,6 +85,6 @@ let statement =
     choice [
         skipString "export" >>? ws1 >>? typeAlias // TODO: move to exports
         typeAlias
-        classDeclaration
+        classDefinition
     ]
     |>> Structure

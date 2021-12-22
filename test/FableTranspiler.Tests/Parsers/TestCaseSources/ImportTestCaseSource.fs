@@ -59,11 +59,11 @@ type TestCases () =
             yield
                 TestCaseData(
                     $"""export {typeAliasInput}""" |> box,
-                    typeAlias |> ExportStatement.Structure).SetName("Statement: export type alias")
+                    typeAlias |> ExportStatement.Structure |> Statement.Export).SetName("Statement: export type alias")
 
             let (classDefinitionInput, classDefinition) = StructuresFactory.classDefinition
             yield
                 TestCaseData(
                     $"""export default {classDefinitionInput}""" |> box,
-                    classDefinition |> ExportStatement.Structure).SetName("Statement: export default class definition")
+                    classDefinition |> ExportStatement.Structure |> Statement.Export).SetName("Statement: export default class definition")
         }

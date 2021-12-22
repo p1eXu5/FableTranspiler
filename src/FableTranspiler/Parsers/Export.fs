@@ -6,30 +6,30 @@ open Types
 open Common
 
 
-let keyword = skipString "export"
+let exportKeyword = skipString "export"
 
-let ``default`` = skipString "default"
+let defaultKeyword = skipString "default"
 
 let defaultAliased = 
-    ``default`` 
+    defaultKeyword 
         >>. ws1
-        >>. skipString "as"
+        >>? (skipString "as" <?> "expected 'as' in default aliased export")
         >>. ws1
         >>. identifier 
         |>> ExportEntity.DefaultAliased
 
 
 let namedEntity =
-    notFollowedByL (``default``) "its not named export entity"
+    notFollowedByL (defaultKeyword) "its not named export entity"
     >>? Common.identifier .>>? notFollowedByL (str " as") "named entity must not followed by 'as'"
 
 
 
 let outAssignment =
-    keyword >>. ws >>? skipChar '=' >>. ws >>. Common.identifier |>> ExportStatement.OutAssignment .>> ws .>> skipChar ';'
+    exportKeyword >>. ws >>? skipChar '=' >>. ws >>. Common.identifier |>> ExportStatement.OutAssignment .>> ws .>> skipChar ';'
 
 let outList =
-    keyword
+    exportKeyword
         >>. ws1
         >>? openBrace 
         >>? ws 
@@ -50,17 +50,17 @@ let entity =
 
 
 let transit =
-    keyword
+    exportKeyword
     >>. ws
     >>? choice [
         openBrace
-            >>? sepEndBy1 (ws >>. entity .>> ws) (skipChar ',') 
+            >>? sepBy1 (attempt(ws >>. entity .>> ws)) (skipChar ',') 
             .>> ws 
             .>> closedBrace
         entity |>> List.singleton
     ]
     .>> ws1 
-    .>> skipString "from "
+    .>>? (skipString "from " <?> "expected 'from' keyword in transit export statement")
     .>>. choice [
         Module.relative
         Module.node
@@ -70,11 +70,14 @@ let transit =
     .>> skipChar ';'
 
 
+
 let statement =
     ws
     >>? choice [
         outAssignment
         outList
         transit
+        exportKeyword >>. ws1 >>? Structures.typeAlias |>> ExportStatement.Structure
+        exportKeyword >>. ws1 >>? defaultKeyword >>. ws1 >>? Structures.classDefinition |>> ExportStatement.Structure
     ]
     |>> Statement.Export
