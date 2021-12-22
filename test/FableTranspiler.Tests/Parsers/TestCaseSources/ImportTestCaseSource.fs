@@ -1,6 +1,7 @@
 ﻿namespace FableTranspiler.Tests.Parsers
 
 open System
+open FableTranspiler.Parsers
 open FableTranspiler.Parsers.Dsl
 open System.Collections
 open NUnit.Framework
@@ -39,18 +40,30 @@ type TestCases () =
             yield 
                 TestCaseData(
                     """export { default as Button } from './components/Button';""" |> box,
-                    Export.defaultAliasedS "Button" "./components/Button").SetName("Statement: defaultAliased 1")
+                    Export.defaultAliasedS "Button" "./components/Button").SetName("Statement: export defaultAliased 1")
             yield 
                 TestCaseData(
                     """export { Helpers } from './mixins/Helpers';""" |> box,
-                    Export.namedS "Helpers" "./mixins/Helpers").SetName("Statement: named")
+                    Export.namedS "Helpers" "./mixins/Helpers").SetName("Statement: export named")
 
             yield 
                 TestCaseData(
                     """export { animateScroll, scroller };""" |> box,
-                    Export.outList ["animateScroll"; "scroller"]).SetName("Statement: outList")
+                    Export.outList ["animateScroll"; "scroller"]).SetName("Statement: export outList")
             yield 
                 TestCaseData(
                     """export = ReactScroll;""" |> box,
-                    Export.outAssignment "ReactScroll").SetName("Statement: outList")
+                    Export.outAssignment "ReactScroll").SetName("Statement: export outAssignment")
+
+            let (typeAliasInput, typeAlias) = StructuresFactory.typeAliasComposition
+            yield
+                TestCaseData(
+                    $"""export {typeAliasInput}""" |> box,
+                    typeAlias |> ExportStatement.Structure).SetName("Statement: export type alias")
+
+            let (classDefinitionInput, classDefinition) = StructuresFactory.classDefinition
+            yield
+                TestCaseData(
+                    $"""export default {classDefinitionInput}""" |> box,
+                    classDefinition |> ExportStatement.Structure).SetName("Statement: export default class definition")
         }

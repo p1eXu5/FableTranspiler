@@ -18,12 +18,16 @@ type TypeName =
     | Generic of Identifier list * TypeName list
 
 type TypeCombination =
-    /// choosen for single type alias
     | Composition of TypeName list
     | Union of TypeName list
 
+type ClassDefinition =
+    | Extended of Identifier * TypeName
+
+
 type StructureStatement =
     | TypeAlias of Identifier * TypeCombination
+    | ClassDefinition of ClassDefinition
 
 
 type ImportEntity =
@@ -60,6 +64,7 @@ type ExportStatement =
     | OutAssignment of Identifier
     | OutList of Identifier list
     | Transit of ExportEntity list * DtsModule
+    | Structure of StructureStatement
 
 
 

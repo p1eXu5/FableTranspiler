@@ -26,6 +26,8 @@ let ``type`` =
 
 let typeKeyword = skipString "type"
 
+// operators could be added
+
 let typeComposition =
     ``type``
     .>> ws
@@ -48,17 +50,41 @@ let typeUnion =
         (t :: l) |> TypeCombination.Union
     )
 
+let typeCombination =
+    choice [
+        typeComposition
+        typeUnion // order make sense
+    ]
+
 let typeAlias =
     typeKeyword >>. ws1 >>. identifier .>> ws .>> skipChar '=' .>> ws 
-        .>>. choice [
-            typeComposition
-            typeUnion // order make sense
-        ]
+        .>>. typeCombination
+        .>> skipChar ';'
         |>> TypeAlias
+
+
+open Literals
+
+let classKeyword = skipString "class"
+let extendsKeyword = skipString "extends"
+
+let classDeclaration = 
+    classKeyword
+    >>. ws1
+    >>. identifier
+    .>> ws1
+    .>> extendsKeyword
+    .>> ws1
+    .>>. ``type``
+    .>> ws
+    .>> emptyObjectLiteral
+    |>> ClassDefinition.Extended
+    |>> ClassDefinition
 
 let statement =
     choice [
-        skipString "export" >>? ws1 >>? typeAlias
+        skipString "export" >>? ws1 >>? typeAlias // TODO: move to exports
         typeAlias
+        classDeclaration
     ]
     |>> Structure

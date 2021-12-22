@@ -54,7 +54,6 @@ module StructuresTests =
 
     [<TestCase("type LinkProps = ReactScrollLinkProps & React.HTMLProps<HTMLButtonElement>;")>]
     let ``type alias of plain & generic test`` (input: string) =
-        let result = run Structures.statement input
         let generic = Dsl.Structures.genericTypeName ["React"; "HTMLProps"] [Dsl.Structures.plainTypeName ["HTMLButtonElement"]]
         let plain = Dsl.Structures.plainTypeName ["ReactScrollLinkProps"]
         let expected = 
@@ -63,7 +62,9 @@ module StructuresTests =
                 ([plain; generic] |> TypeCombination.Composition)
             |> Structure
 
+        let result = run Structures.statement input
         result |> shouldSuccess expected
+
 
     [<TestCase("type LinkProps = React.HTMLProps<HTMLButtonElement> & ReactScrollLinkProps;")>]
     let ``type alias of generic & plain test`` (input: string) =
@@ -104,3 +105,22 @@ module StructuresTests =
             |> Structure
 
         result |> shouldSuccess expected
+
+
+    // -------------------
+
+    [<TestCase("class Button extends React.Component<ButtonProps> {}")>]
+    let ``class extended generic test`` (input: string) =
+        let generic = Dsl.Structures.genericTypeName ["React"; "Component"] [Dsl.Structures.plainTypeName ["ButtonProps"]]
+        let expected = 
+            (Identifier.Create "Button", generic) 
+            |> ClassDefinition.Extended
+            |> ClassDefinition
+            |> Structure
+
+        let result = run Structures.statement input
+        result |> shouldSuccess expected
+
+
+
+    
