@@ -29,6 +29,6 @@ module StructuresFactory =
         let generic = Dsl.Structures.genericTypeName ["React"; "Component"] [Dsl.Structures.plainTypeName ["ButtonProps"]]
         let definition = 
             (Identifier.Create "Button", generic) 
-            |> ClassDefinition.Extended
+            |> ClassDefinition.ExtendsEmpty
             |> ClassDefinition
         (input, definition)

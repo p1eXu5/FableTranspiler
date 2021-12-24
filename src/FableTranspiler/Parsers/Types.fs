@@ -7,6 +7,8 @@ type Identifier = Identifier of string with
     static member Create(v) = Identifier v
     static member Value(Identifier v) = v
 
+
+
 type StringLiteral = StringLiteral of string with
     static member Create(v) = StringLiteral v
     static member Value(StringLiteral v) = v
@@ -17,6 +19,7 @@ type ModulePath = ModulePath of string with
 
 
 type TypeName =
+    | Undefined
     | Plain of Identifier list
     | Generic of Identifier list * TypeName list
 
@@ -24,13 +27,30 @@ type TypeCombination =
     | Composition of TypeName list
     | Union of TypeName list
 
+
+type TypeDefinition =
+    | Combination of TypeCombination
+    | Single of TypeName
+
+type Field =
+    | Required of Identifier
+    | Optional of Identifier
+
+type ObjectLiteral = (Field * TypeDefinition) list
+
+
 type ClassDefinition =
-    | Extended of Identifier * TypeName
+    | ExtendsEmpty of Identifier * TypeName
+
+type InterfaceDefinition =
+    | Extends of Identifier * TypeName * ObjectLiteral
 
 
 type StructureStatement =
     | TypeAlias of Identifier * TypeCombination
     | ClassDefinition of ClassDefinition
+    | InterfaceDefinition of InterfaceDefinition
+    | TypeDefinition of Identifier * TypeDefinition
 
 
 type ImportEntity =

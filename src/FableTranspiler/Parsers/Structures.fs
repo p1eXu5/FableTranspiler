@@ -9,6 +9,10 @@ open Common
 let notFollowedByChars chars = notFollowedBy (skipAnyOf chars)
 let attemptSep ch = attempt (ws >>. skipChar ch >>. ws)
 let qualifiers = sepBy identifier (attemptSep '.') 
+
+
+
+
 let planeType = qualifiers .>>? notFollowedByChars ['<'] |>> TypeName.Plain
 
 let genericType = 
@@ -19,6 +23,7 @@ let genericType =
 
 let ``type`` =
     choiceL [
+        skipString "undefined" |>> (fun _ -> TypeName.Undefined)
         planeType
         genericType
     ] "expecting type name"
@@ -56,6 +61,7 @@ let typeCombination =
         typeUnion // order make sense
     ]
 
+
 let typeAlias =
     typeKeyword >>. ws1 >>. identifier .>> ws .>> skipChar '=' .>> ws 
         .>>. typeCombination
@@ -63,7 +69,63 @@ let typeAlias =
         |>> TypeAlias
 
 
-open Literals
+let typeReference =
+    choice [
+        typeCombination |>> Combination
+        ``type`` |>> Single
+    ]
+    .>> skipChar ';'
+
+
+let typeDefinitionStructure =
+    identifier 
+    .>> ws
+    .>>? skipChar ':' 
+    .>> ws
+    .>>. typeReference
+
+
+let optionTypeDefinitionStructure =
+    identifier
+    .>>? skipChar '?'
+    .>> ws
+    .>> skipChar ':' 
+    .>> ws
+    .>>. typeReference
+
+
+let emptyObjectLiteral<'a> : Parser<unit, 'a>= skipChar '{' .>> ws .>> skipChar '}'
+
+let fieldReq = 
+    (identifier |>> Required) 
+    .>> ws 
+    .>>? skipChar ':'
+    .>> ws
+    .>>. typeReference
+
+let fieldOpt = 
+    (identifier |>> Optional)
+    .>>? skipChar '?'
+    .>> ws 
+    .>> skipChar ':'
+    .>> ws
+    .>>. typeReference
+
+let field = 
+    choice [
+        fieldReq
+        fieldOpt
+    ]
+
+    
+let objectLiteral = 
+    skipChar '{' 
+    >>. ws
+    >>. sepEndBy1 field (ws >>. skipChar ';' >>. newline)
+    .>> ws
+    .>> skipChar '}'
+
+
 
 let classKeyword = skipString "class"
 let extendsKeyword = skipString "extends"
@@ -78,7 +140,7 @@ let classDefinition =
     .>>. ``type``
     .>> ws
     .>> emptyObjectLiteral
-    |>> ClassDefinition.Extended
+    |>> ClassDefinition.ExtendsEmpty
     |>> ClassDefinition
 
 let statement =

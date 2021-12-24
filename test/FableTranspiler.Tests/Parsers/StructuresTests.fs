@@ -51,6 +51,15 @@ module StructuresTests =
         result |> shouldSuccess composition
 
 
+    [<TestCaseSource(typeof<TestCases>, nameof(TestCases.ObjectLiteralCases))>]
+    let ``field test`` (input: string, expected: (Field * TypeDefinition)) = 
+        let result = run Structures.field input
+        result |> shouldSuccess expected
+
+
+    // -------------------
+    //      TypeAlias
+    // -------------------
 
     [<TestCase("type LinkProps = ReactScrollLinkProps & React.HTMLProps<HTMLButtonElement>;")>]
     let ``type alias of plain & generic test`` (input: string) =
@@ -108,19 +117,45 @@ module StructuresTests =
 
 
     // -------------------
+    //      Classes
+    // -------------------
 
     [<TestCase("class Button extends React.Component<ButtonProps> {}")>]
-    let ``class extended generic test`` (input: string) =
+    let ``class extends generic empty test`` (input: string) =
         let generic = Dsl.Structures.genericTypeName ["React"; "Component"] [Dsl.Structures.plainTypeName ["ButtonProps"]]
         let expected = 
             (Identifier.Create "Button", generic) 
-            |> ClassDefinition.Extended
-            |> ClassDefinition
-            |> Structure
+            |> ClassDefinition.ExtendsEmpty
+            |> StructureStatement.ClassDefinition
+            |> Statement.Structure
 
         let result = run Structures.statement input
         result |> shouldSuccess expected
 
 
+    // -------------------
+    //      Classes
+    // -------------------
 
+    [<TestCase("""
+interface ElementProps extends React.HTMLProps<HTMLDivElement> {
+    name: string;
+    id?: string | undefined;
+}""")>]
+    let ``interface extends generic not empty test`` (input: string) =
+        let generic = Dsl.Structures.genericTypeName ["React"; "HTMLProps"] [Dsl.Structures.plainTypeName ["HTMLDivElement"]]
+        let field1 = Dsl.Literals.singleField "name" "string"
+
+        let field2 = Dsl.Literals.optionalUnionWithUndefinedField "id" ["string"]
+
+        let oliteral : ObjectLiteral = [field1; field2]
+
+        let expected = 
+            (Identifier.Create "ElementProps", generic, oliteral) 
+            |> InterfaceDefinition.Extends
+            |> StructureStatement.InterfaceDefinition
+            |> Statement.Structure
+
+        let result = run Structures.statement input
+        result |> shouldSuccess expected
     

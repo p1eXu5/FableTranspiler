@@ -120,3 +120,54 @@ module Structures =
             name |> Identifier.Create
             , typeCombination
         ) |> TypeAlias
+
+
+[<RequireQualifiedAccess>]
+module Literals =
+    /// <summary>
+    /// Example:
+    /// <code> name: string; </code>
+    /// </summary>
+    /// <param name="name"></param>
+    /// <param name="typeName"></param>
+    let singleField name typeName =
+        (
+            Identifier.Create name |> Required, 
+            Structures.plainTypeName [typeName] |> TypeDefinition.Single
+        )
+
+
+    /// <summary>
+    /// Example:
+    /// <code> name: string; </code>
+    /// </summary>
+    /// <param name="name"></param>
+    /// <param name="typeName"></param>
+    let single name typeName : ObjectLiteral = 
+        singleField name typeName |> List.singleton
+
+
+    /// <summary>
+    /// Example:
+    /// <code> id?: string | undefined; </code>
+    /// </summary>
+    /// <param name="name"></param>
+    /// <param name="typeName"></param>
+    let optionalUnionWithUndefinedField name typeName =
+        (
+            Identifier.Create name |> Optional, 
+            [
+                Structures.plainTypeName typeName
+                TypeName.Undefined
+            ]
+            |> Union |> Combination
+        )
+
+    /// <summary>
+    /// Example:
+    /// <code> id?: string | undefined; </code>
+    /// </summary>
+    /// <param name="name"></param>
+    /// <param name="typeName"></param>
+    let optionalUnionWithUndefined name typeName : ObjectLiteral =
+        optionalUnionWithUndefinedField name typeName |> List.singleton

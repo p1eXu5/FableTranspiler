@@ -179,7 +179,7 @@ module internal DocumentSegment =
                     | Composition l ->
                         yield!  constructCombination " & " l []
                 ]
-            | ClassDefinition (Extended (Identifier i, l)) -> 
+            | ClassDefinition (ExtendsEmpty (Identifier i, l)) -> 
                 [
                     yield { Tag = Tag.Keyword; Content = "class " }
                     yield { Tag = Tag.Type; Content = i }

@@ -15,23 +15,23 @@ type TestCases () =
             yield 
                 TestCaseData(
                     """import * as React from 'react';""" |> box,
-                    Import.allAliased "React" "react").SetName("Statement: allAliased 1")
+                    Dsl.Import.allAliased "React" "react").SetName("Statement: allAliased 1")
             yield 
                 TestCaseData(
                     """import * as scroller from './mixins/scroller';""" |> box,
-                    Import.allAliased "scroller" "./mixins/scroller").SetName("Statement: allAliased 2")
+                    Dsl.Import.allAliased "scroller" "./mixins/scroller").SetName("Statement: allAliased 2")
             yield 
                 TestCaseData(
                     """import { ReactScrollLinkProps } from './Link';""" |> box,
-                    Import.namedS "ReactScrollLinkProps" "./Link").SetName("Statement: named")
+                    Dsl.Import.namedS "ReactScrollLinkProps" "./Link").SetName("Statement: named")
             yield 
                 TestCaseData(
                     """import { ZipCodeValidator as ZCV } from './ZipCodeValidator';""" |> box,
-                    Import.aliasedS "ZipCodeValidator" "ZCV" "./ZipCodeValidator").SetName("Statement: aliased")
+                    Dsl.Import.aliasedS "ZipCodeValidator" "ZCV" "./ZipCodeValidator").SetName("Statement: aliased")
             yield 
                 TestCaseData(
                     """import './my-module.js';""" |> box,
-                    Import.``default`` "./my-module.js").SetName("Statement: no")
+                    Dsl.Import.``default`` "./my-module.js").SetName("Statement: no")
         }
 
 
@@ -40,20 +40,20 @@ type TestCases () =
             yield 
                 TestCaseData(
                     """export { default as Button } from './components/Button';""" |> box,
-                    Export.defaultAliasedS "Button" "./components/Button").SetName("Statement: export defaultAliased 1")
+                    Dsl.Export.defaultAliasedS "Button" "./components/Button").SetName("Statement: export defaultAliased 1")
             yield 
                 TestCaseData(
                     """export { Helpers } from './mixins/Helpers';""" |> box,
-                    Export.namedS "Helpers" "./mixins/Helpers").SetName("Statement: export named")
+                    Dsl.Export.namedS "Helpers" "./mixins/Helpers").SetName("Statement: export named")
 
             yield 
                 TestCaseData(
                     """export { animateScroll, scroller };""" |> box,
-                    Export.outList ["animateScroll"; "scroller"]).SetName("Statement: export outList")
+                    Dsl.Export.outList ["animateScroll"; "scroller"]).SetName("Statement: export outList")
             yield 
                 TestCaseData(
                     """export = ReactScroll;""" |> box,
-                    Export.outAssignment "ReactScroll").SetName("Statement: export outAssignment")
+                    Dsl.Export.outAssignment "ReactScroll").SetName("Statement: export outAssignment")
 
             let (typeAliasInput, typeAlias) = StructuresFactory.typeAliasComposition
             yield
@@ -66,4 +66,18 @@ type TestCases () =
                 TestCaseData(
                     $"""export default {classDefinitionInput}""" |> box,
                     classDefinition |> ExportStatement.Structure |> Statement.Export).SetName("Statement: export default class definition")
+        }
+
+
+    static member ObjectLiteralCases : IEnumerable =
+        seq {
+            yield 
+                TestCaseData(
+                    """name: string;""" |> box,
+                    Dsl.Literals.singleField "name" "string").SetName("Field: single type field")
+
+            yield 
+                TestCaseData(
+                    """id?: string | undefined;""" |> box,
+                    Dsl.Literals.optionalUnionWithUndefinedField "id" ["string"] ).SetName("Field: union with undefined")
         }
