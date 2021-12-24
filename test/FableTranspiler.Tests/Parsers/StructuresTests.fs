@@ -51,7 +51,7 @@ module StructuresTests =
         result |> shouldSuccess composition
 
 
-    [<TestCaseSource(typeof<TestCases>, nameof(TestCases.ObjectLiteralCases))>]
+    [<TestCaseSource(typeof<TestCases>, nameof(TestCases.FieldCases))>]
     let ``field test`` (input: string, expected: (Field * TypeDefinition)) = 
         let result = run Structures.field input
         result |> shouldSuccess expected
@@ -134,18 +134,16 @@ module StructuresTests =
 
 
     // -------------------
-    //      Classes
+    //     Interfaces
     // -------------------
 
-    [<TestCase("""
-interface ElementProps extends React.HTMLProps<HTMLDivElement> {
+    [<TestCase("""interface ElementProps extends React.HTMLProps<HTMLDivElement> {
     name: string;
     id?: string | undefined;
 }""")>]
     let ``interface extends generic not empty test`` (input: string) =
         let generic = Dsl.Structures.genericTypeName ["React"; "HTMLProps"] [Dsl.Structures.plainTypeName ["HTMLDivElement"]]
         let field1 = Dsl.Literals.singleField "name" "string"
-
         let field2 = Dsl.Literals.optionalUnionWithUndefinedField "id" ["string"]
 
         let oliteral : ObjectLiteral = [field1; field2]

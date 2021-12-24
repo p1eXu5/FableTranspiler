@@ -74,24 +74,23 @@ let typeReference =
         typeCombination |>> Combination
         ``type`` |>> Single
     ]
-    .>> skipChar ';'
 
 
-let typeDefinitionStructure =
-    identifier 
-    .>> ws
-    .>>? skipChar ':' 
-    .>> ws
-    .>>. typeReference
+//let typeDefinitionStructure =
+//    identifier 
+//    .>> ws
+//    .>>? skipChar ':' 
+//    .>> ws
+//    .>>. typeReference
 
 
-let optionTypeDefinitionStructure =
-    identifier
-    .>>? skipChar '?'
-    .>> ws
-    .>> skipChar ':' 
-    .>> ws
-    .>>. typeReference
+//let optionTypeDefinitionStructure =
+//    identifier
+//    .>>? skipChar '?'
+//    .>> ws
+//    .>> skipChar ':' 
+//    .>> ws
+//    .>>. typeReference
 
 
 let emptyObjectLiteral<'a> : Parser<unit, 'a>= skipChar '{' .>> ws .>> skipChar '}'
@@ -116,22 +115,33 @@ let field =
         fieldReq
         fieldOpt
     ]
+    .>> (skipChar ';' <?> "field must be terminated by ';'")
 
     
-let objectLiteral = 
+let objectLiteral : Parser<ObjectLiteral, _> = 
     skipChar '{' 
     >>. ws
-    >>. sepEndBy1 field (ws >>. skipChar ';' >>. newline)
+    >>. sepEndBy1 (field) (newline .>> ws)
     .>> ws
-    .>> skipChar '}'
+    .>> (skipChar '}' <?> "object literal must be terminated by '}'")
 
 
 
+let interfaceKeyword = skipString "interface"
 let classKeyword = skipString "class"
 let extendsKeyword = skipString "extends"
 
-let classDefinition = 
-    classKeyword
+let extendsEmptyClassDefinition = 
+    (ClassDefinition.ExtendsEmpty >> StructureStatement.ClassDefinition)
+
+
+let extendsInterfaceDefinition = 
+    (InterfaceDefinition.Extends >> StructureStatement.InterfaceDefinition)
+
+
+
+let extendsEmpty keyword map = 
+    keyword
     >>. ws1
     >>. identifier
     .>> ws1
@@ -140,13 +150,37 @@ let classDefinition =
     .>>. ``type``
     .>> ws
     .>> emptyObjectLiteral
-    |>> ClassDefinition.ExtendsEmpty
-    |>> ClassDefinition
+    |>> map
+
+
+let extends keyword map = 
+    keyword
+    >>. ws1
+    >>. identifier
+    .>> ws1
+    .>> extendsKeyword
+    .>> ws1
+    .>>. ``type``
+    .>> ws
+    .>>. objectLiteral
+    |>> (fun t -> 
+        let ((i, tn), ol) = t
+        map (i, tn, ol)
+    )
+
+
+let classDefinition =
+    extendsEmpty classKeyword extendsEmptyClassDefinition
+
+let interfaceDefinition =
+    extends interfaceKeyword extendsInterfaceDefinition
+
 
 let statement =
     choice [
         skipString "export" >>? ws1 >>? typeAlias // TODO: move to exports
         typeAlias
         classDefinition
+        interfaceDefinition
     ]
     |>> Structure

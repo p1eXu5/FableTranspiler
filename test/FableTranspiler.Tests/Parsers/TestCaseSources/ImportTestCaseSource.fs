@@ -69,7 +69,7 @@ type TestCases () =
         }
 
 
-    static member ObjectLiteralCases : IEnumerable =
+    static member FieldCases : IEnumerable =
         seq {
             yield 
                 TestCaseData(
