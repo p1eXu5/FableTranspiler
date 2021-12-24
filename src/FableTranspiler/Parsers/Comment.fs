@@ -9,4 +9,4 @@ open Common
 let keyword = skipString "//"
 
 let statement : Parser<Statement,unit> =
-    ws >>. keyword >>. manySatisfy (function '\n' -> false | _ -> true) |>> (fun comment -> Statement.Comment ("//" + comment))
+    ws >>? keyword >>. manySatisfy (function '\n' -> false | _ -> true) |>> (fun comment -> Statement.Comment ("//" + comment))

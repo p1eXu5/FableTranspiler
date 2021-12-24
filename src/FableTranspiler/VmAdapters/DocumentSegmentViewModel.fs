@@ -138,6 +138,7 @@ module internal DocumentSegment =
                 )
 
 
+
             let rec constructCombination sep combination res =
                 match combination with
                 | [] -> 
@@ -152,10 +153,10 @@ module internal DocumentSegment =
                     )
                 | head :: tail ->
                     match head with
-                    | Plain p -> 
+                    | TypeName.Plain p -> 
                         constructType p
                         |> (fun r -> constructCombination sep tail (r :: res))
-                    | Generic (p, i) ->
+                    | TypeName.Generic (p, i) ->
                         let main = constructType p
                         let inner = constructCombination ", " i []
                         let l =
@@ -166,10 +167,45 @@ module internal DocumentSegment =
                                 { Tag = Tag.Text; Content = "> " }
                             ]
                         constructCombination sep tail (l :: res)
+                    | TypeName.Undefined -> 
+                        let l =
+                            [
+                                { Tag = Tag.Type; Content = "undefined" }
+                            ]
+                        constructCombination sep tail (l :: res)
 
 
-            //let constructObjectLiteral fields =
-                
+            let constructSingleType tn =
+                constructCombination "" [tn] []
+
+
+            let constructObjectLiteral (fields: (Field * TypeDefinition) list) =
+                fields
+                |> List.map (fun l ->
+                    let (fld, tdef) = l
+                    [
+                        match fld with
+                        | Required (Identifier i) ->
+                            yield { Tag = Tag.Type; Content = i }
+                            yield { Tag = Tag.Text; Content = ": " }
+                        | Optional (Identifier i) ->
+                            yield { Tag = Tag.Type; Content = i }
+                            yield { Tag = Tag.Text; Content = "?: " }
+
+                        match tdef with
+                        | TypeDefinition.Single tn -> 
+                            yield! constructSingleType tn
+                        | TypeDefinition.Combination comb ->
+                            match comb with
+                            | Union l ->
+                                yield! constructCombination " | " l []
+                            | Composition l ->
+                                yield!  constructCombination " & " l [] 
+
+                        yield { Tag = Tag.EndOfLine; Content = ";" }
+                    ]
+                )
+                |> List.concat
 
 
             match structure with
@@ -191,20 +227,29 @@ module internal DocumentSegment =
                     yield { Tag = Tag.Keyword; Content = "class " }
                     yield { Tag = Tag.Type; Content = idetifier }
                     yield { Tag = Tag.Keyword; Content = " extends " }
-                    yield! constructCombination "" [tn] []
+
+                    yield! constructSingleType tn // construct combination from single operand
 
                     yield { Tag = Tag.Parentheses; Content = "{}" }
                     yield { Tag = Tag.EndOfLine; Content = null }
                 ]
 
-            //| InterfaceDefinition (Extends (Identifier idetifier, tn, lit)) ->
-            //    [
-            //        yield { Tag = Tag.Keyword; Content = "interface " }
-            //        yield { Tag = Tag.Type; Content = idetifier }
-            //        yield { Tag = Tag.Keyword; Content = " extends " }
-            //        yield! constructCombination "" [tn] []
-            //        yield! constructObjectLiteral lit
-            //    ]
+            | InterfaceDefinition (Extends (Identifier idetifier, tn, lit)) ->
+                [
+                    yield { Tag = Tag.Keyword; Content = "interface " }
+                    yield { Tag = Tag.Type; Content = idetifier }
+                    yield { Tag = Tag.Keyword; Content = " extends " }
+                    
+                    yield! constructSingleType tn  // construct combination from single operand
+
+                    yield { Tag = Tag.Parentheses; Content = "{" }
+                    yield { Tag = Tag.EndOfLine; Content = null }
+                    
+                    yield! constructObjectLiteral lit
+                    
+                    yield { Tag = Tag.Parentheses; Content = "}" }
+                    yield { Tag = Tag.EndOfLine; Content = null }
+                ]
 
 
 
