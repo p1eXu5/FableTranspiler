@@ -30,6 +30,7 @@ namespace FableTranspiler.WpfClient.Converters
                             Tag.Keyword => Application.Current.FindResource("st_Keyword") as Style,
                             Tag.Type => Application.Current.FindResource("st_Type") as Style,
                             Tag.Comment => Application.Current.FindResource("st_Comment") as Style,
+                            Tag.Parentheses => Application.Current.FindResource("st_Parentheses") as Style,
                             _ => null
                         };
 

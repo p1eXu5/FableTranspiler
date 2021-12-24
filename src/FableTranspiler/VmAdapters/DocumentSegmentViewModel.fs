@@ -22,6 +22,7 @@ and
         | Comment = 5
         | Type = 6
         | Modifier = 7
+        | Parentheses = 8
 
 
 module internal DocumentSegment =
@@ -103,7 +104,7 @@ module internal DocumentSegment =
 
 
 
-        let rec buildEntities builder l res =
+        let rec buildImportExportEntities builder l res =
             match l with
             | head::[] when res |> List.isEmpty -> 
                 builder head Single
@@ -113,11 +114,11 @@ module internal DocumentSegment =
 
             | head::tail when res |> List.isEmpty ->
                 let res' = res @ builder head First
-                buildEntities builder tail res'
+                buildImportExportEntities builder tail res'
 
             | head::tail when res |> List.isEmpty |> not ->
                 let res' = res @ builder head Middle
-                buildEntities builder tail res'
+                buildImportExportEntities builder tail res'
 
             | _ -> []
                 
@@ -167,6 +168,10 @@ module internal DocumentSegment =
                         constructCombination sep tail (l :: res)
 
 
+            //let constructObjectLiteral fields =
+                
+
+
             match structure with
             | TypeAlias (Identifier identifier, combination) ->
                 [
@@ -178,14 +183,28 @@ module internal DocumentSegment =
                         yield! constructCombination " | " l []
                     | Composition l ->
                         yield!  constructCombination " & " l []
+                    yield { Tag = Tag.EndOfLine; Content = ";" }
                 ]
-            | ClassDefinition (ExtendsEmpty (Identifier i, l)) -> 
+
+            | ClassDefinition (ExtendsEmpty (Identifier idetifier, tn)) -> 
                 [
                     yield { Tag = Tag.Keyword; Content = "class " }
-                    yield { Tag = Tag.Type; Content = i }
+                    yield { Tag = Tag.Type; Content = idetifier }
                     yield { Tag = Tag.Keyword; Content = " extends " }
-                    yield! constructCombination "" [l] []
+                    yield! constructCombination "" [tn] []
+
+                    yield { Tag = Tag.Parentheses; Content = "{}" }
+                    yield { Tag = Tag.EndOfLine; Content = null }
                 ]
+
+            //| InterfaceDefinition (Extends (Identifier idetifier, tn, lit)) ->
+            //    [
+            //        yield { Tag = Tag.Keyword; Content = "interface " }
+            //        yield { Tag = Tag.Type; Content = idetifier }
+            //        yield { Tag = Tag.Keyword; Content = " extends " }
+            //        yield! constructCombination "" [tn] []
+            //        yield! constructObjectLiteral lit
+            //    ]
 
 
 
@@ -211,7 +230,7 @@ module internal DocumentSegment =
                     continueInterpret tail
                         [
                             yield! s
-                            yield! (buildEntities (importEntity " ") entities [])
+                            yield! (buildImportExportEntities (importEntity " ") entities [])
                             yield { Tag = Tag.Keyword; Content = "from " }
                             yield ``module`` |> modulePath
                             yield { Tag = Tag.EndOfLine; Content = ";" }
@@ -231,7 +250,7 @@ module internal DocumentSegment =
                     continueInterpret tail
                         [
                             yield! s
-                            yield! (buildEntities (exportEntity " ") entities [])
+                            yield! (buildImportExportEntities (exportEntity " ") entities [])
                             yield { Tag = Tag.Keyword; Content = "from " }
                             yield ``module`` |> modulePath
                             yield { Tag = Tag.EndOfLine; Content = ";" }
@@ -252,7 +271,7 @@ module internal DocumentSegment =
                     continueInterpret tail
                         [
                             yield! s
-                            yield! (buildEntities (exportEntity "") (entities |> List.map (Named)) [])
+                            yield! (buildImportExportEntities (exportEntity "") (entities |> List.map (Named)) [])
                             yield { Tag = Tag.EndOfLine; Content = ";" }
                         ]
                         "export"
@@ -283,19 +302,17 @@ module internal DocumentSegment =
 
                     continueInterpret tail
                         [
+                            // each time insert break line
                             yield { Tag = Tag.EndOfLine; Content = "" }
+                            
                             match structure with
                             | ClassDefinition _ ->
                                 yield { Tag = Tag.Modifier; Content = "export " }
                                 yield { Tag = Tag.Keyword; Content = "default " }
                             | _ ->
                                 yield { Tag = Tag.Modifier; Content = "export " }
+                            
                             yield! xvm
-                            match structure with
-                            | ClassDefinition _ ->
-                                yield { Tag = Tag.EndOfLine; Content = null }
-                            | _ ->
-                                yield { Tag = Tag.EndOfLine; Content = ";" }
                         ]
                         ""
 

@@ -20,4 +20,8 @@
         <Setter Property="Foreground" Value="#888888"/>
     </Style>
 
+    <Style x:Key="st_Parentheses" TargetType="Run">
+        <Setter Property="Foreground" Value="#FF9900"/>
+    </Style>
+
 </ResourceDictionary>
