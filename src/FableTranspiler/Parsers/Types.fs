@@ -65,6 +65,7 @@ type TypeAlias =
 type FunctionDefinition =
     | Plain of name: Identifier * parameters: FieldList * returnType: TypeDefinition
     | Generic of name: Identifier * typeParams: Identifier list * parameters: FieldList * returnType: TypeDefinition
+    | GenericNameless of typeParams: Identifier list * parameters: FieldList * returnType: TypeDefinition
 
 
 type StructureStatement =

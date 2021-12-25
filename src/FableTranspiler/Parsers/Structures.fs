@@ -108,10 +108,15 @@ let typeCombination =
 
 
 let plainTypeAlias =
-    typeKeyword >>. ws1 >>. identifier .>> ws .>> skipChar '=' .>> ws 
-        .>>. typeCombination
-        .>> skipChar ';'
-        |>> (TypeAlias.Plain >> StructureStatement.TypeAlias)
+    typeKeyword 
+    >>. ws1 
+    >>. identifier 
+    .>> ws 
+    .>>? (skipChar '=' <?> "expecting '=' in plain type alias")
+    .>> ws 
+    .>>. typeCombination
+    .>> skipChar ';'
+    |>> (TypeAlias.Plain >> StructureStatement.TypeAlias)
 
 
 let genericTypeAlias =
@@ -120,7 +125,8 @@ let genericTypeAlias =
     >>. identifier 
     .>> ws
     .>>.? typeParams
-    .>> skipChar '=' 
+    .>> ws
+    .>> (skipChar '=' <?> "expecting '=' in generic type alias")
     .>> ws 
     .>>. typeCombination
     .>> skipChar ';'
@@ -131,8 +137,8 @@ let genericTypeAlias =
 
 let typeAlias =
     choice [
-        plainTypeAlias
         genericTypeAlias
+        plainTypeAlias
     ]
 
 
@@ -171,21 +177,24 @@ let fieldOpt =
     .>>. typeDefinition
 
 
-
-let funcReq =
-    identifier
-    .>> ws
-    .>>? skipChar '('
-    .>> ws
-    .>>. funcParams
+let funcSignature =
+    skipChar '('
+    >>. ws
+    >>. funcParams
     .>> ws
     .>> skipChar ')'
     .>> ws
     .>> skipChar ':'
     .>> ws
     .>>. typeDefinition
+
+
+let funcReq =
+    identifier
+    .>> ws
+    .>>.? funcSignature 
     |>> (fun t ->
-        let ((i, f), td) = t
+        let (i, (f, td)) = t
         (i, f, td)
     )
 
@@ -193,17 +202,9 @@ let funcOpt =
     identifier
     .>>? skipChar '?'
     .>> ws
-    .>>? skipChar '('
-    .>> ws
-    .>>. funcParams
-    .>> ws
-    .>> skipChar ')'
-    .>> ws
-    .>> skipChar ':'
-    .>> ws
-    .>>. typeDefinition
+    .>>.? funcSignature
     |>> (fun t ->
-        let ((i, f), td) = t
+        let (i, (f, td)) = t
         (i, f, td)
     )
 
@@ -281,13 +282,47 @@ let interfaceDefinition =
         plain interfaceKeyword plainInterfaceDefinition
     ]
 
-let functionDefnition =
+let plainFunctionDefnition =
     skipString "function"
-    >>. ws
-    >>. funcReq
+    >>. ws1
+    >>? funcReq
     |>> (FunctionDefinition.Plain >> StructureStatement.FunctionDefinition)
     .>> skipChar ';'
 
+let genericFunctionDefnition =
+    skipString "function"
+    >>. ws1
+    >>? identifier
+    .>> ws
+    .>>.? typeParams
+    .>>.? funcSignature 
+    .>> skipChar ';'
+    |>> (fun t ->
+        let ((i, il), (fl, td)) = t
+        (i, il, fl, td)
+        |> FunctionDefinition.Generic 
+        |> StructureStatement.FunctionDefinition
+    )
+
+let genericNamelesssFunctionDefnition =
+    skipString "function"
+    .>> ws
+    >>? typeParams
+    .>>.? funcSignature 
+    .>> skipChar ';'
+    |>> (fun t ->
+        let (il, (fl, td)) = t
+        (il, fl, td)
+        |> FunctionDefinition.GenericNameless 
+        |> StructureStatement.FunctionDefinition
+    )
+
+let functionDefnition =
+    choice [
+        genericFunctionDefnition
+        plainFunctionDefnition
+        genericNamelesssFunctionDefnition
+    ]
 
 let statement =
     choice [

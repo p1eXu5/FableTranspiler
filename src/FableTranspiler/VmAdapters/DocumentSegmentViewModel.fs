@@ -383,6 +383,43 @@ module internal rec DocumentSegment =
                 yield { Tag = Tag.EndOfLine; Content = ";" }
             ]
 
+        | FunctionDefinition (FunctionDefinition.Generic ((Identifier i), il, fl, tdef)) ->
+            [
+                yield { Tag = Tag.Keyword; Content = "function " }
+                yield { Tag = Tag.Type; Content = i }
+                yield { Tag = Tag.Parentheses; Content = "<" }
+                yield! constructTypeParams il
+                yield { Tag = Tag.Parentheses; Content = ">" }
+
+                yield { Tag = Tag.Parentheses; Content = "(" }
+                    
+                yield! constructObjectLiteral fl false
+                    
+                yield { Tag = Tag.Parentheses; Content = ")" }
+                yield { Tag = Tag.Text; Content = ": " }
+
+                yield! constructTypeDefinition tdef
+                yield { Tag = Tag.EndOfLine; Content = ";" }
+            ]
+
+        | FunctionDefinition (FunctionDefinition.GenericNameless (il, fl, tdef)) ->
+            [
+                yield { Tag = Tag.Keyword; Content = "function" }
+                yield { Tag = Tag.Parentheses; Content = "<" }
+                yield! constructTypeParams il
+                yield { Tag = Tag.Parentheses; Content = ">" }
+
+                yield { Tag = Tag.Parentheses; Content = "(" }
+                    
+                yield! constructObjectLiteral fl false
+                    
+                yield { Tag = Tag.Parentheses; Content = ")" }
+                yield { Tag = Tag.Text; Content = ": " }
+
+                yield! constructTypeDefinition tdef
+                yield { Tag = Tag.EndOfLine; Content = ";" }
+            ]
+
 
     let toDocumentSegmentVmList statements =
 
