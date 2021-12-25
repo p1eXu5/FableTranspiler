@@ -71,7 +71,7 @@ type StructureStatement =
     | TypeAlias of TypeAlias
     | ClassDefinition of ClassDefinition
     | InterfaceDefinition of InterfaceDefinition
-    | FunctionDefinition of  Identifier * FieldList * TypeDefinition
+    | FunctionDefinition of  FunctionDefinition
     // | TypeDefinition of Identifier * TypeDefinition
 
 

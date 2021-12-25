@@ -136,7 +136,7 @@ type TestCases () =
             yield 
                 TestCaseData(
                     "function unmount(): void;" |> box,
-                    Dsl.Functions.create "unmount" [] (Choice1Of4 ())).SetName("Functions: function unmount(): void;")
+                    Dsl.Functions.plain "unmount" [] (Choice1Of4 ())).SetName("Functions: function unmount(): void;")
 
 
             let union = 
@@ -156,7 +156,9 @@ type TestCases () =
             let ret =
                 (retFl, Dsl.DTsTypes.plainType ["number"] |> TypeDefinition.Single) |> DTsType.Func |> TypeDefinition.Single
 
-            let expected = FunctionDefinition (Identifier.Create "getAnimationType", field, ret)
+            let expected = 
+                FunctionDefinition.Plain (Identifier.Create "getAnimationType", field, ret) 
+                |> StructureStatement.FunctionDefinition
 
             yield 
                 TestCaseData(

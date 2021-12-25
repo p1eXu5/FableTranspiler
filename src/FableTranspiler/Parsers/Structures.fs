@@ -285,7 +285,7 @@ let functionDefnition =
     skipString "function"
     >>. ws
     >>. funcReq
-    |>> StructureStatement.FunctionDefinition
+    |>> (FunctionDefinition.Plain >> StructureStatement.FunctionDefinition)
     .>> skipChar ';'
 
 

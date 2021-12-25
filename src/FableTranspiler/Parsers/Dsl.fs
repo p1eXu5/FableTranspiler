@@ -236,7 +236,7 @@ module Functions =
     /// <param name="name"></param>
     /// <param name="parameters"></param>
     /// <param name="returnType"></param>
-    let create name parameters returnType =
+    let plain name parameters returnType =
         let i = Identifier.Create name
         let parameters' : FieldList =
             parameters
@@ -247,4 +247,4 @@ module Functions =
                 (paramName, tn')
             )
         let rtn = typeName' returnType |> TypeDefinition.Single
-        (i, parameters', rtn) |> StructureStatement.FunctionDefinition
+        (i, parameters', rtn) |> FunctionDefinition.Plain |> StructureStatement.FunctionDefinition

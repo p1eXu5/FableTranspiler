@@ -367,7 +367,7 @@ module internal rec DocumentSegment =
                 yield { Tag = Tag.EndOfLine; Content = null }
             ]
 
-        | FunctionDefinition ((Identifier i), fl, tdef) ->
+        | FunctionDefinition (FunctionDefinition.Plain ((Identifier i), fl, tdef)) ->
             [
                 yield { Tag = Tag.Keyword; Content = "function " }
                 yield { Tag = Tag.Type; Content = i }
