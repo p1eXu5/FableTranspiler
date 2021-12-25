@@ -88,9 +88,11 @@ let statement =
         outAssignment
         outList
         transit
-        exportKeyword >>. ws1 >>? Structures.typeAlias |>> ExportStatement.Structure
-        exportKeyword >>. ws1 >>? Structures.interfaceDefinition |>> ExportStatement.Structure
-        exportKeyword >>. ws1 >>? defaultKeyword >>. ws1 >>? Structures.classDefinition |>> ExportStatement.Structure
-        exportKeyword >>. ws1 >>? Structures.functionDefnition |>> ExportStatement.Structure
+        exportKeyword >>. ws1 >>? defaultKeyword >>. ws1 >>. Structures.statement |>> ExportStatement.StructureDefault
+        exportKeyword >>. ws1 >>? Structures.statement |>> ExportStatement.Structure
+        //exportKeyword >>. ws1 >>? Structures.plainTypeAlias |>> ExportStatement.Structure
+        //exportKeyword >>. ws1 >>? Structures.interfaceDefinition |>> ExportStatement.Structure
+        //exportKeyword >>. ws1 >>? defaultKeyword >>. ws1 >>? Structures.classDefinition |>> ExportStatement.Structure
+        //exportKeyword >>. ws1 >>? Structures.functionDefnition |>> ExportStatement.Structure
     ]
     |>> Statement.Export

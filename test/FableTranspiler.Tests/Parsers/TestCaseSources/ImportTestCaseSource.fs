@@ -65,7 +65,7 @@ type TestCases () =
             yield
                 TestCaseData(
                     $"export default {classDefinitionInput}" |> box,
-                    classDefinition |> ExportStatement.Structure |> Statement.Export).SetName("Statement: export default class definition")
+                    classDefinition |> ExportStatement.StructureDefault |> Statement.Export).SetName("Statement: export default class definition")
 
             let (interfaceDefinitionInput, interfaceDefinition) = StructuresFactory.interfaceDefinitioExtends
             yield

@@ -282,14 +282,39 @@ module internal rec DocumentSegment =
 
 
 
+    let constructTypeParams typeParams =
+        typeParams
+        |> List.mapi (fun ind (Identifier i) ->
+            [
+                yield { Tag = Tag.Type; Content = i }
+                if ind < (typeParams.Length - 1) then
+                    yield { Tag = Tag.Text; Content = ", " }
+            ]
+        )
+        |> List.concat
 
 
     let rec private interpretStructure structure : DocumentSegmentViewModel list =
         match structure with
-        | TypeAlias (Plain (Identifier identifier, combination)) ->
+        | TypeAlias (TypeAlias.Plain (Identifier identifier, combination)) ->
             [
                 yield { Tag = Tag.Keyword; Content = "type " }
                 yield { Tag = Tag.Type; Content = identifier }
+                yield { Tag = Tag.Text; Content = " = " }
+                match combination with
+                | Union l ->
+                    yield! constructCombination " | " l []
+                | Composition l ->
+                    yield!  constructCombination " & " l []
+                yield { Tag = Tag.EndOfLine; Content = ";" }
+            ]
+
+        | TypeAlias (TypeAlias.Generic (Identifier identifier, typeParams, combination)) ->
+            [
+                yield { Tag = Tag.Keyword; Content = "type " }
+                yield { Tag = Tag.Type; Content = identifier }
+                yield { Tag = Tag.Parentheses; Content = "<" }
+                yield! constructTypeParams typeParams 
                 yield { Tag = Tag.Text; Content = " = " }
                 match combination with
                 | Union l ->
@@ -485,16 +510,33 @@ module internal rec DocumentSegment =
                             if breakeLine then
                                 yield { Tag = Tag.EndOfLine; Content = "" }
                             
-                            match structure with
-                            | ClassDefinition _ ->
-                                yield { Tag = Tag.Modifier; Content = "export " }
-                                yield { Tag = Tag.Keyword; Content = "default " }
-                            | _ ->
-                                yield { Tag = Tag.Modifier; Content = "export " }
+                            yield { Tag = Tag.Modifier; Content = "export " }
                             
                             yield! xvm
                         ]
                         lastTag'
+
+                | Export (ExportStatement.StructureDefault structure) ->
+                
+                        let (breakeLine, lastTag') = 
+                            match structure with
+                            | FunctionDefinition _ -> (lastTag = "export function" |> not, "export function")
+                            | _ -> (true, "")
+                
+                        let xvm = interpretStructure structure
+                
+                        continueInterpret tail
+                            [
+                                // each time insert break line
+                                if breakeLine then
+                                    yield { Tag = Tag.EndOfLine; Content = "" }
+                                            
+                                yield { Tag = Tag.Modifier; Content = "export " }
+                                yield { Tag = Tag.Keyword; Content = "default " }
+                                            
+                                yield! xvm
+                            ]
+                            lastTag'
 
 
                 | Structure structure ->

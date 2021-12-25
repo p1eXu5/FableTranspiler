@@ -59,7 +59,12 @@ type InterfaceDefinition =
 
 type TypeAlias =
     | Plain of Identifier * TypeCombination
-    | Generic of name: Identifier * typeParam: Identifier * TypeCombination
+    | Generic of name: Identifier * typeParam: Identifier list * TypeCombination
+
+
+type FunctionDefinition =
+    | Plain of name: Identifier * parameters: FieldList * returnType: TypeDefinition
+    | Generic of name: Identifier * typeParams: Identifier list * parameters: FieldList * returnType: TypeDefinition
 
 
 type StructureStatement =
@@ -114,6 +119,7 @@ type ExportStatement =
     /// "export { default as ScrollLink, ScrollLinkProps } from './mixins/scroll-link';"
     | Transit of ExportEntity list * DtsModule
     | Structure of StructureStatement
+    | StructureDefault of StructureStatement
 
 
 

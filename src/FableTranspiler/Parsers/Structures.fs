@@ -10,6 +10,13 @@ let notFollowedByChars chars = notFollowedBy (skipAnyOf chars)
 let attemptSep ch = attempt (ws >>. skipChar ch >>. ws)
 let qualifiers = sepBy1 identifier (attemptSep '.') 
 
+let typeParams = 
+    skipChar '<'
+    >>. ws
+    >>. sepBy1 identifier (attemptSep ',')
+    .>> ws
+    .>> skipChar '>'
+
 
 let field, fieldR = createParserForwardedToRef()
 let ``type``, typeR = createParserForwardedToRef()
@@ -100,11 +107,34 @@ let typeCombination =
     ]
 
 
-let typeAlias =
+let plainTypeAlias =
     typeKeyword >>. ws1 >>. identifier .>> ws .>> skipChar '=' .>> ws 
         .>>. typeCombination
         .>> skipChar ';'
         |>> (TypeAlias.Plain >> StructureStatement.TypeAlias)
+
+
+let genericTypeAlias =
+    typeKeyword 
+    >>. ws1 
+    >>. identifier 
+    .>> ws
+    .>>.? typeParams
+    .>> skipChar '=' 
+    .>> ws 
+    .>>. typeCombination
+    .>> skipChar ';'
+    |>> (fun t ->
+        let ((i, xi), tc) = t
+        TypeAlias.Generic (i, xi, tc) |> StructureStatement.TypeAlias
+    )
+
+let typeAlias =
+    choice [
+        plainTypeAlias
+        genericTypeAlias
+    ]
+
 
 
 let objectLiteral : Parser<FieldList, _> = 
@@ -187,11 +217,6 @@ do
             funcOpt |>> (fun t -> let (i, f, td) = t in FuncOpt (i, f), td)
             funcReq |>> (fun t -> let (i, f, td) = t in FuncReq (i, f), td)
         ]
-
-
-
-
-
 
 
 let interfaceKeyword = skipString "interface"
