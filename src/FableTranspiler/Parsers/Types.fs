@@ -56,7 +56,7 @@ type StructureStatement =
     | TypeAlias of Identifier * TypeCombination
     | ClassDefinition of ClassDefinition
     | InterfaceDefinition of InterfaceDefinition
-    | TypeDefinition of Identifier * TypeDefinition
+    // | TypeDefinition of Identifier * TypeDefinition
 
 
 type ImportEntity =

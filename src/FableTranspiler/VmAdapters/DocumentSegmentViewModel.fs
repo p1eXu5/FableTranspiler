@@ -25,7 +25,7 @@ and
         | Parentheses = 8
 
 
-module internal DocumentSegment =
+module internal rec DocumentSegment =
 
     type EntityOrder =
         | Single
@@ -33,239 +33,282 @@ module internal DocumentSegment =
         | Last
         | Middle
 
-    let toDocumentSegmentVmList statements =
-
-        let modulePath = function
-            | NodeModule (ModulePath path) -> { Tag = Tag.Text; Content = sprintf "'%s'" path}
-            | Relative (ModulePath path) -> { Tag = Tag.Text; Content = sprintf "'%s'" path}
-
-        
-
-        let insertWithOrder entityOrder posfix content =
-            match entityOrder with
-            | Single -> sprintf "{ %s }%s" content posfix
-            | First -> sprintf "{ %s, " content
-            | Last -> sprintf "%s }%s" content posfix
-            | Middle -> sprintf "%s, " content
-
-        let insertAsWithOrder entityOrder nameTag name alias postfix =
-            match entityOrder with
-            | First ->
-                [
-                    { Tag = Tag.Text; Content = "{ "}
-                    { Tag = nameTag; Content = name }
-                    { Tag = Tag.Keyword; Content = " as "}
-                    { Tag = Tag.Type; Content = alias}
-                    { Tag = Tag.Text; Content = ", "}
-                ]
-            | Last ->
-                [
-                    { Tag = nameTag; Content = name }
-                    { Tag = Tag.Keyword; Content = " as "}
-                    { Tag = Tag.Type; Content = alias}
-                    { Tag = Tag.Text; Content = " }" + postfix}
-                ]
-            | Middle ->
-                [
-                    { Tag = nameTag; Content = name }
-                    { Tag = Tag.Keyword; Content = " as "}
-                    { Tag = Tag.Type; Content = alias}
-                    { Tag = Tag.Text; Content = ", "}
-                ]
-            | Single ->
-                [
-                    { Tag = Tag.Text; Content = "{ "}
-                    { Tag = nameTag; Content = name }
-                    { Tag = Tag.Keyword; Content = " as "}
-                    { Tag = Tag.Type; Content = alias}
-                    { Tag = Tag.Text; Content = " }" + postfix}
-                ]
-
-        
-        let importEntity postfix entity entityOrder = 
-            match entity with
-            | No -> [{ Tag = Tag.NoContent; Content = null }]
-            | ImportEntity.Named (Identifier identifier) -> [{ Tag = Tag.Text; Content = identifier |> insertWithOrder entityOrder postfix}]
-            | Aliased (Identifier name, Identifier alias) -> insertAsWithOrder entityOrder Tag.Text name alias postfix
-            | All -> [{ Tag = Tag.Text; Content = "* "}]
-            | AllAliased (Identifier alias) -> 
-                [
-                    { Tag = Tag.Text; Content = "* "}
-                    { Tag = Tag.Keyword; Content = "as "}
-                    { Tag = Tag.Type; Content = sprintf "%s " alias}
-                ]
+    let private modulePath = function
+        | NodeModule (ModulePath path) -> { Tag = Tag.Text; Content = sprintf "'%s'" path}
+        | Relative (ModulePath path) -> { Tag = Tag.Text; Content = sprintf "'%s'" path}
 
 
-        let exportEntity postfix entity entityOrder = 
-            match entity with
-            | ExportEntity.Named (Identifier identifier) -> [{ Tag = Tag.Text; Content = identifier |> insertWithOrder entityOrder postfix}]
-            | DefaultAliased (Identifier alias) -> insertAsWithOrder entityOrder Tag.Modifier "default" alias postfix
+    let private insertWithOrder entityOrder posfix content =
+        match entityOrder with
+        | Single -> sprintf "{ %s }%s" content posfix
+        | First -> sprintf "{ %s, " content
+        | Last -> sprintf "%s }%s" content posfix
+        | Middle -> sprintf "%s, " content
 
 
+    let private insertAsWithOrder entityOrder nameTag name alias postfix =
+        match entityOrder with
+        | First ->
+            [
+                { Tag = Tag.Text; Content = "{ "}
+                { Tag = nameTag; Content = name }
+                { Tag = Tag.Keyword; Content = " as "}
+                { Tag = Tag.Type; Content = alias}
+                { Tag = Tag.Text; Content = ", "}
+            ]
+        | Last ->
+            [
+                { Tag = nameTag; Content = name }
+                { Tag = Tag.Keyword; Content = " as "}
+                { Tag = Tag.Type; Content = alias}
+                { Tag = Tag.Text; Content = " }" + postfix}
+            ]
+        | Middle ->
+            [
+                { Tag = nameTag; Content = name }
+                { Tag = Tag.Keyword; Content = " as "}
+                { Tag = Tag.Type; Content = alias}
+                { Tag = Tag.Text; Content = ", "}
+            ]
+        | Single ->
+            [
+                { Tag = Tag.Text; Content = "{ "}
+                { Tag = nameTag; Content = name }
+                { Tag = Tag.Keyword; Content = " as "}
+                { Tag = Tag.Type; Content = alias}
+                { Tag = Tag.Text; Content = " }" + postfix}
+            ]
 
 
-        let rec buildImportExportEntities builder l res =
-            match l with
-            | head::[] when res |> List.isEmpty -> 
-                builder head Single
+    let private importEntity postfix entity entityOrder = 
+        match entity with
+        | No -> [{ Tag = Tag.NoContent; Content = null }]
+        | ImportEntity.Named (Identifier identifier) -> [{ Tag = Tag.Text; Content = identifier |> insertWithOrder entityOrder postfix}]
+        | Aliased (Identifier name, Identifier alias) -> insertAsWithOrder entityOrder Tag.Text name alias postfix
+        | All -> [{ Tag = Tag.Text; Content = "* "}]
+        | AllAliased (Identifier alias) -> 
+            [
+                { Tag = Tag.Text; Content = "* "}
+                { Tag = Tag.Keyword; Content = "as "}
+                { Tag = Tag.Type; Content = sprintf "%s " alias}
+            ]
 
-            | head::[] when res |> List.isEmpty |> not -> 
-                res @ builder head Last
 
-            | head::tail when res |> List.isEmpty ->
-                let res' = res @ builder head First
-                buildImportExportEntities builder tail res'
+    let private exportEntity postfix entity entityOrder = 
+        match entity with
+        | ExportEntity.Named (Identifier identifier) -> [{ Tag = Tag.Text; Content = identifier |> insertWithOrder entityOrder postfix}]
+        | DefaultAliased (Identifier alias) -> insertAsWithOrder entityOrder Tag.Modifier "default" alias postfix
 
-            | head::tail when res |> List.isEmpty |> not ->
-                let res' = res @ builder head Middle
-                buildImportExportEntities builder tail res'
 
-            | _ -> []
+    let rec private buildImportExportEntities builder l res =
+        match l with
+        | head::[] when res |> List.isEmpty -> 
+            builder head Single
+
+        | head::[] when res |> List.isEmpty |> not -> 
+            res @ builder head Last
+
+        | head::tail when res |> List.isEmpty ->
+            let res' = res @ builder head First
+            buildImportExportEntities builder tail res'
+
+        | head::tail when res |> List.isEmpty |> not ->
+            let res' = res @ builder head Middle
+            buildImportExportEntities builder tail res'
+
+        | _ -> []
                 
 
-
-        let rec interpretStructure structure : DocumentSegmentViewModel list =
-
-            let constructType l : DocumentSegmentViewModel list =
-                l
-                |> List.map (fun t -> [{ Tag = Tag.Type; Content = Identifier.Value(t)}])
-                |> List.reduce (fun t1 t2 -> 
-                    [
-                        yield! t1
-                        { Tag = Tag.Text; Content = "." }
-                        yield! t2
-                    ]
-                )
+    let private constructType l : DocumentSegmentViewModel list =
+        l
+        |> List.map (fun t -> [{ Tag = Tag.Type; Content = Identifier.Value(t)}])
+        |> List.reduce (fun t1 t2 -> 
+            [
+                yield! t1
+                { Tag = Tag.Text; Content = "." }
+                yield! t2
+            ]
+        )
 
 
-            let rec constructCombination sep combination res =
-                match combination with
-                | [] -> 
-                    res
-                    |> List.rev
-                    |> List.reduce (fun t1 t2 -> 
-                        [
-                            yield! t1
-                            { Tag = Tag.Text; Content = sep }
-                            yield! t2
-                        ]
-                    )
-                | head :: tail ->
-                    match head with
-                    | TypeName.Plain p -> 
-                        constructType p
-                        |> (fun r -> constructCombination sep tail (r :: res))
-                    | TypeName.Generic (p, i) ->
-                        let main = constructType p
-                        let inner = constructCombination ", " i []
-                        let l =
-                            [
-                                yield! main
-                                { Tag = Tag.Text; Content = "<" }
-                                yield! inner
-                                { Tag = Tag.Text; Content = "> " }
-                            ]
-                        constructCombination sep tail (l :: res)
-                    | TypeName.Undefined -> 
-                        let l =
-                            [
-                                { Tag = Tag.Type; Content = "undefined" }
-                            ]
-                        constructCombination sep tail (l :: res)
+    let private constructSingleType tn =
+        constructCombination "" [tn] []
 
 
-            let constructSingleType tn =
-                constructCombination "" [tn] []
+    let rec private constructObjectLiteral (fields: (Field * TypeDefinition) list) endLine =
+        fields
+        |> List.map (fun l ->
+            let (fld, tdef) = l
+            [
+                if endLine then
+                    yield { Tag = Tag.Text; Content = "    " }
 
+                match fld with
+                | Required (Identifier i) ->
+                    yield { Tag = Tag.Text; Content = i }
+                    yield { Tag = Tag.Text; Content = ": " }
+                | Optional (Identifier i) ->
+                    yield { Tag = Tag.Text; Content = i }
+                    yield { Tag = Tag.Text; Content = "?: " }
+                | FuncOpt (Identifier i, fl) ->
+                    yield { Tag = Tag.Text; Content = i }
+                    yield { Tag = Tag.Text; Content = "?(" }
+                    yield! constructObjectLiteral fl false
+                    yield { Tag = Tag.Text; Content = "): " }
 
-            let constructObjectLiteral (fields: (Field * TypeDefinition) list) =
-                fields
-                |> List.map (fun l ->
-                    let (fld, tdef) = l
-                    [
-                        yield { Tag = Tag.Text; Content = "    " }
-                        match fld with
-                        | Required (Identifier i) ->
-                            yield { Tag = Tag.Type; Content = i }
-                            yield { Tag = Tag.Text; Content = ": " }
-                        | Optional (Identifier i) ->
-                            yield { Tag = Tag.Type; Content = i }
-                            yield { Tag = Tag.Text; Content = "?: " }
-
-                        match tdef with
-                        | TypeDefinition.Single tn -> 
-                            yield! constructSingleType tn
-                        | TypeDefinition.Combination comb ->
-                            match comb with
-                            | Union l ->
-                                yield! constructCombination " | " l []
-                            | Composition l ->
-                                yield!  constructCombination " & " l [] 
-
-                        yield { Tag = Tag.EndOfLine; Content = ";" }
-                    ]
-                )
-                |> List.concat
-
-
-            match structure with
-            | TypeAlias (Identifier identifier, combination) ->
-                [
-                    yield { Tag = Tag.Keyword; Content = "type " }
-                    yield { Tag = Tag.Type; Content = identifier }
-                    yield { Tag = Tag.Text; Content = " = " }
-                    match combination with
+                match tdef with
+                | TypeDefinition.Single tn -> 
+                    yield! constructSingleType tn
+                | TypeDefinition.Combination comb ->
+                    match comb with
                     | Union l ->
                         yield! constructCombination " | " l []
                     | Composition l ->
-                        yield!  constructCombination " & " l []
+                        yield!  constructCombination " & " l [] 
+
+
+
+                if endLine then
                     yield { Tag = Tag.EndOfLine; Content = ";" }
-                ]
+            ]
+        )
+        |> List.concat
 
-            | ClassDefinition (ExtendsEmpty (Identifier idetifier, tn)) -> 
+
+    let constructTypeDefinition tdef =
+        [
+            match tdef with
+            | TypeDefinition.Single tn -> 
+                yield! constructSingleType tn
+            | TypeDefinition.Combination comb ->
+                match comb with
+                | Union l ->
+                    yield! constructCombination " | " l []
+                | Composition l ->
+                    yield!  constructCombination " & " l [] 
+        ]
+
+
+    let rec private constructCombination sep combination res =
+        match combination with
+        | [] -> 
+            res
+            |> List.rev
+            |> List.reduce (fun t1 t2 -> 
                 [
-                    yield { Tag = Tag.Keyword; Content = "class " }
-                    yield { Tag = Tag.Type; Content = idetifier }
-                    yield { Tag = Tag.Keyword; Content = " extends " }
-
-                    yield! constructSingleType tn // construct combination from single operand
-
-                    yield { Tag = Tag.Parentheses; Content = "{}" }
-                    yield { Tag = Tag.EndOfLine; Content = null }
+                    yield! t1
+                    { Tag = Tag.Text; Content = sep }
+                    yield! t2
                 ]
-
-            | InterfaceDefinition (Extends (Identifier idetifier, tn, lit)) ->
-                [
-                    yield { Tag = Tag.Keyword; Content = "interface " }
-                    yield { Tag = Tag.Type; Content = idetifier }
-                    yield { Tag = Tag.Keyword; Content = " extends " }
+            )
+        | head :: tail ->
+            match head with
+            | TypeName.Plain p -> 
+                constructType p
+                |> (fun r -> constructCombination sep tail (r :: res))
                     
-                    yield! constructSingleType tn  // construct combination from single operand
+            | TypeName.Generic (p, i) ->
+                let main = constructType p
+                let inner = constructCombination ", " i []
+                let l =
+                    [
+                        yield! main
+                        { Tag = Tag.Text; Content = "<" }
+                        yield! inner
+                        { Tag = Tag.Text; Content = "> " }
+                    ]
+                constructCombination sep tail (l :: res)
 
-                    yield { Tag = Tag.Parentheses; Content = "{" }
-                    yield { Tag = Tag.EndOfLine; Content = null }
+            | TypeName.Undefined -> 
+                let l =
+                    [
+                        { Tag = Tag.Type; Content = "undefined" }
+                    ]
+                constructCombination sep tail (l :: res)
+
+            | TypeName.Void -> 
+                let l =
+                    [
+                        { Tag = Tag.Type; Content = "void" }
+                    ]
+                constructCombination sep tail (l :: res)
+
+            | TypeName.Func (fl, tdef) ->
+                let l =
+                    [
+                        { Tag = Tag.Text; Content = "((" }
+                        yield! constructObjectLiteral fl false
+                        { Tag = Tag.Text; Content = ") => " }
+
+                        yield! constructTypeDefinition tdef
+                        { Tag = Tag.Text; Content = ")" }
+                    ]
+                constructCombination sep tail (l :: res)
+
+
+
+
+
+    let rec private interpretStructure structure : DocumentSegmentViewModel list =
+        match structure with
+        | TypeAlias (Identifier identifier, combination) ->
+            [
+                yield { Tag = Tag.Keyword; Content = "type " }
+                yield { Tag = Tag.Type; Content = identifier }
+                yield { Tag = Tag.Text; Content = " = " }
+                match combination with
+                | Union l ->
+                    yield! constructCombination " | " l []
+                | Composition l ->
+                    yield!  constructCombination " & " l []
+                yield { Tag = Tag.EndOfLine; Content = ";" }
+            ]
+
+        | ClassDefinition (ExtendsEmpty (Identifier idetifier, tn)) -> 
+            [
+                yield { Tag = Tag.Keyword; Content = "class " }
+                yield { Tag = Tag.Type; Content = idetifier }
+                yield { Tag = Tag.Keyword; Content = " extends " }
+
+                yield! constructSingleType tn // construct combination from single operand
+
+                yield { Tag = Tag.Parentheses; Content = "{}" }
+                yield { Tag = Tag.EndOfLine; Content = null }
+            ]
+
+        | InterfaceDefinition (Extends (Identifier idetifier, tn, lit)) ->
+            [
+                yield { Tag = Tag.Keyword; Content = "interface " }
+                yield { Tag = Tag.Type; Content = idetifier }
+                yield { Tag = Tag.Keyword; Content = " extends " }
                     
-                    yield! constructObjectLiteral lit
+                yield! constructSingleType tn  // construct combination from single operand
+
+                yield { Tag = Tag.Parentheses; Content = "{" }
+                yield { Tag = Tag.EndOfLine; Content = null }
                     
-                    yield { Tag = Tag.Parentheses; Content = "}" }
-                    yield { Tag = Tag.EndOfLine; Content = null }
-                ]
-
-            | InterfaceDefinition (Plain (Identifier idetifier, lit)) ->
-                [
-                    yield { Tag = Tag.Keyword; Content = "interface " }
-                    yield { Tag = Tag.Type; Content = idetifier }
-
-                    yield { Tag = Tag.Parentheses; Content = "{" }
-                    yield { Tag = Tag.EndOfLine; Content = null }
+                yield! constructObjectLiteral lit true
                     
-                    yield! constructObjectLiteral lit
+                yield { Tag = Tag.Parentheses; Content = "}" }
+                yield { Tag = Tag.EndOfLine; Content = null }
+            ]
+
+        | InterfaceDefinition (Plain (Identifier idetifier, lit)) ->
+            [
+                yield { Tag = Tag.Keyword; Content = "interface " }
+                yield { Tag = Tag.Type; Content = idetifier }
+
+                yield { Tag = Tag.Parentheses; Content = "{" }
+                yield { Tag = Tag.EndOfLine; Content = null }
                     
-                    yield { Tag = Tag.Parentheses; Content = "}" }
-                    yield { Tag = Tag.EndOfLine; Content = null }
-                ]
+                yield! constructObjectLiteral lit true
+                    
+                yield { Tag = Tag.Parentheses; Content = "}" }
+                yield { Tag = Tag.EndOfLine; Content = null }
+            ]
 
 
+    let toDocumentSegmentVmList statements =
 
         let rec interpret statements result lastTag : DocumentSegmentViewModel list =
 
