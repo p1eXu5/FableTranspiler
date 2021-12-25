@@ -8,9 +8,15 @@ open Common
 
 let notFollowedByChars chars = notFollowedBy (skipAnyOf chars)
 let attemptSep ch = attempt (ws >>. skipChar ch >>. ws)
-let qualifiers = sepBy identifier (attemptSep '.') 
+let qualifiers = sepBy1 identifier (attemptSep '.') 
 
 
+let field, fieldR = createParserForwardedToRef()
+let typeDefinition, typeDefinitionR = createParserForwardedToRef()
+
+
+let funcParams =
+    (sepBy field (attempt(ws .>> skipChar ',' .>> ws)) |>> (fun t -> t : FieldList))
 
 
 let planeType = qualifiers .>>? notFollowedByChars ['<'] |>> TypeName.Plain
@@ -21,11 +27,35 @@ let genericType =
     .>>? skipChar '<' .>> ws .>>. sepBy planeType (attemptSep ',') .>> ws .>> skipChar '>'
     |>> TypeName.Generic
 
+
+let funcType =
+    skipChar '('
+    >>. ws
+    >>? skipChar '('
+    >>. ws
+    >>. funcParams
+    .>> ws
+    .>> skipChar ')'
+    .>> ws
+    .>> skipString "=>"
+    .>> ws
+    .>>. typeDefinition
+    .>> ws
+    .>> skipChar ')'
+    |>> TypeName.Func
+
+
+
+
+
+
 let ``type`` =
     choiceL [
+        skipString "void" |>> (fun _ -> TypeName.Void)
         skipString "undefined" |>> (fun _ -> TypeName.Undefined)
         planeType
         genericType
+        funcType
     ] "expecting type name"
 
 
@@ -69,59 +99,74 @@ let typeAlias =
         |>> TypeAlias
 
 
-let typeReference =
-    choice [
-        typeCombination |>> Combination
-        ``type`` |>> Single
-    ]
-
-
-//let typeDefinitionStructure =
-//    identifier 
-//    .>> ws
-//    .>>? skipChar ':' 
-//    .>> ws
-//    .>>. typeReference
-
-
-//let optionTypeDefinitionStructure =
-//    identifier
-//    .>>? skipChar '?'
-//    .>> ws
-//    .>> skipChar ':' 
-//    .>> ws
-//    .>>. typeReference
-
+do 
+    typeDefinitionR.Value <-
+        choice [
+            typeCombination |>> Combination
+            ``type`` |>> Single
+        ]
 
 let emptyObjectLiteral<'a> : Parser<unit, 'a>= skipChar '{' .>> ws .>> skipChar '}'
+
 
 let fieldReq = 
     (identifier |>> Required) 
     .>> ws 
     .>>? skipChar ':'
     .>> ws
-    .>>. typeReference
+    .>>. typeDefinition
+
 
 let fieldOpt = 
     (identifier |>> Optional)
     .>>? skipChar '?'
     .>> ws 
+    .>>? skipChar ':'
+    .>> ws
+    .>>. typeDefinition
+
+
+
+
+
+let fieldFuncOpt =
+    identifier
+    .>>? skipChar '?'
+    .>> ws
+    .>>? skipChar '('
+    .>> ws
+    .>>. funcParams
+    .>> ws
+    .>> skipChar ')'
+    .>> ws
     .>> skipChar ':'
     .>> ws
-    .>>. typeReference
+    .>>. typeDefinition
+    |>> (fun t ->
+        let (f, td) = t
+        (f |> FuncOpt), td
+    )
 
-let field = 
-    choice [
-        fieldReq
-        fieldOpt
-    ]
+
+
+do 
+    fieldR.Value <- 
+        choice [
+            fieldReq
+            fieldOpt
+            fieldFuncOpt
+        ]
+
+
+let objectLiteralField =
+    field
     .>> (skipChar ';' <?> "field must be terminated by ';'")
 
     
-let objectLiteral : Parser<ObjectLiteral, _> = 
+let objectLiteral : Parser<FieldList, _> = 
     skipChar '{' 
     >>. ws
-    >>. sepEndBy1 (field) (newline .>> ws)
+    >>. sepEndBy1 (objectLiteralField) (newline .>> ws)
     .>> ws
     .>> (skipChar '}' <?> "object literal must be terminated by '}'")
 
@@ -138,6 +183,8 @@ let extendsEmptyClassDefinition =
 let extendsInterfaceDefinition = 
     (InterfaceDefinition.Extends >> StructureStatement.InterfaceDefinition)
 
+let plainInterfaceDefinition = 
+    (InterfaceDefinition.Plain >> StructureStatement.InterfaceDefinition)
 
 
 let extendsEmpty keyword map = 
@@ -145,7 +192,7 @@ let extendsEmpty keyword map =
     >>. ws1
     >>. identifier
     .>> ws1
-    .>> extendsKeyword
+    .>>? extendsKeyword
     .>> ws1
     .>>. ``type``
     .>> ws
@@ -158,7 +205,7 @@ let extends keyword map =
     >>. ws1
     >>. identifier
     .>> ws1
-    .>> extendsKeyword
+    .>>? extendsKeyword
     .>> ws1
     .>>. ``type``
     .>> ws
@@ -169,11 +216,23 @@ let extends keyword map =
     )
 
 
+let plain keyword map = 
+    keyword
+    >>. ws1
+    >>. identifier
+    .>> ws1
+    .>>. objectLiteral
+    |>> map
+
+
 let classDefinition =
     extendsEmpty classKeyword extendsEmptyClassDefinition
 
 let interfaceDefinition =
-    extends interfaceKeyword extendsInterfaceDefinition
+    choice [
+        extends interfaceKeyword extendsInterfaceDefinition
+        plain interfaceKeyword plainInterfaceDefinition
+    ]
 
 
 let statement =

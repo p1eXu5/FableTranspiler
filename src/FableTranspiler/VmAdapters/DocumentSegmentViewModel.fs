@@ -138,7 +138,6 @@ module internal DocumentSegment =
                 )
 
 
-
             let rec constructCombination sep combination res =
                 match combination with
                 | [] -> 
@@ -184,6 +183,7 @@ module internal DocumentSegment =
                 |> List.map (fun l ->
                     let (fld, tdef) = l
                     [
+                        yield { Tag = Tag.Text; Content = "    " }
                         match fld with
                         | Required (Identifier i) ->
                             yield { Tag = Tag.Type; Content = i }
@@ -241,6 +241,20 @@ module internal DocumentSegment =
                     yield { Tag = Tag.Keyword; Content = " extends " }
                     
                     yield! constructSingleType tn  // construct combination from single operand
+
+                    yield { Tag = Tag.Parentheses; Content = "{" }
+                    yield { Tag = Tag.EndOfLine; Content = null }
+                    
+                    yield! constructObjectLiteral lit
+                    
+                    yield { Tag = Tag.Parentheses; Content = "}" }
+                    yield { Tag = Tag.EndOfLine; Content = null }
+                ]
+
+            | InterfaceDefinition (Plain (Identifier idetifier, lit)) ->
+                [
+                    yield { Tag = Tag.Keyword; Content = "interface " }
+                    yield { Tag = Tag.Type; Content = idetifier }
 
                     yield { Tag = Tag.Parentheses; Content = "{" }
                     yield { Tag = Tag.EndOfLine; Content = null }

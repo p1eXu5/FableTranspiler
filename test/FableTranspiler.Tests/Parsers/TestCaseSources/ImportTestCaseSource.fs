@@ -39,33 +39,45 @@ type TestCases () =
         seq {
             yield 
                 TestCaseData(
-                    """export { default as Button } from './components/Button';""" |> box,
+                    "export { default as Button } from './components/Button';" |> box,
                     Dsl.Export.defaultAliasedS "Button" "./components/Button").SetName("Statement: export defaultAliased 1")
             yield 
                 TestCaseData(
-                    """export { Helpers } from './mixins/Helpers';""" |> box,
+                    "export { Helpers } from './mixins/Helpers';" |> box,
                     Dsl.Export.namedS "Helpers" "./mixins/Helpers").SetName("Statement: export named")
 
             yield 
                 TestCaseData(
-                    """export { animateScroll, scroller };""" |> box,
+                    "export { animateScroll, scroller };" |> box,
                     Dsl.Export.outList ["animateScroll"; "scroller"]).SetName("Statement: export outList")
             yield 
                 TestCaseData(
-                    """export = ReactScroll;""" |> box,
+                    "export = ReactScroll;" |> box,
                     Dsl.Export.outAssignment "ReactScroll").SetName("Statement: export outAssignment")
 
             let (typeAliasInput, typeAlias) = StructuresFactory.typeAliasComposition
             yield
                 TestCaseData(
-                    $"""export {typeAliasInput}""" |> box,
+                    $"export {typeAliasInput}" |> box,
                     typeAlias |> ExportStatement.Structure |> Statement.Export).SetName("Statement: export type alias")
 
             let (classDefinitionInput, classDefinition) = StructuresFactory.classDefinition
             yield
                 TestCaseData(
-                    $"""export default {classDefinitionInput}""" |> box,
+                    $"export default {classDefinitionInput}" |> box,
                     classDefinition |> ExportStatement.Structure |> Statement.Export).SetName("Statement: export default class definition")
+
+            let (interfaceDefinitionInput, interfaceDefinition) = StructuresFactory.interfaceDefinitioExtends
+            yield
+                TestCaseData(
+                    $"export {interfaceDefinitionInput}" |> box,
+                    interfaceDefinition |> ExportStatement.Structure |> Statement.Export).SetName("Statement: export interface definition")
+
+            let (interfaceDefinitionPlainInput, interfaceDefinitionPlain) = StructuresFactory.interfaceDefinitioPlain
+            yield
+                TestCaseData(
+                    $"export {interfaceDefinitionPlainInput}" |> box,
+                    interfaceDefinitionPlain |> ExportStatement.Structure |> Statement.Export).SetName("Statement: export interface definition plain")
         }
 
 
@@ -73,11 +85,21 @@ type TestCases () =
         seq {
             yield 
                 TestCaseData(
-                    """name: string;""" |> box,
-                    Dsl.Literals.singleField "name" "string").SetName("Field: single type field")
+                    "name: string;" |> box,
+                    Dsl.Fields.singleField "name" "string").SetName("Field: single type field")
 
             yield 
                 TestCaseData(
-                    """id?: string | undefined;""" |> box,
-                    Dsl.Literals.optionalUnionWithUndefinedField "id" ["string"] ).SetName("Field: union with undefined")
+                    "id?: string | undefined;" |> box,
+                    Dsl.Fields.optionalUnionWithUndefinedField "id" ["string"] ).SetName("Field: union with undefined")
+
+            yield 
+                TestCaseData(
+                    "onClick?(): void;" |> box,
+                    Dsl.Fields.optionalFuncEmptyField "onClick" (Choice1Of3 ()) ).SetName("Field: func?(): void")
+
+            yield 
+                TestCaseData(
+                    "onSetActive?(to: string): void;" |> box,
+                    Dsl.Fields.optionalFuncField "onSetActive" ("to", "string") (Choice1Of3 ()) ).SetName("Field: func?(foo: bar): void")
         }

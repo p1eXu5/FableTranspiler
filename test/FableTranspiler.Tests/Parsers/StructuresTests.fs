@@ -10,11 +10,15 @@ module StructuresTests =
     open FParsec
     open FableTranspiler.Tests.Parsers.Common
 
+    // -------------------
+    //       Types        
+    // -------------------
+
 
     [<TestCase("Foo")>]
     [<TestCase("Foo.Bar")>]
     let ``plane type test`` (input: string) =
-        let planeType = Dsl.Structures.plainTypeName (input.Split('.') |> Array.toList)
+        let planeType = Dsl.TypeNames.plainTypeName (input.Split('.') |> Array.toList)
         let result = run Structures.planeType input
         result |> shouldSuccess planeType
         let result = run Structures.``type`` input
@@ -23,8 +27,8 @@ module StructuresTests =
     [<TestCase("Foo", "Bar")>]
     [<TestCase("Foo.Bar", "Foo.Bar")>]
     let ``generic type test`` (input1: string, input2: string) =
-        let planeType = Dsl.Structures.plainTypeName (input2.Split('.') |> Array.toList)
-        let generic = Dsl.Structures.genericTypeName (input1.Split('.') |> Array.toList) [planeType]
+        let planeType = Dsl.TypeNames.plainTypeName (input2.Split('.') |> Array.toList)
+        let generic = Dsl.TypeNames.genericTypeName (input1.Split('.') |> Array.toList) [planeType]
         let input = (input1 + "<" + input2 + ">")
         let result = run Structures.genericType input
         result |> shouldSuccess generic
@@ -35,8 +39,8 @@ module StructuresTests =
     [<Test>]
     let ``type composition test`` () =
         let input = "ReactScrollLinkProps & React.HTMLProps<HTMLButtonElement>"
-        let generic = Dsl.Structures.genericTypeName ["React"; "HTMLProps"] [Dsl.Structures.plainTypeName ["HTMLButtonElement"]]
-        let plain = Dsl.Structures.plainTypeName ["ReactScrollLinkProps"]
+        let generic = Dsl.TypeNames.genericTypeName ["React"; "HTMLProps"] [Dsl.TypeNames.plainTypeName ["HTMLButtonElement"]]
+        let plain = Dsl.TypeNames.plainTypeName ["ReactScrollLinkProps"]
         let composition = [plain; generic] |> Composition
         let result = run Structures.typeComposition input
         result |> shouldSuccess composition
@@ -44,17 +48,52 @@ module StructuresTests =
     [<Test>]
     let ``type union test`` () =
         let input = "ReactScrollLinkProps | React.HTMLProps<HTMLButtonElement>"
-        let generic = Dsl.Structures.genericTypeName ["React"; "HTMLProps"] [Dsl.Structures.plainTypeName ["HTMLButtonElement"]]
-        let plain = Dsl.Structures.plainTypeName ["ReactScrollLinkProps"]
+        let generic = Dsl.TypeNames.genericTypeName ["React"; "HTMLProps"] [Dsl.TypeNames.plainTypeName ["HTMLButtonElement"]]
+        let plain = Dsl.TypeNames.plainTypeName ["ReactScrollLinkProps"]
         let composition = [plain; generic] |> Union
         let result = run Structures.typeUnion input
         result |> shouldSuccess composition
 
 
+    [<Test>]
+    let ``type func test`` () =
+        let input = "((distance: number) => number)"
+        let field = Dsl.Fields.single "distance" "number"
+        let type' = Dsl.TypeNames.plainTypeName ["number"] |> TypeDefinition.Single
+
+        let expected = TypeName.Func (field, type')
+
+        let result = run Structures.funcType input
+        result |> shouldSuccess expected
+
+
+    // -------------------
+    //       Field        
+    // -------------------
+
     [<TestCaseSource(typeof<TestCases>, nameof(TestCases.FieldCases))>]
     let ``field test`` (input: string, expected: (Field * TypeDefinition)) = 
         let result = run Structures.field input
         result |> shouldSuccess expected
+
+
+    [<Test>]
+    let ``field of union with func test`` () =
+        let input = "duration?: number | string | ((distance: number) => number) | undefined;"
+        let typeDefinitions =
+            TypeCombination.Union [
+                Dsl.TypeNames.plainTypeName ["number"]
+                Dsl.TypeNames.plainTypeName ["string"]
+                Dsl.TypeNames.funcSimple "distance" ["number"] ["number"]
+                Dsl.TypeNames.undefinedType
+            ]
+            |> TypeDefinition.Combination
+        let expected =
+            (Identifier.Create "duration" |> Optional, typeDefinitions)
+
+        let result = run Structures.field input
+        result |> shouldSuccess expected
+
 
 
     // -------------------
@@ -63,8 +102,8 @@ module StructuresTests =
 
     [<TestCase("type LinkProps = ReactScrollLinkProps & React.HTMLProps<HTMLButtonElement>;")>]
     let ``type alias of plain & generic test`` (input: string) =
-        let generic = Dsl.Structures.genericTypeName ["React"; "HTMLProps"] [Dsl.Structures.plainTypeName ["HTMLButtonElement"]]
-        let plain = Dsl.Structures.plainTypeName ["ReactScrollLinkProps"]
+        let generic = Dsl.TypeNames.genericTypeName ["React"; "HTMLProps"] [Dsl.TypeNames.plainTypeName ["HTMLButtonElement"]]
+        let plain = Dsl.TypeNames.plainTypeName ["ReactScrollLinkProps"]
         let expected = 
             Dsl.Structures.typeAlias 
                 "LinkProps" 
@@ -78,8 +117,8 @@ module StructuresTests =
     [<TestCase("type LinkProps = React.HTMLProps<HTMLButtonElement> & ReactScrollLinkProps;")>]
     let ``type alias of generic & plain test`` (input: string) =
         let result = run Structures.statement input
-        let generic = Dsl.Structures.genericTypeName ["React"; "HTMLProps"] [Dsl.Structures.plainTypeName ["HTMLButtonElement"]]
-        let plain = Dsl.Structures.plainTypeName ["ReactScrollLinkProps"]
+        let generic = Dsl.TypeNames.genericTypeName ["React"; "HTMLProps"] [Dsl.TypeNames.plainTypeName ["HTMLButtonElement"]]
+        let plain = Dsl.TypeNames.plainTypeName ["ReactScrollLinkProps"]
         let expected = 
             Dsl.Structures.typeAlias 
                 "LinkProps" 
@@ -92,8 +131,8 @@ module StructuresTests =
     [<TestCase("type LinkProps = ReactScrollLinkProps | React.HTMLProps<HTMLButtonElement>;")>]
     let ``type alias of plain | generic test`` (input: string) =
         let result = run Structures.statement input
-        let generic = Dsl.Structures.genericTypeName ["React"; "HTMLProps"] [Dsl.Structures.plainTypeName ["HTMLButtonElement"]]
-        let plain = Dsl.Structures.plainTypeName ["ReactScrollLinkProps"]
+        let generic = Dsl.TypeNames.genericTypeName ["React"; "HTMLProps"] [Dsl.TypeNames.plainTypeName ["HTMLButtonElement"]]
+        let plain = Dsl.TypeNames.plainTypeName ["ReactScrollLinkProps"]
         let expected = 
             Dsl.Structures.typeAlias 
                 "LinkProps" 
@@ -102,11 +141,12 @@ module StructuresTests =
 
         result |> shouldSuccess expected
 
+
     [<TestCase("type LinkProps = React.HTMLProps<HTMLButtonElement> | ReactScrollLinkProps;")>]
     let ``type alias of generic | plain test`` (input: string) =
         let result = run Structures.statement input
-        let generic = Dsl.Structures.genericTypeName ["React"; "HTMLProps"] [Dsl.Structures.plainTypeName ["HTMLButtonElement"]]
-        let plain = Dsl.Structures.plainTypeName ["ReactScrollLinkProps"]
+        let generic = Dsl.TypeNames.genericTypeName ["React"; "HTMLProps"] [Dsl.TypeNames.plainTypeName ["HTMLButtonElement"]]
+        let plain = Dsl.TypeNames.plainTypeName ["ReactScrollLinkProps"]
         let expected = 
             Dsl.Structures.typeAlias 
                 "LinkProps" 
@@ -122,7 +162,7 @@ module StructuresTests =
 
     [<TestCase("class Button extends React.Component<ButtonProps> {}")>]
     let ``class extends generic empty test`` (input: string) =
-        let generic = Dsl.Structures.genericTypeName ["React"; "Component"] [Dsl.Structures.plainTypeName ["ButtonProps"]]
+        let generic = Dsl.TypeNames.genericTypeName ["React"; "Component"] [Dsl.TypeNames.plainTypeName ["ButtonProps"]]
         let expected = 
             (Identifier.Create "Button", generic) 
             |> ClassDefinition.ExtendsEmpty
@@ -142,11 +182,11 @@ module StructuresTests =
     id?: string | undefined;
 }""")>]
     let ``interface extends generic not empty test`` (input: string) =
-        let generic = Dsl.Structures.genericTypeName ["React"; "HTMLProps"] [Dsl.Structures.plainTypeName ["HTMLDivElement"]]
-        let field1 = Dsl.Literals.singleField "name" "string"
-        let field2 = Dsl.Literals.optionalUnionWithUndefinedField "id" ["string"]
+        let generic = Dsl.TypeNames.genericTypeName ["React"; "HTMLProps"] [Dsl.TypeNames.plainTypeName ["HTMLDivElement"]]
+        let field1 = Dsl.Fields.singleField "name" "string"
+        let field2 = Dsl.Fields.optionalUnionWithUndefinedField "id" ["string"]
 
-        let oliteral : ObjectLiteral = [field1; field2]
+        let oliteral : FieldList = [field1; field2]
 
         let expected = 
             (Identifier.Create "ElementProps", generic, oliteral) 
@@ -157,3 +197,9 @@ module StructuresTests =
         let result = run Structures.statement input
         result |> shouldSuccess expected
     
+    [<Test>]
+    let ``interface plain not empty test`` () =
+        let (input, definition) = StructuresFactory.interfaceDefinitioPlain
+
+        let result = run Structures.statement input
+        result |> shouldSuccess (definition |> Statement.Structure)

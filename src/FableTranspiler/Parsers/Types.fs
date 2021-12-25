@@ -19,9 +19,12 @@ type ModulePath = ModulePath of string with
 
 
 type TypeName =
+    | Void
     | Undefined
+    | Func of FieldList * TypeDefinition
     | Plain of Identifier list
     | Generic of Identifier list * TypeName list
+
 
 type TypeCombination =
     | Composition of TypeName list
@@ -32,18 +35,21 @@ type TypeDefinition =
     | Combination of TypeCombination
     | Single of TypeName
 
+
 type Field =
     | Required of Identifier
     | Optional of Identifier
+    | FuncOpt of Identifier * FieldList
 
-type ObjectLiteral = (Field * TypeDefinition) list
+type FieldList = (Field * TypeDefinition) list
 
 
 type ClassDefinition =
     | ExtendsEmpty of Identifier * TypeName
 
 type InterfaceDefinition =
-    | Extends of Identifier * TypeName * ObjectLiteral
+    | Extends of Identifier * TypeName * FieldList
+    | Plain of Identifier * FieldList
 
 
 type StructureStatement =

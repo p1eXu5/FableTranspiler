@@ -78,6 +78,7 @@ let statement =
         outList
         transit
         exportKeyword >>. ws1 >>? Structures.typeAlias |>> ExportStatement.Structure
+        exportKeyword >>. ws1 >>? Structures.interfaceDefinition |>> ExportStatement.Structure
         exportKeyword >>. ws1 >>? defaultKeyword >>. ws1 >>? Structures.classDefinition |>> ExportStatement.Structure
     ]
     |>> Statement.Export

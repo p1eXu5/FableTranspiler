@@ -103,7 +103,7 @@ module Comment =
 
 
 [<RequireQualifiedAccess>]
-module Structures =
+module TypeNames =
     let plainTypeName =
         List.map Identifier.Create >> TypeName.Plain
         
@@ -114,6 +114,23 @@ module Structures =
         )
         |> TypeName.Generic
 
+    let voidType = TypeName.Void
+    let undefinedType = TypeName.Undefined
+
+    let funcSimple paramName paramPlainType returnPlainType =
+        let fieldList : FieldList =
+            (
+                Field.Required (Identifier.Create paramName),
+                plainTypeName paramPlainType |> TypeDefinition.Single
+            )
+            |> List.singleton
+
+        (fieldList, plainTypeName returnPlainType |> TypeDefinition.Single)
+        |> TypeName.Func
+
+
+[<RequireQualifiedAccess>]
+module Structures =
 
     let typeAlias name typeCombination =
         (
@@ -122,8 +139,10 @@ module Structures =
         ) |> TypeAlias
 
 
+
+
 [<RequireQualifiedAccess>]
-module Literals =
+module Fields =
     /// <summary>
     /// Example:
     /// <code> name: string; </code>
@@ -133,7 +152,7 @@ module Literals =
     let singleField name typeName =
         (
             Identifier.Create name |> Required, 
-            Structures.plainTypeName [typeName] |> TypeDefinition.Single
+            TypeNames.plainTypeName [typeName] |> TypeDefinition.Single
         )
 
 
@@ -143,7 +162,7 @@ module Literals =
     /// </summary>
     /// <param name="name"></param>
     /// <param name="typeName"></param>
-    let single name typeName : ObjectLiteral = 
+    let single name typeName : FieldList = 
         singleField name typeName |> List.singleton
 
 
@@ -157,10 +176,10 @@ module Literals =
         (
             Identifier.Create name |> Optional, 
             [
-                Structures.plainTypeName typeName
+                TypeNames.plainTypeName typeName
                 TypeName.Undefined
             ]
-            |> Union |> Combination
+            |> Union |> TypeDefinition.Combination
         )
 
     /// <summary>
@@ -169,5 +188,21 @@ module Literals =
     /// </summary>
     /// <param name="name"></param>
     /// <param name="typeName"></param>
-    let optionalUnionWithUndefined name typeName : ObjectLiteral =
+    let optionalUnionWithUndefined name typeName : FieldList =
         optionalUnionWithUndefinedField name typeName |> List.singleton
+
+    let private typeName' typeName = 
+        match typeName with
+        | Choice1Of3 _ -> TypeName.Void
+        | Choice2Of3 _ -> TypeName.Undefined
+        | Choice3Of3 n -> TypeNames.plainTypeName n
+
+
+    let optionalFuncEmptyField name typeName : Field * TypeDefinition =
+        (Identifier.Create name, []) |> FuncOpt,
+        typeName' typeName |> TypeDefinition.Single
+
+
+    let optionalFuncField name parameter typeName : Field * TypeDefinition =
+        (Identifier.Create name, (parameter ||> single) ) |> FuncOpt,
+        typeName' typeName |> TypeDefinition.Single
