@@ -210,11 +210,11 @@ module internal rec DocumentSegment =
             )
         | head :: tail ->
             match head with
-            | TypeName.Plain p -> 
+            | DTsType.Plain p -> 
                 constructType p
                 |> (fun r -> constructCombination sep tail (r :: res))
                     
-            | TypeName.Generic (p, i) ->
+            | DTsType.Generic (p, i) ->
                 let main = constructType p
                 let inner = constructCombination ", " i []
                 let l =
@@ -226,28 +226,28 @@ module internal rec DocumentSegment =
                     ]
                 constructCombination sep tail (l :: res)
 
-            | TypeName.Undefined -> 
+            | DTsType.Undefined -> 
                 let l =
                     [
                         { Tag = Tag.Type; Content = "undefined" }
                     ]
                 constructCombination sep tail (l :: res)
 
-            | TypeName.Void -> 
+            | DTsType.Void -> 
                 let l =
                     [
                         { Tag = Tag.Type; Content = "void" }
                     ]
                 constructCombination sep tail (l :: res)
 
-            | TypeName.Any -> 
+            | DTsType.Any -> 
                 let l =
                     [
                         { Tag = Tag.Type; Content = "any" }
                     ]
                 constructCombination sep tail (l :: res)
 
-            | TypeName.Func (fl, tdef) ->
+            | DTsType.Func (fl, tdef) ->
                 let l =
                     [
                         { Tag = Tag.Text; Content = "((" }
@@ -259,7 +259,7 @@ module internal rec DocumentSegment =
                     ]
                 constructCombination sep tail (l :: res)
 
-            | TypeName.Typeof (Identifier i) ->
+            | DTsType.Typeof (Identifier i) ->
                 let l =
                     [
                         { Tag = Tag.Keyword; Content = "typeof " }

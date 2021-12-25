@@ -19,13 +19,13 @@ let funcParams =
     (sepBy field (attempt(ws .>> skipChar ',' .>> ws)) |>> (fun t -> t : FieldList))
 
 
-let planeType = qualifiers .>>? notFollowedByChars ['<'] |>> TypeName.Plain
+let planeType = qualifiers .>>? notFollowedByChars ['<'] |>> DTsType.Plain
 
 let genericType = 
     qualifiers
     .>> ws
     .>>? skipChar '<' .>> ws .>>. sepBy planeType (attemptSep ',') .>> ws .>> skipChar '>'
-    |>> TypeName.Generic
+    |>> DTsType.Generic
 
 
 let funcType =
@@ -42,22 +42,22 @@ let funcType =
     .>>. typeDefinition
     .>> ws
     .>> skipChar ')'
-    |>> TypeName.Func
+    |>> DTsType.Func
 
 
 let typeof =
     skipString "typeof"
     >>. ws1
     >>. identifier
-    |>> TypeName.Typeof
+    |>> DTsType.Typeof
 
 
 
 let ``type`` =
     choiceL [
-        skipString "void" |>> (fun _ -> TypeName.Void)
-        skipString "undefined" |>> (fun _ -> TypeName.Undefined)
-        skipString "any" |>> (fun _ -> TypeName.Any)
+        skipString "void" |>> (fun _ -> DTsType.Void)
+        skipString "undefined" |>> (fun _ -> DTsType.Undefined)
+        skipString "any" |>> (fun _ -> DTsType.Any)
         typeof
         planeType
         genericType

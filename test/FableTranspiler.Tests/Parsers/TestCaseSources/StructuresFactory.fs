@@ -12,8 +12,8 @@ module StructuresFactory =
     /// </summary>
     let typeAliasComposition =
         let input = "type LinkProps = ReactScrollLinkProps & React.HTMLProps<HTMLButtonElement>;"
-        let generic = Dsl.TypeNames.genericTypeName ["React"; "HTMLProps"] [Dsl.TypeNames.plainTypeName ["HTMLButtonElement"]]
-        let plain = Dsl.TypeNames.plainTypeName ["ReactScrollLinkProps"]
+        let generic = Dsl.DTsTypes.genericType ["React"; "HTMLProps"] [Dsl.DTsTypes.plainType ["HTMLButtonElement"]]
+        let plain = Dsl.DTsTypes.plainType ["ReactScrollLinkProps"]
         let composition = 
             Dsl.Structures.typeAlias 
                 "LinkProps" 
@@ -26,7 +26,7 @@ module StructuresFactory =
     /// </summary>
     let classDefinition =
         let input = "class Button extends React.Component<ButtonProps> {}"
-        let generic = Dsl.TypeNames.genericTypeName ["React"; "Component"] [Dsl.TypeNames.plainTypeName ["ButtonProps"]]
+        let generic = Dsl.DTsTypes.genericType ["React"; "Component"] [Dsl.DTsTypes.plainType ["ButtonProps"]]
         let definition = 
             (Identifier.Create "Button", generic) 
             |> ClassDefinition.ExtendsEmpty
@@ -47,7 +47,7 @@ module StructuresFactory =
     name: string;
     id?: string | undefined;
 }"""
-        let generic = Dsl.TypeNames.genericTypeName ["React"; "HTMLProps"] [Dsl.TypeNames.plainTypeName ["HTMLDivElement"]]
+        let generic = Dsl.DTsTypes.genericType ["React"; "HTMLProps"] [Dsl.DTsTypes.plainType ["HTMLDivElement"]]
         let field1 = Dsl.Fields.singleField "name" "string"
         let field2 = Dsl.Fields.optionalUnionWithUndefinedField "id" ["string"]
 

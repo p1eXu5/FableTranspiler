@@ -18,25 +18,25 @@ type ModulePath = ModulePath of string with
     static member Value(ModulePath v) = v
 
 
-type TypeName =
+type DTsType =
     | Void
     | Undefined
     | Any
     | Func of FieldList * TypeDefinition
     | Plain of Identifier list
-    | Generic of Identifier list * TypeName list
+    | Generic of Identifier list * DTsType list
     | Typeof of Identifier
-    | Array of TypeName
+    | Array of DTsType
 
 
 type TypeCombination =
-    | Composition of TypeName list
-    | Union of TypeName list
+    | Composition of DTsType list
+    | Union of DTsType list
 
 
 type TypeDefinition =
     | Combination of TypeCombination
-    | Single of TypeName
+    | Single of DTsType
 
 
 type Field =
@@ -49,10 +49,10 @@ type FieldList = (Field * TypeDefinition) list
 
 
 type ClassDefinition =
-    | ExtendsEmpty of Identifier * TypeName
+    | ExtendsEmpty of Identifier * DTsType
 
 type InterfaceDefinition =
-    | Extends of Identifier * TypeName * FieldList
+    | Extends of Identifier * DTsType * FieldList
     | Plain of Identifier * FieldList
 
 

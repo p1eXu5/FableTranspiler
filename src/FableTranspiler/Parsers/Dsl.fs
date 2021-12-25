@@ -103,30 +103,30 @@ module Comment =
 
 
 [<RequireQualifiedAccess>]
-module TypeNames =
-    let plainTypeName =
-        List.map Identifier.Create >> TypeName.Plain
+module DTsTypes =
+    let plainType =
+        List.map Identifier.Create >> DTsType.Plain
         
-    let genericTypeName qualifiers typeNames =
+    let genericType qualifiers typeNames =
         (
             qualifiers |> List.map Identifier.Create
             , typeNames
         )
-        |> TypeName.Generic
+        |> DTsType.Generic
 
-    let voidType = TypeName.Void
-    let undefinedType = TypeName.Undefined
+    let voidType = DTsType.Void
+    let undefinedType = DTsType.Undefined
 
     let funcSimple paramName paramPlainType returnPlainType =
         let fieldList : FieldList =
             (
                 Field.Required (Identifier.Create paramName),
-                plainTypeName paramPlainType |> TypeDefinition.Single
+                plainType paramPlainType |> TypeDefinition.Single
             )
             |> List.singleton
 
-        (fieldList, plainTypeName returnPlainType |> TypeDefinition.Single)
-        |> TypeName.Func
+        (fieldList, plainType returnPlainType |> TypeDefinition.Single)
+        |> DTsType.Func
 
 
 [<RequireQualifiedAccess>]
@@ -141,10 +141,10 @@ module Structures =
 
 let private typeName' typeName = 
     match typeName with
-    | Choice1Of4 _ -> TypeName.Void
-    | Choice2Of4 _ -> TypeName.Undefined
-    | Choice3Of4 n -> TypeNames.plainTypeName n
-    | Choice4Of4 _ -> TypeName.Any
+    | Choice1Of4 _ -> DTsType.Void
+    | Choice2Of4 _ -> DTsType.Undefined
+    | Choice3Of4 n -> DTsTypes.plainType n
+    | Choice4Of4 _ -> DTsType.Any
 
 
 [<RequireQualifiedAccess>]
@@ -158,7 +158,7 @@ module Fields =
     let singleField name typeName =
         (
             Identifier.Create name |> Required, 
-            TypeNames.plainTypeName [typeName] |> TypeDefinition.Single
+            DTsTypes.plainType [typeName] |> TypeDefinition.Single
         )
 
 
@@ -182,8 +182,8 @@ module Fields =
         (
             Identifier.Create name |> Optional, 
             [
-                TypeNames.plainTypeName typeName
-                TypeName.Undefined
+                DTsTypes.plainType typeName
+                DTsType.Undefined
             ]
             |> Union |> TypeDefinition.Combination
         )
