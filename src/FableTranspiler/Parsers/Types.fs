@@ -56,6 +56,7 @@ type StructureStatement =
     | TypeAlias of Identifier * TypeCombination
     | ClassDefinition of ClassDefinition
     | InterfaceDefinition of InterfaceDefinition
+    | FunctionDefinition of  Identifier * FieldList * TypeDefinition
     // | TypeDefinition of Identifier * TypeDefinition
 
 
