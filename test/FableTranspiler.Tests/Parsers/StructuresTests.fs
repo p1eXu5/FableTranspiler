@@ -63,7 +63,7 @@ module StructuresTests =
 
         let expected = DTsType.Func (field, type')
 
-        let result = run Structures.funcType input
+        let result = run Structures.``type`` input
         result |> shouldSuccess expected
 
 

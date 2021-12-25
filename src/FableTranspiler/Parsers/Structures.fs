@@ -32,8 +32,6 @@ let genericType =
 let funcType =
     skipChar '('
     >>. ws
-    >>? skipChar '('
-    >>. ws
     >>. funcParams
     .>> ws
     .>> skipChar ')'
@@ -41,8 +39,7 @@ let funcType =
     .>> skipString "=>"
     .>> ws
     .>>. typeDefinition
-    .>> ws
-    .>> skipChar ')'
+    
     |>> DTsType.Func
 
 
@@ -65,6 +62,7 @@ do
             planeType .>>? skipString "[]" |>> DTsType.Array
             planeType
             genericType
+            skipChar '(' >>. ws >>? funcType .>> ws .>> skipChar ')'
             funcType
         ] "expecting type name"
 
@@ -109,11 +107,18 @@ let typeAlias =
         |>> TypeAlias
 
 
+let objectLiteral : Parser<FieldList, _> = 
+    skipChar '{' 
+    >>. ws
+    >>. sepEndBy1 (field) (attempt(ws >>. skipChar ';' >>. ws) <|> (ws1 : Parser<unit, unit>))
+    .>> (skipChar '}' <?> "object literal must be terminated by '}'")
+
 do 
     typeDefinitionR.Value <-
         choice [
             typeCombination |>> Combination
             ``type`` |>> Single
+            objectLiteral |>> InlineObject
         ]
 
 let emptyObjectLiteral<'a> : Parser<unit, 'a>= skipChar '{' .>> ws .>> skipChar '}'
@@ -185,11 +190,7 @@ do
 
 
 
-let objectLiteral : Parser<FieldList, _> = 
-    skipChar '{' 
-    >>. ws
-    >>. sepEndBy1 (field) (attempt(ws >>. skipChar ';' >>. ws))
-    .>> (skipChar '}' <?> "object literal must be terminated by '}'")
+
 
 
 

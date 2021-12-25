@@ -161,15 +161,16 @@ module internal rec DocumentSegment =
                     yield! constructObjectLiteral fl false
                     yield { Tag = Tag.Parentheses; Content = "): " }
 
-                match tdef with
-                | TypeDefinition.Single tn -> 
-                    yield! constructSingleType tn
-                | TypeDefinition.Combination comb ->
-                    match comb with
-                    | Union l ->
-                        yield! constructCombination " | " l []
-                    | Composition l ->
-                        yield!  constructCombination " & " l [] 
+                yield! constructTypeDefinition tdef
+                //match tdef with
+                //| TypeDefinition.Single tn -> 
+                //    yield! constructSingleType tn
+                //| TypeDefinition.Combination comb ->
+                //    match comb with
+                //    | Union l ->
+                //        yield! constructCombination " | " l []
+                //    | Composition l ->
+                //        yield!  constructCombination " & " l [] 
 
 
 
@@ -193,6 +194,10 @@ module internal rec DocumentSegment =
                     yield! constructCombination " | " l []
                 | Composition l ->
                     yield!  constructCombination " & " l [] 
+            | TypeDefinition.InlineObject fl ->
+                { Tag = Tag.Parentheses; Content = "{" }
+                yield! constructObjectLiteral fl false
+                { Tag = Tag.Parentheses; Content = "}" }
         ]
 
 

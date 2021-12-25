@@ -22,7 +22,7 @@ type DTsType =
     | Void
     | Undefined
     | Any
-    | Func of FieldList * TypeDefinition
+    | Func of parameters: FieldList * returnType: TypeDefinition
     | Plain of Identifier list
     | Generic of Identifier list * DTsType list
     | Typeof of Identifier
@@ -31,13 +31,14 @@ type DTsType =
 
 type TypeCombination =
     | Composition of DTsType list
+    /// "type | type"
     | Union of DTsType list
 
 
 type TypeDefinition =
     | Combination of TypeCombination
     | Single of DTsType
-
+    | InlineObject of FieldList
 
 type Field =
     | Required of Identifier

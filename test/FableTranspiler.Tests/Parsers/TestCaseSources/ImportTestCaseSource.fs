@@ -118,6 +118,16 @@ type TestCases () =
                     "name: any[];" |> box,
                     Dsl.Fields.singleArrayField "name" (Choice4Of4 ())).SetName("Field: single any array type field")
 
+
+            let field : FieldList = Dsl.Fields.singleField "x" "number"  |> List.singleton
+            let typeDef = Dsl.DTsTypes.plainType ["number"] |> TypeDefinition.Single
+            let expected = Field.Required (Identifier.Create "name"), DTsType.Func (field, typeDef) |> TypeDefinition.Single
+
+            yield 
+                TestCaseData(
+                    "name: (x: number) => number;" |> box,
+                    expected).SetName("Field: name: (x: number) => number;")
+
         }
 
 
@@ -127,4 +137,29 @@ type TestCases () =
                 TestCaseData(
                     "function unmount(): void;" |> box,
                     Dsl.Functions.create "unmount" [] (Choice1Of4 ())).SetName("Functions: function unmount(): void;")
+
+
+            let union = 
+                [
+                    Dsl.DTsTypes.plainType ["boolean"]
+                    Dsl.DTsTypes.plainType ["string"]
+                ]
+                |> TypeCombination.Union
+                |> TypeDefinition.Combination
+
+            let objectLiteral : FieldList = (Field.Required (Identifier.Create "smooth"), union) |> List.singleton
+            let field : FieldList = 
+                (Identifier.Create "options" |> Field.Required, objectLiteral |> TypeDefinition.InlineObject) |> List.singleton
+
+
+            let retFl : FieldList = Dsl.Fields.singleField "x" "number"  |> List.singleton
+            let ret =
+                (retFl, Dsl.DTsTypes.plainType ["number"] |> TypeDefinition.Single) |> DTsType.Func |> TypeDefinition.Single
+
+            let expected = FunctionDefinition (Identifier.Create "getAnimationType", field, ret)
+
+            yield 
+                TestCaseData(
+                    "function getAnimationType(options: { smooth: boolean | string }): (x: number) => number;" |> box,
+                    expected).SetName("Functions: function getAnimationType(options: { smooth: boolean | string }): (x: number) => number;")
         }
