@@ -71,7 +71,7 @@ module Statements =
         task {
             let! input = readFile ``types/reac-scroll/index.d.ts``
             let doc = document input
-            let expeced : Statements =
+            let expected : Statements =
                 [
                     Dsl.Comment.create "// Type definitions for react-scroll 1.8"
                     Dsl.Comment.create "// Project: https://github.com/fisshy/react-scroll"
@@ -83,7 +83,7 @@ module Statements =
                     Dsl.Export.outAssignment "ReactScroll"
                  ]
             return
-                doc |> beOk expeced
+                doc |> beOk expected
         }
 
     [<Test>]

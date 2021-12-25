@@ -70,10 +70,21 @@ let transit =
     .>> skipChar ';'
 
 
+let outDefault =
+    exportKeyword
+    >>? ws1
+    >>? defaultKeyword
+    >>. ws1
+    >>? notFollowedByString "class"
+    >>. identifier
+    |>> OutDefault
+    .>> skipChar ';'
+
 
 let statement =
     ws
     >>? choice [
+        outDefault
         outAssignment
         outList
         transit

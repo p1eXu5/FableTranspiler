@@ -6,14 +6,16 @@ open Common
 
 
 let declareConst =
-    skipString "declare const"
+    ws
+    >>? skipString "declare const"
     >>. ws1
     >>. identifier
     .>> ws
     .>> skipChar ':'
     .>> ws
-    .>>. Structures.typeDefinition
+    .>>. Structures.typeDefinition 
     |>> Statement.DeclareConst
+    .>> skipChar ';'
 
 
 

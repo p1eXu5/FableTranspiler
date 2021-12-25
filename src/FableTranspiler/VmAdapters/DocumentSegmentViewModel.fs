@@ -146,20 +146,20 @@ module internal rec DocumentSegment =
                 match fld with
                 | Required (Identifier i) ->
                     yield { Tag = Tag.Text; Content = i }
-                    yield { Tag = Tag.Text; Content = ": " }
+                    yield { Tag = Tag.Parentheses; Content = ": " }
                 | Optional (Identifier i) ->
                     yield { Tag = Tag.Text; Content = i }
-                    yield { Tag = Tag.Text; Content = "?: " }
+                    yield { Tag = Tag.Parentheses; Content = "?: " }
                 | FuncOpt (Identifier i, fl) ->
                     yield { Tag = Tag.Text; Content = i }
-                    yield { Tag = Tag.Text; Content = "?(" }
+                    yield { Tag = Tag.Parentheses; Content = "?(" }
                     yield! constructObjectLiteral fl false
                     yield { Tag = Tag.Text; Content = "): " }
                 | FuncReq (Identifier i, fl) ->
                     yield { Tag = Tag.Text; Content = i }
-                    yield { Tag = Tag.Text; Content = "(" }
+                    yield { Tag = Tag.Parentheses; Content = "(" }
                     yield! constructObjectLiteral fl false
-                    yield { Tag = Tag.Text; Content = "): " }
+                    yield { Tag = Tag.Parentheses; Content = "): " }
 
                 match tdef with
                 | TypeDefinition.Single tn -> 
@@ -204,7 +204,7 @@ module internal rec DocumentSegment =
             |> List.reduce (fun t1 t2 -> 
                 [
                     yield! t1
-                    { Tag = Tag.Text; Content = sep }
+                    { Tag = Tag.Parentheses; Content = sep }
                     yield! t2
                 ]
             )
@@ -250,12 +250,12 @@ module internal rec DocumentSegment =
             | DTsType.Func (fl, tdef) ->
                 let l =
                     [
-                        { Tag = Tag.Text; Content = "((" }
+                        { Tag = Tag.Parentheses; Content = "((" }
                         yield! constructObjectLiteral fl false
-                        { Tag = Tag.Text; Content = ") => " }
+                        { Tag = Tag.Parentheses; Content = ") => " }
 
                         yield! constructTypeDefinition tdef
-                        { Tag = Tag.Text; Content = ")" }
+                        { Tag = Tag.Parentheses; Content = ")" }
                     ]
                 constructCombination sep tail (l :: res)
 
@@ -264,6 +264,14 @@ module internal rec DocumentSegment =
                     [
                         { Tag = Tag.Keyword; Content = "typeof " }
                         { Tag = Tag.Text; Content = i }
+                    ]
+                constructCombination sep tail (l :: res)
+
+            | DTsType.Array t ->
+                let l = 
+                    [
+                        yield! constructSingleType t
+                        {Tag = Tag.Parentheses; Content = "[]"}
                     ]
                 constructCombination sep tail (l :: res)
 
@@ -417,6 +425,26 @@ module internal rec DocumentSegment =
                         "export"
 
 
+                | Export (OutDefault (Identifier i)) ->
+                    let s =
+                        if lastTag <> "export"  then
+                            [
+                                yield { Tag = Tag.EndOfLine; Content = "" }
+                                yield { Tag = Tag.Modifier; Content = "export " }
+                            ]
+                        else
+                            [yield { Tag = Tag.Modifier; Content = "export " }]
+
+                    continueInterpret tail
+                        [
+                            yield! s
+                            yield { Tag = Tag.Modifier; Content = "default " }
+                            yield { Tag = Tag.Text; Content = i }
+                            yield { Tag = Tag.EndOfLine; Content = ";" }
+                        ]
+                        "export"
+
+
                 | Export (OutAssignment (Identifier identifier)) ->
                     let s =
                         if lastTag <> "export"  then
@@ -463,6 +491,15 @@ module internal rec DocumentSegment =
                         ]
                         lastTag'
 
+
+                | Structure structure ->
+                    let xvm = interpretStructure structure
+                    continueInterpret tail
+                        [
+                            yield { Tag = Tag.EndOfLine; Content = "" }
+                            yield! xvm
+                        ]
+                        ""
 
                 | Comment comment ->
                     let s =

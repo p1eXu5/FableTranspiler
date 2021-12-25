@@ -12,6 +12,7 @@ let qualifiers = sepBy1 identifier (attemptSep '.')
 
 
 let field, fieldR = createParserForwardedToRef()
+let ``type``, typeR = createParserForwardedToRef()
 let typeDefinition, typeDefinitionR = createParserForwardedToRef()
 
 
@@ -53,16 +54,19 @@ let typeof =
 
 
 
-let ``type`` =
-    choiceL [
-        skipString "void" |>> (fun _ -> DTsType.Void)
-        skipString "undefined" |>> (fun _ -> DTsType.Undefined)
-        skipString "any" |>> (fun _ -> DTsType.Any)
-        typeof
-        planeType
-        genericType
-        funcType
-    ] "expecting type name"
+do 
+    typeR.Value <-
+        choiceL [
+            skipString "void" |>> (fun _ -> DTsType.Void)
+            skipString "undefined" |>> (fun _ -> DTsType.Undefined)
+            (skipString "any" |>> (fun _ -> DTsType.Any)) .>>? skipString "[]" |>> DTsType.Array
+            skipString "any" |>> (fun _ -> DTsType.Any)
+            typeof
+            planeType .>>? skipString "[]" |>> DTsType.Array
+            planeType
+            genericType
+            funcType
+        ] "expecting type name"
 
 
 let typeKeyword = skipString "type"
@@ -180,16 +184,11 @@ do
         ]
 
 
-let objectLiteralField =
-    field
-    .>> (skipChar ';' <?> "field must be terminated by ';'")
 
-    
 let objectLiteral : Parser<FieldList, _> = 
     skipChar '{' 
     >>. ws
-    >>. sepEndBy1 (objectLiteralField) (newline .>> ws)
-    .>> ws
+    >>. sepEndBy1 (field) (attempt(ws >>. skipChar ';' >>. ws))
     .>> (skipChar '}' <?> "object literal must be terminated by '}'")
 
 

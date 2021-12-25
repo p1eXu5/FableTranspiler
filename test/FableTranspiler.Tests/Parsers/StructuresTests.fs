@@ -174,13 +174,15 @@ module StructuresTests =
     [<TestCase("""interface ElementProps extends React.HTMLProps<HTMLDivElement> {
     name: string;
     id?: string | undefined;
+    spyCallbacks: any[];
 }""")>]
     let ``interface extends generic not empty test`` (input: string) =
         let generic = Dsl.DTsTypes.genericType ["React"; "HTMLProps"] [Dsl.DTsTypes.plainType ["HTMLDivElement"]]
         let field1 = Dsl.Fields.singleField "name" "string"
         let field2 = Dsl.Fields.optionalUnionWithUndefinedField "id" ["string"]
+        let field3 = Dsl.Fields.singleArrayField "spyCallbacks" (Choice4Of4 ())
 
-        let oliteral : FieldList = [field1; field2]
+        let oliteral : FieldList = [field1; field2; field3;]
 
         let expected = 
             (Identifier.Create "ElementProps", generic, oliteral) 

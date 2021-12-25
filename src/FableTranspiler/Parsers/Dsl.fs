@@ -161,6 +161,12 @@ module Fields =
             DTsTypes.plainType [typeName] |> TypeDefinition.Single
         )
 
+    let singleArrayField name typeName =
+        (
+            Identifier.Create name |> Required, 
+            typeName' typeName |> DTsType.Array |> TypeDefinition.Single
+        )
+
 
     /// <summary>
     /// Example:

@@ -106,11 +106,11 @@ let stmt = choice [
 
 let statement = 
     choice [
+        Misc.declareConst
         Import.statement
         Export.statement
         Comment.statement
         Structures.statement |>> Statement.Structure
-        Misc.declareConst
     ]
 
 let query : Parser<Statements, _> = sepEndBy statement skipNewline

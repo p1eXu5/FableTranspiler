@@ -107,6 +107,17 @@ type TestCases () =
                 TestCaseData(
                     "onSetActive?(to: string): void;" |> box,
                     Dsl.Fields.optionalFuncField "onSetActive" ("to", "string") (Choice1Of4 ()) ).SetName("Field: func?(foo: bar): void")
+
+            yield 
+                TestCaseData(
+                    "name: string[];" |> box,
+                    Dsl.Fields.singleArrayField "name" (Choice3Of4 ["string"])).SetName("Field: single array type field")
+
+            yield 
+                TestCaseData(
+                    "name: any[];" |> box,
+                    Dsl.Fields.singleArrayField "name" (Choice4Of4 ())).SetName("Field: single any array type field")
+
         }
 
 

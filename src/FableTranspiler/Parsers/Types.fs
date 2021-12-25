@@ -91,12 +91,21 @@ type DtsModule =
 
 type ExportEntity =
     | Named of Identifier
+    /// "...default as Alias..."
     | DefaultAliased of alias: Identifier
 
 
 type ExportStatement =
+    /// "export = ReactScroll;"
     | OutAssignment of Identifier
+
+    /// "export { animateScroll, scroller };"
     | OutList of Identifier list
+
+    /// "export default scrollSpy;"
+    | OutDefault of Identifier
+
+    /// "export { default as ScrollLink, ScrollLinkProps } from './mixins/scroll-link';"
     | Transit of ExportEntity list * DtsModule
     | Structure of StructureStatement
 
