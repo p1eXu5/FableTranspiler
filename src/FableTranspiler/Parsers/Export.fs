@@ -80,5 +80,6 @@ let statement =
         exportKeyword >>. ws1 >>? Structures.typeAlias |>> ExportStatement.Structure
         exportKeyword >>. ws1 >>? Structures.interfaceDefinition |>> ExportStatement.Structure
         exportKeyword >>. ws1 >>? defaultKeyword >>. ws1 >>? Structures.classDefinition |>> ExportStatement.Structure
+        exportKeyword >>. ws1 >>? Structures.functionDefnition |>> ExportStatement.Structure
     ]
     |>> Statement.Export

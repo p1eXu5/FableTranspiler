@@ -45,7 +45,11 @@ let funcType =
     |>> TypeName.Func
 
 
-
+let typeof =
+    skipString "typeof"
+    >>. ws1
+    >>. identifier
+    |>> TypeName.Typeof
 
 
 
@@ -54,6 +58,7 @@ let ``type`` =
         skipString "void" |>> (fun _ -> TypeName.Void)
         skipString "undefined" |>> (fun _ -> TypeName.Undefined)
         skipString "any" |>> (fun _ -> TypeName.Any)
+        typeof
         planeType
         genericType
         funcType
@@ -260,7 +265,6 @@ let functionDefnition =
 
 let statement =
     choice [
-        skipString "export" >>? ws1 >>? typeAlias // TODO: move to exports
         typeAlias
         classDefinition
         interfaceDefinition

@@ -137,7 +137,7 @@ module internal rec DocumentSegment =
 
     let rec private constructObjectLiteral (fields: (Field * TypeDefinition) list) endLine =
         fields
-        |> List.map (fun l ->
+        |> List.mapi (fun ind l ->
             let (fld, tdef) = l
             [
                 if endLine then
@@ -170,6 +170,8 @@ module internal rec DocumentSegment =
 
                 if endLine then
                     yield { Tag = Tag.EndOfLine; Content = ";" }
+                elif ind < (fields.Length - 1) then
+                    yield { Tag = Tag.Text; Content = ", " }
             ]
         )
         |> List.concat
@@ -233,6 +235,13 @@ module internal rec DocumentSegment =
                     ]
                 constructCombination sep tail (l :: res)
 
+            | TypeName.Any -> 
+                let l =
+                    [
+                        { Tag = Tag.Type; Content = "any" }
+                    ]
+                constructCombination sep tail (l :: res)
+
             | TypeName.Func (fl, tdef) ->
                 let l =
                     [
@@ -242,6 +251,14 @@ module internal rec DocumentSegment =
 
                         yield! constructTypeDefinition tdef
                         { Tag = Tag.Text; Content = ")" }
+                    ]
+                constructCombination sep tail (l :: res)
+
+            | TypeName.Typeof (Identifier i) ->
+                let l =
+                    [
+                        { Tag = Tag.Keyword; Content = "typeof " }
+                        { Tag = Tag.Text; Content = i }
                     ]
                 constructCombination sep tail (l :: res)
 
@@ -293,7 +310,7 @@ module internal rec DocumentSegment =
                 yield { Tag = Tag.EndOfLine; Content = null }
             ]
 
-        | InterfaceDefinition (Plain (Identifier idetifier, lit)) ->
+        | InterfaceDefinition (Plain (Identifier idetifier, fl)) ->
             [
                 yield { Tag = Tag.Keyword; Content = "interface " }
                 yield { Tag = Tag.Type; Content = idetifier }
@@ -301,10 +318,26 @@ module internal rec DocumentSegment =
                 yield { Tag = Tag.Parentheses; Content = "{" }
                 yield { Tag = Tag.EndOfLine; Content = null }
                     
-                yield! constructObjectLiteral lit true
+                yield! constructObjectLiteral fl true
                     
                 yield { Tag = Tag.Parentheses; Content = "}" }
                 yield { Tag = Tag.EndOfLine; Content = null }
+            ]
+
+        | FunctionDefinition ((Identifier i), fl, tdef) ->
+            [
+                yield { Tag = Tag.Keyword; Content = "function " }
+                yield { Tag = Tag.Type; Content = i }
+
+                yield { Tag = Tag.Parentheses; Content = "(" }
+                    
+                yield! constructObjectLiteral fl false
+                    
+                yield { Tag = Tag.Parentheses; Content = ")" }
+                yield { Tag = Tag.Text; Content = ": " }
+
+                yield! constructTypeDefinition tdef
+                yield { Tag = Tag.EndOfLine; Content = ";" }
             ]
 
 
@@ -400,12 +433,19 @@ module internal rec DocumentSegment =
 
 
                 | Export (ExportStatement.Structure structure) ->
+
+                    let (breakeLine, lastTag') = 
+                        match structure with
+                        | FunctionDefinition _ -> (lastTag = "export function" |> not, "export function")
+                        | _ -> (true, "")
+
                     let xvm = interpretStructure structure
 
                     continueInterpret tail
                         [
                             // each time insert break line
-                            yield { Tag = Tag.EndOfLine; Content = "" }
+                            if breakeLine then
+                                yield { Tag = Tag.EndOfLine; Content = "" }
                             
                             match structure with
                             | ClassDefinition _ ->
@@ -416,7 +456,7 @@ module internal rec DocumentSegment =
                             
                             yield! xvm
                         ]
-                        ""
+                        lastTag'
 
                 | Comment comment ->
                     let s =
