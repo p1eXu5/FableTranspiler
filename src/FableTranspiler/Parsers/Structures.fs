@@ -104,7 +104,7 @@ let typeAlias =
     typeKeyword >>. ws1 >>. identifier .>> ws .>> skipChar '=' .>> ws 
         .>>. typeCombination
         .>> skipChar ';'
-        |>> TypeAlias
+        |>> (TypeAlias.Plain >> StructureStatement.TypeAlias)
 
 
 let objectLiteral : Parser<FieldList, _> = 

@@ -57,8 +57,13 @@ type InterfaceDefinition =
     | Plain of Identifier * FieldList
 
 
+type TypeAlias =
+    | Plain of Identifier * TypeCombination
+    | Generic of name: Identifier * typeParam: Identifier * TypeCombination
+
+
 type StructureStatement =
-    | TypeAlias of Identifier * TypeCombination
+    | TypeAlias of TypeAlias
     | ClassDefinition of ClassDefinition
     | InterfaceDefinition of InterfaceDefinition
     | FunctionDefinition of  Identifier * FieldList * TypeDefinition

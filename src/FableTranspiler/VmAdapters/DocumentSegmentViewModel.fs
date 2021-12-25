@@ -286,7 +286,7 @@ module internal rec DocumentSegment =
 
     let rec private interpretStructure structure : DocumentSegmentViewModel list =
         match structure with
-        | TypeAlias (Identifier identifier, combination) ->
+        | TypeAlias (Plain (Identifier identifier, combination)) ->
             [
                 yield { Tag = Tag.Keyword; Content = "type " }
                 yield { Tag = Tag.Type; Content = identifier }
@@ -328,7 +328,7 @@ module internal rec DocumentSegment =
                 yield { Tag = Tag.EndOfLine; Content = null }
             ]
 
-        | InterfaceDefinition (Plain (Identifier idetifier, fl)) ->
+        | InterfaceDefinition (InterfaceDefinition.Plain (Identifier idetifier, fl)) ->
             [
                 yield { Tag = Tag.Keyword; Content = "interface " }
                 yield { Tag = Tag.Type; Content = idetifier }

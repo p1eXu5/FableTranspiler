@@ -136,7 +136,7 @@ module Structures =
         (
             name |> Identifier.Create
             , typeCombination
-        ) |> TypeAlias
+        ) |> TypeAlias.Plain |> StructureStatement.TypeAlias
 
 
 let private typeName' typeName = 
