@@ -133,7 +133,7 @@ let fieldOpt =
 
 
 
-let func =
+let funcReq =
     identifier
     .>> ws
     .>>? skipChar '('
@@ -150,7 +150,7 @@ let func =
         (i, f, td)
     )
 
-let fieldFuncOpt =
+let funcOpt =
     identifier
     .>>? skipChar '?'
     .>> ws
@@ -164,8 +164,8 @@ let fieldFuncOpt =
     .>> ws
     .>>. typeDefinition
     |>> (fun t ->
-        let (f, td) = t
-        (f |> FuncOpt), td
+        let ((i, f), td) = t
+        (i, f, td)
     )
 
 
@@ -175,7 +175,8 @@ do
         choice [
             fieldReq
             fieldOpt
-            fieldFuncOpt
+            funcOpt |>> (fun t -> let (i, f, td) = t in FuncOpt (i, f), td)
+            funcReq |>> (fun t -> let (i, f, td) = t in FuncReq (i, f), td)
         ]
 
 
@@ -258,7 +259,7 @@ let interfaceDefinition =
 let functionDefnition =
     skipString "function"
     >>. ws
-    >>. func
+    >>. funcReq
     |>> StructureStatement.FunctionDefinition
     .>> skipChar ';'
 

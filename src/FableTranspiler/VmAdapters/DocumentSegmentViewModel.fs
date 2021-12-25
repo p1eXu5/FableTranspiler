@@ -155,6 +155,11 @@ module internal rec DocumentSegment =
                     yield { Tag = Tag.Text; Content = "?(" }
                     yield! constructObjectLiteral fl false
                     yield { Tag = Tag.Text; Content = "): " }
+                | FuncReq (Identifier i, fl) ->
+                    yield { Tag = Tag.Text; Content = i }
+                    yield { Tag = Tag.Text; Content = "(" }
+                    yield! constructObjectLiteral fl false
+                    yield { Tag = Tag.Text; Content = "): " }
 
                 match tdef with
                 | TypeDefinition.Single tn -> 
@@ -458,6 +463,7 @@ module internal rec DocumentSegment =
                         ]
                         lastTag'
 
+
                 | Comment comment ->
                     let s =
                         if lastTag <> "comment"  then
@@ -473,6 +479,21 @@ module internal rec DocumentSegment =
                             ]
 
                     continueInterpret tail s "comment"
+
+
+                | DeclareConst ((Identifier i), tdef) ->
+                    continueInterpret tail
+                        [
+                            // each time insert break line
+                            yield { Tag = Tag.EndOfLine; Content = "" }
+                            yield { Tag = Tag.Keyword; Content = "declare const " }
+                            yield { Tag = Tag.Text; Content = i }
+                            yield { Tag = Tag.Text; Content = ": " }
+                            yield! constructTypeDefinition tdef
+                            yield { Tag = Tag.EndOfLine; Content = ";" }
+                        ]
+                        ""
+
 
                 | _ -> interpret tail result ""
             | [] -> result @ [{ Tag = Tag.EndOfDocument; Content = null }]

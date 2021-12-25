@@ -100,6 +100,11 @@ type TestCases () =
 
             yield 
                 TestCaseData(
+                    "onClick(): void;" |> box,
+                    Dsl.Fields.requiredFuncEmptyField "onClick" (Choice1Of4 ()) ).SetName("Field: func(): void")
+
+            yield 
+                TestCaseData(
                     "onSetActive?(to: string): void;" |> box,
                     Dsl.Fields.optionalFuncField "onSetActive" ("to", "string") (Choice1Of4 ()) ).SetName("Field: func?(foo: bar): void")
         }

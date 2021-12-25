@@ -26,6 +26,7 @@ type TypeName =
     | Plain of Identifier list
     | Generic of Identifier list * TypeName list
     | Typeof of Identifier
+    | Array of TypeName
 
 
 type TypeCombination =
@@ -42,6 +43,7 @@ type Field =
     | Required of Identifier
     | Optional of Identifier
     | FuncOpt of Identifier * FieldList
+    | FuncReq of Identifier * FieldList
 
 type FieldList = (Field * TypeDefinition) list
 
@@ -105,6 +107,7 @@ type Statement =
     | Import of ImportEntity list * modulePath: DtsModule
     | Export of ExportStatement
     | Const of Expression
+    | DeclareConst of Identifier * TypeDefinition
     | Structure of StructureStatement
 
 

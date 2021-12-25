@@ -203,6 +203,10 @@ module Fields =
         (Identifier.Create name, []) |> FuncOpt,
         typeName' typeName |> TypeDefinition.Single
 
+    let requiredFuncEmptyField name typeName : Field * TypeDefinition =
+        (Identifier.Create name, []) |> FuncReq,
+        typeName' typeName |> TypeDefinition.Single
+
 
     let optionalFuncField name parameter typeName : Field * TypeDefinition =
         (Identifier.Create name, (parameter ||> single) ) |> FuncOpt,
