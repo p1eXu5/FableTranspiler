@@ -96,10 +96,19 @@ type TestCases () =
             yield 
                 TestCaseData(
                     "onClick?(): void;" |> box,
-                    Dsl.Fields.optionalFuncEmptyField "onClick" (Choice1Of3 ()) ).SetName("Field: func?(): void")
+                    Dsl.Fields.optionalFuncEmptyField "onClick" (Choice1Of4 ()) ).SetName("Field: func?(): void")
 
             yield 
                 TestCaseData(
                     "onSetActive?(to: string): void;" |> box,
-                    Dsl.Fields.optionalFuncField "onSetActive" ("to", "string") (Choice1Of3 ()) ).SetName("Field: func?(foo: bar): void")
+                    Dsl.Fields.optionalFuncField "onSetActive" ("to", "string") (Choice1Of4 ()) ).SetName("Field: func?(foo: bar): void")
+        }
+
+
+    static member FunctionCases : IEnumerable =
+        seq {
+            yield 
+                TestCaseData(
+                    "function unmount(): void;" |> box,
+                    Dsl.Functions.create "unmount" [] (Choice1Of4 ())).SetName("Functions: function unmount(): void;")
         }

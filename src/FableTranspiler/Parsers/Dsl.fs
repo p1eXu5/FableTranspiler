@@ -139,6 +139,12 @@ module Structures =
         ) |> TypeAlias
 
 
+let private typeName' typeName = 
+    match typeName with
+    | Choice1Of4 _ -> TypeName.Void
+    | Choice2Of4 _ -> TypeName.Undefined
+    | Choice3Of4 n -> TypeNames.plainTypeName n
+    | Choice4Of4 _ -> TypeName.Any
 
 
 [<RequireQualifiedAccess>]
@@ -191,11 +197,6 @@ module Fields =
     let optionalUnionWithUndefined name typeName : FieldList =
         optionalUnionWithUndefinedField name typeName |> List.singleton
 
-    let private typeName' typeName = 
-        match typeName with
-        | Choice1Of3 _ -> TypeName.Void
-        | Choice2Of3 _ -> TypeName.Undefined
-        | Choice3Of3 n -> TypeNames.plainTypeName n
 
 
     let optionalFuncEmptyField name typeName : Field * TypeDefinition =
@@ -206,3 +207,34 @@ module Fields =
     let optionalFuncField name parameter typeName : Field * TypeDefinition =
         (Identifier.Create name, (parameter ||> single) ) |> FuncOpt,
         typeName' typeName |> TypeDefinition.Single
+
+
+[<RequireQualifiedAccess>]
+module Functions =
+    /// <summary>
+    /// Choices:
+    ///
+    /// 1. void
+    /// 
+    /// 2. undefined
+    ///
+    /// 3. plain type
+    ///
+    /// 4. any
+    ///
+    /// </summary>
+    /// <param name="name"></param>
+    /// <param name="parameters"></param>
+    /// <param name="returnType"></param>
+    let create name parameters returnType =
+        let i = Identifier.Create name
+        let parameters' : FieldList =
+            parameters
+            |> List.map (fun t ->
+                let (i, tn) = t
+                let paramName = Identifier.Create i |> Field.Required
+                let tn' = typeName' tn |> TypeDefinition.Single
+                (paramName, tn')
+            )
+        let rtn = typeName' returnType |> TypeDefinition.Single
+        (i, parameters', rtn) |> StructureStatement.FunctionDefinition

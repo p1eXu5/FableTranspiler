@@ -21,6 +21,7 @@ type ModulePath = ModulePath of string with
 type TypeName =
     | Void
     | Undefined
+    | Any
     | Func of FieldList * TypeDefinition
     | Plain of Identifier list
     | Generic of Identifier list * TypeName list

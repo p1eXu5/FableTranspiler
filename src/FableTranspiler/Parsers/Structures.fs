@@ -53,6 +53,7 @@ let ``type`` =
     choiceL [
         skipString "void" |>> (fun _ -> TypeName.Void)
         skipString "undefined" |>> (fun _ -> TypeName.Undefined)
+        skipString "any" |>> (fun _ -> TypeName.Any)
         planeType
         genericType
         funcType
@@ -127,7 +128,22 @@ let fieldOpt =
 
 
 
-
+let func =
+    identifier
+    .>> ws
+    .>>? skipChar '('
+    .>> ws
+    .>>. funcParams
+    .>> ws
+    .>> skipChar ')'
+    .>> ws
+    .>> skipChar ':'
+    .>> ws
+    .>>. typeDefinition
+    |>> (fun t ->
+        let ((i, f), td) = t
+        (i, f, td)
+    )
 
 let fieldFuncOpt =
     identifier
@@ -234,6 +250,13 @@ let interfaceDefinition =
         plain interfaceKeyword plainInterfaceDefinition
     ]
 
+let functionDefnition =
+    skipString "function"
+    >>. ws
+    >>. func
+    |>> StructureStatement.FunctionDefinition
+    .>> skipChar ';'
+
 
 let statement =
     choice [
@@ -241,5 +264,5 @@ let statement =
         typeAlias
         classDefinition
         interfaceDefinition
+        functionDefnition
     ]
-    |>> Structure

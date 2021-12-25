@@ -95,7 +95,6 @@ module StructuresTests =
         result |> shouldSuccess expected
 
 
-
     // -------------------
     //      TypeAlias
     // -------------------
@@ -108,7 +107,6 @@ module StructuresTests =
             Dsl.Structures.typeAlias 
                 "LinkProps" 
                 ([plain; generic] |> TypeCombination.Composition)
-            |> Structure
 
         let result = run Structures.statement input
         result |> shouldSuccess expected
@@ -116,43 +114,40 @@ module StructuresTests =
 
     [<TestCase("type LinkProps = React.HTMLProps<HTMLButtonElement> & ReactScrollLinkProps;")>]
     let ``type alias of generic & plain test`` (input: string) =
-        let result = run Structures.statement input
         let generic = Dsl.TypeNames.genericTypeName ["React"; "HTMLProps"] [Dsl.TypeNames.plainTypeName ["HTMLButtonElement"]]
         let plain = Dsl.TypeNames.plainTypeName ["ReactScrollLinkProps"]
         let expected = 
             Dsl.Structures.typeAlias 
                 "LinkProps" 
                 ([generic; plain] |> TypeCombination.Composition)
-            |> Structure
 
+        let result = run Structures.statement input
         result |> shouldSuccess expected
 
 
     [<TestCase("type LinkProps = ReactScrollLinkProps | React.HTMLProps<HTMLButtonElement>;")>]
     let ``type alias of plain | generic test`` (input: string) =
-        let result = run Structures.statement input
         let generic = Dsl.TypeNames.genericTypeName ["React"; "HTMLProps"] [Dsl.TypeNames.plainTypeName ["HTMLButtonElement"]]
         let plain = Dsl.TypeNames.plainTypeName ["ReactScrollLinkProps"]
         let expected = 
             Dsl.Structures.typeAlias 
                 "LinkProps" 
                 ([plain; generic] |> TypeCombination.Union)
-            |> Structure
 
+        let result = run Structures.statement input
         result |> shouldSuccess expected
 
 
     [<TestCase("type LinkProps = React.HTMLProps<HTMLButtonElement> | ReactScrollLinkProps;")>]
     let ``type alias of generic | plain test`` (input: string) =
-        let result = run Structures.statement input
         let generic = Dsl.TypeNames.genericTypeName ["React"; "HTMLProps"] [Dsl.TypeNames.plainTypeName ["HTMLButtonElement"]]
         let plain = Dsl.TypeNames.plainTypeName ["ReactScrollLinkProps"]
         let expected = 
             Dsl.Structures.typeAlias 
                 "LinkProps" 
                 ([generic; plain] |> TypeCombination.Union)
-            |> Structure
 
+        let result = run Structures.statement input
         result |> shouldSuccess expected
 
 
@@ -167,7 +162,6 @@ module StructuresTests =
             (Identifier.Create "Button", generic) 
             |> ClassDefinition.ExtendsEmpty
             |> StructureStatement.ClassDefinition
-            |> Statement.Structure
 
         let result = run Structures.statement input
         result |> shouldSuccess expected
@@ -192,14 +186,23 @@ module StructuresTests =
             (Identifier.Create "ElementProps", generic, oliteral) 
             |> InterfaceDefinition.Extends
             |> StructureStatement.InterfaceDefinition
-            |> Statement.Structure
 
         let result = run Structures.statement input
         result |> shouldSuccess expected
     
+
     [<Test>]
     let ``interface plain not empty test`` () =
         let (input, definition) = StructuresFactory.interfaceDefinitioPlain
 
         let result = run Structures.statement input
-        result |> shouldSuccess (definition |> Statement.Structure)
+        result |> shouldSuccess definition
+
+
+    // -------------------
+    //     Functions
+    // -------------------
+    [<TestCaseSource(typeof<TestCases>, nameof(TestCases.FunctionCases))>]
+    let ``function test`` (input: string, expected: StructureStatement) =
+        let result = run Structures.statement input
+        result |> shouldSuccess expected
