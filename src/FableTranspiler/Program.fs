@@ -11,19 +11,10 @@ let update (msg: Msg) (model: Model) =
     | SelectFile o ->
         match o with
         | :? FileTreeViewModel as fileTree ->
-            match fileTree.StatementsResult.Statements with
-            | Ok s -> 
                 { 
                     model with 
-                        SelectedModule = s |> Some
+                        SelectedDocument = fileTree |> Some
                         LastError = None
-                }, Cmd.none
-
-            | Error err -> 
-                { 
-                    model with 
-                        SelectedModule = None
-                        LastError = err |> Some
                 }, Cmd.none
         | _ -> failwith "Unknown type SelectFile message"
 
@@ -38,7 +29,7 @@ let update (msg: Msg) (model: Model) =
     | FileParsed (Ok moduleTree) ->
         {
             model with 
-                ModuleTree = moduleTree |> Some
+                FileTree = moduleTree |> FileTree.toFileTreeVm |> List.singleton |> Some
                 IsBusy = false
         }, Cmd.none
 

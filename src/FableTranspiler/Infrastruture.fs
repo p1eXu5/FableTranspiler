@@ -9,13 +9,6 @@ open FableTranspiler.Parsers.Types
 open System.Threading.Tasks
 
 
-let readFile file =
-    task {
-        use stream = File.OpenText(file)
-        return! stream.ReadToEndAsync()
-    }
-
-
 type StatementsResult =
     {
         Path: string
@@ -27,40 +20,73 @@ type ModuleTree =
     | Branch of StatementsResult * ModuleTree list
 
 
-let rec parseFile fileName : Task<ModuleTree> =
+let readFile file =
     task {
-        let! content = readFile fileName
-        match document content with
-        | Ok statements ->
-            let! results =
-                statements
-                |> List.choose (function 
-                    | Statement.Import (_, Relative t) ->  t |> Some 
-                    | Statement.Export (Transit (_, (Relative t))) ->  t |> Some 
-                    | _ -> None)
-                |> List.map (fun (ModulePath m) ->
-                    let relativePath = Path.Combine(Path.GetDirectoryName(fileName), m + ".d.ts")
-                    parseFile relativePath
-                )
-                |> Task.WhenAll
+        use stream = File.OpenText(file)
+        return! stream.ReadToEndAsync()
+    }
 
-            return 
-                (
+let join (p:Map<'a,'b>) (q:Map<'a,'b>) = 
+    Map(Seq.concat [ (Map.toSeq p) ; (Map.toSeq q) ])
+
+let rec parseFile fileName (accum: Map<string, ModuleTree>) : Task<(ModuleTree * Map<string, ModuleTree>)> =
+    task {
+        match accum.TryGetValue fileName with
+        | true, tree -> return tree, accum
+        | false, _ ->
+            let! content = readFile fileName
+
+            match document content with
+            | Ok statements ->
+
+                let! results =
+                    statements
+                    |> List.choose (function 
+                        | Statement.Import (_, Relative t) ->  t |> Some 
+                        | Statement.Export (Transit (_, (Relative t))) ->  t |> Some 
+                        | _ -> None)
+                    |> List.map (fun (ModulePath m) ->
+                        let relativePath = Path.Combine(Path.GetDirectoryName(fileName), m + ".d.ts")
+                        parseFile relativePath accum
+                    )
+                    |> Task.WhenAll
+
+
+                let statementResult =
                     {
                         Path = fileName
                         Statements = (statements |> Ok)
                     }
-                    , results |> Array.toList
-                ) 
-                |> Branch
 
-        | Error err -> 
-            return
-                {
-                    Path = fileName
-                    Statements = Error err
-                }
-                |> Leaf
+                return 
+                    if results.Length > 0 then
+
+                        let accum' =
+                            results
+                            |> Array.map snd
+                            |> Array.reduce join
+
+                        let trees = 
+                            results
+                            |> Array.map fst
+
+                        (statementResult, trees |> Array.toList) 
+                        |> Branch
+                        , accum'
+                    else
+                        statementResult |> Leaf
+                        , accum
+
+            | Error err -> 
+                let tree =
+                    {
+                        Path = fileName
+                        Statements = Error err
+                    }
+                    |> Leaf
+
+                return tree, (accum |> Map.add fileName tree)
+
     }
 
 let openFile () =
@@ -69,7 +95,7 @@ let openFile () =
         fd.Filter <- "d.ts files (*.d.ts)|*.d.ts|All files (*.*)|*.*"
         match fd.ShowDialog() |> Option.ofNullable with
         | Some _ ->
-            let! tree = parseFile fd.FileName
-            return tree |> Ok
+            let! tree = parseFile fd.FileName Map.empty
+            return fst tree |> Ok
         | None -> return Error "open file canceled"
     }

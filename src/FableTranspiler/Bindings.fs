@@ -9,11 +9,11 @@ open VmAdapters.FileTree
 let bindings () =
     [
         "OpenFileCommand" |> Binding.cmd (fun m -> ParseFile)
-        "ModuleTree" |> Binding.oneWayOpt(fun m -> m.ModuleTree |> Option.map (toFileTreeVm >> List.singleton))
+        "ModuleTree" |> Binding.oneWayOpt(fun m -> m.FileTree)
         "SelectFile" |> Binding.cmdParam (SelectFile)
         "SelectedModule" |> Binding.oneWayOpt(fun m -> 
-            m.SelectedModule 
-            |> Option.map (toDocumentSegmentVmList)
+            m.SelectedDocument 
+            |> Option.map (fun d -> d.DocumentSegmentVmCollection)
         )
         
         "LastError" |> Binding.oneWayOpt (fun m -> m.LastError)

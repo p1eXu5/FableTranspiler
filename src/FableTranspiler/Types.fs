@@ -3,20 +3,21 @@
 open FableTranspiler.Parsers.Types
 open Elmish
 open Infrastruture
+open FableTranspiler.VmAdapters
 
 type Model =
     {
-        ModuleTree: ModuleTree option
+        FileTree: FileTreeViewModel list option
         File: obj
-        SelectedModule: StatementList option
+        SelectedDocument: FileTreeViewModel option
         IsBusy: bool
         LastError: string option
     }
     with 
         static member Init () =
             {
-                ModuleTree = None
-                SelectedModule = None
+                FileTree = None
+                SelectedDocument = None
                 File = null
                 IsBusy = false
                 LastError = None
