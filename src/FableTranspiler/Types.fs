@@ -8,7 +8,7 @@ type Model =
     {
         ModuleTree: ModuleTree option
         File: obj
-        SelectedModule: Statements option
+        SelectedModule: StatementList option
         IsBusy: bool
         LastError: string option
     }

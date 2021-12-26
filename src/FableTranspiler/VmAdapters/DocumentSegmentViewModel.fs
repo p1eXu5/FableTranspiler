@@ -194,10 +194,6 @@ module internal rec DocumentSegment =
                     yield! constructCombination " | " l []
                 | Composition l ->
                     yield!  constructCombination " & " l [] 
-            | TypeDefinition.InlineObject fl ->
-                { Tag = Tag.Parentheses; Content = "{" }
-                yield! constructObjectLiteral fl false
-                { Tag = Tag.Parentheses; Content = "}" }
         ]
 
 
@@ -215,6 +211,14 @@ module internal rec DocumentSegment =
             )
         | head :: tail ->
             match head with
+            | DTsType.InlineObject fl ->
+                [
+                    { Tag = Tag.Parentheses; Content = "{" }
+                    yield! constructObjectLiteral fl false
+                    { Tag = Tag.Parentheses; Content = "}" }
+                ]
+                
+
             | DTsType.Plain p -> 
                 constructType p
                 |> (fun r -> constructCombination sep tail (r :: res))
@@ -227,7 +231,7 @@ module internal rec DocumentSegment =
                         yield! main
                         { Tag = Tag.Text; Content = "<" }
                         yield! inner
-                        { Tag = Tag.Text; Content = "> " }
+                        { Tag = Tag.Text; Content = ">" }
                     ]
                 constructCombination sep tail (l :: res)
 
@@ -423,16 +427,16 @@ module internal rec DocumentSegment =
 
     let toDocumentSegmentVmList statements =
 
-        let rec interpret statements result lastTag : DocumentSegmentViewModel list =
+        let rec interpret statements endTag result lastTag : DocumentSegmentViewModel list =
 
             /// append generated view models to the result and invokes interpret
             let continueInterpret tail xvm =
-                interpret tail (List.append result xvm)
+                interpret tail endTag (List.append result xvm)
 
             match statements with
             | head :: tail ->
                 match head with
-                | Import (entities, ``module``) ->
+                | Statement.Import (entities, ``module``) ->
                     let s =
                         if lastTag <> "import"  then
                             [
@@ -452,7 +456,7 @@ module internal rec DocumentSegment =
                         ]
                         "import"
 
-                | Export (Transit (entities, ``module``)) ->
+                | Statement.Export (Transit (entities, ``module``)) ->
                     let s =
                         if lastTag <> "export"  then
                             [
@@ -473,7 +477,7 @@ module internal rec DocumentSegment =
                         "export"
 
 
-                | Export (OutList entities) ->
+                | Statement.Export (OutList entities) ->
                     let s =
                         if lastTag <> "export"  then
                             [
@@ -492,7 +496,7 @@ module internal rec DocumentSegment =
                         "export"
 
 
-                | Export (OutDefault (Identifier i)) ->
+                | Statement.Export (OutDefault (Identifier i)) ->
                     let s =
                         if lastTag <> "export"  then
                             [
@@ -512,7 +516,7 @@ module internal rec DocumentSegment =
                         "export"
 
 
-                | Export (OutAssignment (Identifier identifier)) ->
+                | Statement.Export (OutAssignment (Identifier identifier)) ->
                     let s =
                         if lastTag <> "export"  then
                             [
@@ -532,7 +536,7 @@ module internal rec DocumentSegment =
                         "export"
 
 
-                | Export (ExportStatement.Structure structure) ->
+                | Statement.Export (ExportStatement.Structure structure) ->
 
                     let (breakeLine, lastTag') = 
                         match structure with
@@ -553,7 +557,7 @@ module internal rec DocumentSegment =
                         ]
                         lastTag'
 
-                | Export (ExportStatement.StructureDefault structure) ->
+                | Statement.Export (ExportStatement.StructureDefault structure) ->
                 
                         let (breakeLine, lastTag') = 
                             match structure with
@@ -575,8 +579,23 @@ module internal rec DocumentSegment =
                             ]
                             lastTag'
 
+                | Statement.Export (ExportStatement.Namespace ((Identifier i), statements')) ->
+                    continueInterpret tail
+                        [
+                            yield { Tag = Tag.EndOfLine; Content = "" }
+                            yield { Tag = Tag.Modifier; Content = "export " }
+                            yield { Tag = Tag.Keyword; Content = "namespace " }
+                            yield { Tag = Tag.Type; Content = i }
+                            yield { Tag = Tag.Parentheses; Content = " {" }
+                            yield { Tag = Tag.EndOfLine; Content = "" }
+                            yield! interpret statements' (Tag.EndOfLine) [] ""
+                            yield { Tag = Tag.Parentheses; Content = "}" }
+                            yield { Tag = Tag.EndOfLine; Content = null }
+                        ]
+                        ""
 
-                | Structure structure ->
+
+                | Statement.Structure structure ->
                     let xvm = interpretStructure structure
                     continueInterpret tail
                         [
@@ -585,7 +604,7 @@ module internal rec DocumentSegment =
                         ]
                         ""
 
-                | Comment comment ->
+                | Statement.Comment comment ->
                     let s =
                         if lastTag <> "comment"  then
                             [
@@ -602,7 +621,7 @@ module internal rec DocumentSegment =
                     continueInterpret tail s "comment"
 
 
-                | DeclareConst ((Identifier i), tdef) ->
+                | Statement.DeclareConst ((Identifier i), tdef) ->
                     continueInterpret tail
                         [
                             // each time insert break line
@@ -614,12 +633,37 @@ module internal rec DocumentSegment =
                             yield { Tag = Tag.EndOfLine; Content = ";" }
                         ]
                         ""
+                | Statement.ConstDefinition ((Identifier i), tdef) ->
+                    continueInterpret tail
+                        [
+                            if lastTag <> "const" then
+                                yield { Tag = Tag.EndOfLine; Content = "" }
+                            yield { Tag = Tag.Keyword; Content = "const " }
+                            yield { Tag = Tag.Text; Content = i }
+                            yield { Tag = Tag.Text; Content = ": " }
+                            yield! constructTypeDefinition tdef
+                            yield { Tag = Tag.EndOfLine; Content = ";" }
+                        ]
+                        "const"
 
+                | Statement.NamespaceDeclaration ((Identifier i), statements') ->
+                    continueInterpret tail
+                        [
+                            yield { Tag = Tag.EndOfLine; Content = "" }
+                            yield { Tag = Tag.Keyword; Content = "declare namespace " }
+                            yield { Tag = Tag.Type; Content = i }
+                            yield { Tag = Tag.Parentheses; Content = " {" }
+                            yield { Tag = Tag.EndOfLine; Content = "" }
+                            yield! interpret statements' (Tag.EndOfLine) [] ""
+                            yield { Tag = Tag.Parentheses; Content = "}" }
+                            yield { Tag = Tag.EndOfLine; Content = null }
+                        ]
+                        ""
 
-                | _ -> interpret tail result ""
-            | [] -> result @ [{ Tag = Tag.EndOfDocument; Content = null }]
+                | _ -> interpret tail endTag result ""
+            | [] -> result @ [{ Tag = endTag; Content = null }]
                     
-        (interpret statements [] "").ToList()
+        (interpret statements (Tag.EndOfDocument) [] "").ToList()
 
 
 

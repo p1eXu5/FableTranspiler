@@ -24,7 +24,7 @@ module MiscTests =
 
 
     [<Test>]
-    let ``declare const foloew by export out default test`` () =
+    let ``declare const followed by export out default test`` () =
         let input = """
             declare const scrollSpy: ScrollSpy;
             export default scrollSpy;

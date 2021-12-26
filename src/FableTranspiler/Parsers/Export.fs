@@ -76,18 +76,19 @@ let outDefault =
     >>? defaultKeyword
     >>. ws1
     >>? notFollowedByString "class"
+    >>? notFollowedByString "function"
     >>. identifier
     |>> OutDefault
-    .>> skipChar ';'
+    .>> (skipChar ';' <?> "expected ';' out default terminator")
 
 
 let statement =
     ws
     >>? choice [
-        outDefault
-        outAssignment
-        outList
-        transit
+        outDefault <?> "out default error"
+        outAssignment <?> "out alias error"
+        outList <?> "out list error"
+        transit <?> "out transit error"
         exportKeyword >>. ws1 >>? defaultKeyword >>. ws1 >>. Structures.statement |>> ExportStatement.StructureDefault
         exportKeyword >>. ws1 >>? Structures.statement |>> ExportStatement.Structure
         //exportKeyword >>. ws1 >>? Structures.plainTypeAlias |>> ExportStatement.Structure

@@ -27,6 +27,7 @@ type DTsType =
     | Generic of Identifier list * DTsType list
     | Typeof of Identifier
     | Array of DTsType
+    | InlineObject of FieldList
 
 
 type TypeCombination =
@@ -38,7 +39,6 @@ type TypeCombination =
 type TypeDefinition =
     | Combination of TypeCombination
     | Single of DTsType
-    | InlineObject of FieldList
 
 type Field =
     | Required of Identifier
@@ -121,6 +121,7 @@ type ExportStatement =
     | Transit of ExportEntity list * DtsModule
     | Structure of StructureStatement
     | StructureDefault of StructureStatement
+    | Namespace of Identifier * StatementList
 
 
 
@@ -130,7 +131,9 @@ type Statement =
     | Export of ExportStatement
     | Const of Expression
     | DeclareConst of Identifier * TypeDefinition
+    | ConstDefinition of Identifier * TypeDefinition
     | Structure of StructureStatement
+    | NamespaceDeclaration of Identifier * StatementList
 
 
 
@@ -157,4 +160,4 @@ and
             | AsCast
             | Undefined
 
-type Statements = Statement list
+type StatementList = Statement list

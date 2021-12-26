@@ -10,6 +10,19 @@ open FParsec.Primitives
 open FableTranspiler.Parsers.Types
 
 type TestCases () =
+
+    static member DTsTypeCases : IEnumerable =
+        seq {
+            let genericInternal = 
+                Dsl.DTsTypes.genericType ["ScrollElementProps"] [Dsl.DTsTypes.plainType ["P"]]
+            yield 
+                TestCaseData(
+                    "React.ComponentClass<ScrollElementProps<P>>" |> box,
+                    Dsl.DTsTypes.genericType ["React"; "ComponentClass"] [genericInternal]
+                )
+                    .SetName("DTsTypes: React.ComponentClass<ScrollElementProps<P>>")
+        }
+
     static member ImportCases : IEnumerable =
         seq {
             yield 
@@ -149,7 +162,7 @@ type TestCases () =
 
             let objectLiteral : FieldList = (Field.Required (Identifier.Create "smooth"), union) |> List.singleton
             let field : FieldList = 
-                (Identifier.Create "options" |> Field.Required, objectLiteral |> TypeDefinition.InlineObject) |> List.singleton
+                (Identifier.Create "options" |> Field.Required, objectLiteral |> DTsType.InlineObject |> TypeDefinition.Single) |> List.singleton
 
 
             let retFl : FieldList = Dsl.Fields.singleField "x" "number"  |> List.singleton

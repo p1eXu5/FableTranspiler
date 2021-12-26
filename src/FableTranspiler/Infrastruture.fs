@@ -19,7 +19,7 @@ let readFile file =
 type StatementsResult =
     {
         Path: string
-        Statements: Result<Statements, string>
+        Statements: Result<StatementList, string>
     }
 
 type ModuleTree =

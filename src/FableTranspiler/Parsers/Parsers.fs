@@ -104,18 +104,43 @@ let stmt = choice [
     constStmt
 ]
 
-let statement = 
+
+let namespaceDefinition, namespaceDefinitionR = createParserForwardedToRef ()
+
+let statement =
     choice [
+        skipString "declare" >>? ws1 >>? namespaceDefinition |>> NamespaceDeclaration
+        skipString "export" >>? ws1 >>? namespaceDefinition |>> (ExportStatement.Namespace >> Statement.Export)
         Misc.declareConst
+        Misc.constDefinition
         Import.statement
         Export.statement
         Comment.statement
         Structures.statement |>> Statement.Structure
     ]
 
-let query : Parser<Statements, _> = sepEndBy statement skipNewline
 
-let queryFull = ws >>. query .>> spaces .>> eof
+let query : Parser<StatementList, _> = 
+    sepEndBy (statement) ws1
+
+
+do 
+    namespaceDefinitionR.Value <-
+        skipString "namespace "
+        >>. Common.identifier
+        .>> ws
+        .>> skipChar '{'
+        .>> ws
+        .>>. query
+        .>> ws
+        .>> skipChar '}'
+        
+
+
+let queryFull = 
+    ws 
+    >>. query 
+    .>> eof
 
 let document input =
     run queryFull input

@@ -3,6 +3,10 @@
 open FParsec
 open Types
 
+///<summary>
+/// Skips over any sequence of *zero* or more whitespaces (space (' '), tab ('\t')
+/// or newline ("\n", "\r\n" or "\r")).
+///</summary> 
 let ws    = spaces
 let ws1   = spaces1
 let str s = pstring s

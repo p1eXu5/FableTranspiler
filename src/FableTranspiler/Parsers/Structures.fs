@@ -6,9 +6,14 @@ open FParsec
 open Types
 open Common
 
+
+let field, fieldR = createParserForwardedToRef()
+let ``type``, typeR = createParserForwardedToRef()
+let typeDefinition, typeDefinitionR = createParserForwardedToRef()
+
 let notFollowedByChars chars = notFollowedBy (skipAnyOf chars)
 let attemptSep ch = attempt (ws >>. skipChar ch >>. ws)
-let qualifiers = sepBy1 identifier (attemptSep '.') 
+
 
 let typeParams = 
     skipChar '<'
@@ -18,21 +23,40 @@ let typeParams =
     .>> skipChar '>'
 
 
-let field, fieldR = createParserForwardedToRef()
-let ``type``, typeR = createParserForwardedToRef()
-let typeDefinition, typeDefinitionR = createParserForwardedToRef()
-
-
 let funcParams =
-    (sepBy field (attempt(ws .>> skipChar ',' .>> ws)) |>> (fun t -> t : FieldList))
+    (sepEndBy field (attempt(ws .>> skipChar ',' .>> ws)) |>> (fun t -> t : FieldList))
 
+
+let funcSignature =
+    skipChar '('
+    >>. ws
+    >>. funcParams
+    .>> ws
+    .>> skipChar ')'
+    .>> ws
+    .>> skipChar ':'
+    .>> ws
+    .>>. typeDefinition
+
+
+let emptyObjectLiteral<'a> : Parser<unit, 'a>= skipChar '{' .>> ws .>>? skipChar '}'
+
+
+let objectLiteral : Parser<FieldList, _> = 
+    skipChar '{' 
+    >>. ws
+    >>. sepEndBy1 (field) (attempt(ws >>. skipChar ';' >>. ws) <|> (ws1 : Parser<unit, unit>))
+    .>> (skipChar '}' <?> "object literal must be terminated by '}'")
+
+
+let qualifiers = sepBy1 identifier (attemptSep '.') 
 
 let planeType = qualifiers .>>? notFollowedByChars ['<'] |>> DTsType.Plain
 
 let genericType = 
     qualifiers
     .>> ws
-    .>>? skipChar '<' .>> ws .>>. sepBy planeType (attemptSep ',') .>> ws .>> skipChar '>'
+    .>>? skipChar '<' .>> ws .>>. sepBy ``type`` (attemptSep ',') .>> ws .>> skipChar '>'
     |>> DTsType.Generic
 
 
@@ -71,12 +95,13 @@ do
             genericType
             skipChar '(' >>. ws >>? funcType .>> ws .>> skipChar ')'
             funcType
+            emptyObjectLiteral |>> (fun _ -> InlineObject [])
+            objectLiteral |>> InlineObject
         ] "expecting type name"
 
 
 let typeKeyword = skipString "type"
 
-// operators could be added
 
 let typeComposition =
     ``type``
@@ -106,223 +131,218 @@ let typeCombination =
         typeUnion // order make sense
     ]
 
-
-let plainTypeAlias =
-    typeKeyword 
-    >>. ws1 
-    >>. identifier 
-    .>> ws 
-    .>>? (skipChar '=' <?> "expecting '=' in plain type alias")
-    .>> ws 
-    .>>. typeCombination
-    .>> skipChar ';'
-    |>> (TypeAlias.Plain >> StructureStatement.TypeAlias)
-
-
-let genericTypeAlias =
-    typeKeyword 
-    >>. ws1 
-    >>. identifier 
-    .>> ws
-    .>>.? typeParams
-    .>> ws
-    .>> (skipChar '=' <?> "expecting '=' in generic type alias")
-    .>> ws 
-    .>>. typeCombination
-    .>> skipChar ';'
-    |>> (fun t ->
-        let ((i, xi), tc) = t
-        TypeAlias.Generic (i, xi, tc) |> StructureStatement.TypeAlias
-    )
-
-let typeAlias =
-    choice [
-        genericTypeAlias
-        plainTypeAlias
-    ]
-
-
-
-let objectLiteral : Parser<FieldList, _> = 
-    skipChar '{' 
-    >>. ws
-    >>. sepEndBy1 (field) (attempt(ws >>. skipChar ';' >>. ws) <|> (ws1 : Parser<unit, unit>))
-    .>> (skipChar '}' <?> "object literal must be terminated by '}'")
-
 do 
     typeDefinitionR.Value <-
         choice [
             typeCombination |>> Combination
             ``type`` |>> Single
-            objectLiteral |>> InlineObject
         ]
 
-let emptyObjectLiteral<'a> : Parser<unit, 'a>= skipChar '{' .>> ws .>> skipChar '}'
-
-
-let fieldReq = 
-    (identifier |>> Required) 
-    .>> ws 
-    .>>? skipChar ':'
-    .>> ws
-    .>>. typeDefinition
-
-
-let fieldOpt = 
-    (identifier |>> Optional)
-    .>>? skipChar '?'
-    .>> ws 
-    .>>? skipChar ':'
-    .>> ws
-    .>>. typeDefinition
-
-
-let funcSignature =
-    skipChar '('
-    >>. ws
-    >>. funcParams
-    .>> ws
-    .>> skipChar ')'
-    .>> ws
-    .>> skipChar ':'
-    .>> ws
-    .>>. typeDefinition
-
-
-let funcReq =
-    identifier
-    .>> ws
-    .>>.? funcSignature 
-    |>> (fun t ->
-        let (i, (f, td)) = t
-        (i, f, td)
-    )
-
-let funcOpt =
-    identifier
-    .>>? skipChar '?'
-    .>> ws
-    .>>.? funcSignature
-    |>> (fun t ->
-        let (i, (f, td)) = t
-        (i, f, td)
-    )
 
 
 
-do 
-    fieldR.Value <- 
+
+
+
+[<AutoOpen>]
+module Fields = 
+
+    let fieldReq = 
+        (identifier |>> Required) 
+        .>> ws 
+        .>>? skipChar ':'
+        .>> ws
+        .>>. typeDefinition
+
+
+    let fieldOpt = 
+        (identifier |>> Optional)
+        .>>? skipChar '?'
+        .>> ws 
+        .>>? skipChar ':'
+        .>> ws
+        .>>. typeDefinition
+
+
+    let funcReq =
+        identifier
+        .>> ws
+        .>>.? funcSignature 
+        |>> (fun t ->
+            let (i, (f, td)) = t
+            (i, f, td)
+        )
+
+    let funcOpt =
+        identifier
+        .>>? skipChar '?'
+        .>> ws
+        .>>.? funcSignature
+        |>> (fun t ->
+            let (i, (f, td)) = t
+            (i, f, td)
+        )
+
+    do 
+        fieldR.Value <- 
+            choice [
+                fieldReq
+                fieldOpt
+                funcOpt |>> (fun t -> let (i, f, td) = t in FuncOpt (i, f), td)
+                funcReq |>> (fun t -> let (i, f, td) = t in FuncReq (i, f), td)
+            ]
+
+
+[<AutoOpen>]
+module TypeAlias =
+
+    let plainTypeAlias =
+        typeKeyword 
+        >>. ws1 
+        >>. identifier 
+        .>> ws 
+        .>>? (skipChar '=' <?> "expecting '=' in plain type alias")
+        .>> ws 
+        .>>. typeCombination
+        .>> skipChar ';'
+        |>> (TypeAlias.Plain >> StructureStatement.TypeAlias)
+
+
+    let genericTypeAlias =
+        typeKeyword 
+        >>. ws1 
+        >>. identifier 
+        .>> ws
+        .>>.? typeParams
+        .>> ws
+        .>> (skipChar '=' <?> "expecting '=' in generic type alias")
+        .>> ws 
+        .>>. typeCombination
+        .>> skipChar ';'
+        |>> (fun t ->
+            let ((i, xi), tc) = t
+            TypeAlias.Generic (i, xi, tc) |> StructureStatement.TypeAlias
+        )
+
+    let typeAlias =
         choice [
-            fieldReq
-            fieldOpt
-            funcOpt |>> (fun t -> let (i, f, td) = t in FuncOpt (i, f), td)
-            funcReq |>> (fun t -> let (i, f, td) = t in FuncReq (i, f), td)
+            genericTypeAlias
+            plainTypeAlias
         ]
 
 
-let interfaceKeyword = skipString "interface"
-let classKeyword = skipString "class"
-let extendsKeyword = skipString "extends"
+[<AutoOpen>]
+module InterfaceClassDefinition =
 
-let extendsEmptyClassDefinition = 
-    (ClassDefinition.ExtendsEmpty >> StructureStatement.ClassDefinition)
+    let interfaceKeyword = skipString "interface"
+    let classKeyword = skipString "class"
+    let extendsKeyword = skipString "extends"
 
-
-let extendsInterfaceDefinition = 
-    (InterfaceDefinition.Extends >> StructureStatement.InterfaceDefinition)
-
-let plainInterfaceDefinition = 
-    (InterfaceDefinition.Plain >> StructureStatement.InterfaceDefinition)
+    let extendsEmptyClassDefinition = 
+        (ClassDefinition.ExtendsEmpty >> StructureStatement.ClassDefinition)
 
 
-let extendsEmpty keyword map = 
-    keyword
-    >>. ws1
-    >>. identifier
-    .>> ws1
-    .>>? extendsKeyword
-    .>> ws1
-    .>>. ``type``
-    .>> ws
-    .>> emptyObjectLiteral
-    |>> map
+    let extendsInterfaceDefinition = 
+        (InterfaceDefinition.Extends >> StructureStatement.InterfaceDefinition)
+
+    let plainInterfaceDefinition = 
+        (InterfaceDefinition.Plain >> StructureStatement.InterfaceDefinition)
 
 
-let extends keyword map = 
-    keyword
-    >>. ws1
-    >>. identifier
-    .>> ws1
-    .>>? extendsKeyword
-    .>> ws1
-    .>>. ``type``
-    .>> ws
-    .>>. objectLiteral
-    |>> (fun t -> 
-        let ((i, tn), ol) = t
-        map (i, tn, ol)
-    )
+    let extendsEmpty keyword map = 
+        keyword
+        >>. ws1
+        >>. identifier
+        .>> ws1
+        .>>? extendsKeyword
+        .>> ws1
+        .>>. ``type``
+        .>> ws
+        .>> emptyObjectLiteral
+        |>> map
 
 
-let plain keyword map = 
-    keyword
-    >>. ws1
-    >>. identifier
-    .>> ws1
-    .>>. objectLiteral
-    |>> map
+    let extends keyword map = 
+        keyword
+        >>. ws1
+        >>. identifier
+        .>> ws1
+        .>>? extendsKeyword
+        .>> ws1
+        .>>. ``type``
+        .>> ws
+        .>>. objectLiteral
+        |>> (fun t -> 
+            let ((i, tn), ol) = t
+            map (i, tn, ol)
+        )
 
 
-let classDefinition =
-    extendsEmpty classKeyword extendsEmptyClassDefinition
+    let plain keyword map = 
+        keyword
+        >>. ws1
+        >>. identifier
+        .>> ws1
+        .>>. objectLiteral
+        |>> map
 
-let interfaceDefinition =
-    choice [
-        extends interfaceKeyword extendsInterfaceDefinition
-        plain interfaceKeyword plainInterfaceDefinition
-    ]
 
-let plainFunctionDefnition =
-    skipString "function"
-    >>. ws1
-    >>? funcReq
-    |>> (FunctionDefinition.Plain >> StructureStatement.FunctionDefinition)
-    .>> skipChar ';'
+    let classDefinition =
+        extendsEmpty classKeyword extendsEmptyClassDefinition
 
-let genericFunctionDefnition =
-    skipString "function"
-    >>. ws1
-    >>? identifier
-    .>> ws
-    .>>.? typeParams
-    .>>.? funcSignature 
-    .>> skipChar ';'
-    |>> (fun t ->
-        let ((i, il), (fl, td)) = t
-        (i, il, fl, td)
-        |> FunctionDefinition.Generic 
-        |> StructureStatement.FunctionDefinition
-    )
+    let interfaceDefinition =
+        choice [
+            extends interfaceKeyword extendsInterfaceDefinition
+            plain interfaceKeyword plainInterfaceDefinition
+        ]
 
-let genericNamelesssFunctionDefnition =
-    skipString "function"
-    .>> ws
-    >>? typeParams
-    .>>.? funcSignature 
-    .>> skipChar ';'
-    |>> (fun t ->
-        let (il, (fl, td)) = t
-        (il, fl, td)
-        |> FunctionDefinition.GenericNameless 
-        |> StructureStatement.FunctionDefinition
-    )
 
-let functionDefnition =
-    choice [
-        genericFunctionDefnition
-        plainFunctionDefnition
-        genericNamelesssFunctionDefnition
-    ]
+[<AutoOpen>]
+module FunctionDefinition =
+
+    let plainFunctionDefnition =
+        skipString "function"
+        >>? ws1
+        >>? funcReq
+        |>> (FunctionDefinition.Plain >> StructureStatement.FunctionDefinition)
+        .>> skipChar ';'
+
+    let genericFunctionDefnition =
+        skipString "function"
+        >>? ws1
+        >>? identifier
+        .>> ws
+        .>>.? typeParams
+        .>>.? funcSignature 
+        .>> skipChar ';'
+        |>> (fun t ->
+            let ((i, il), (fl, td)) = t
+            (i, il, fl, td)
+            |> FunctionDefinition.Generic 
+            |> StructureStatement.FunctionDefinition
+        )
+
+    let genericNamelesssFunctionDefnition =
+        skipString "function"
+        .>> ws
+        >>? typeParams
+        .>>.? funcSignature 
+        .>> skipChar ';'
+        |>> (fun t ->
+            let (il, (fl, td)) = t
+            (il, fl, td)
+            |> FunctionDefinition.GenericNameless 
+            |> StructureStatement.FunctionDefinition
+        )
+
+    let functionDefnition =
+        choice [
+            genericFunctionDefnition
+            plainFunctionDefnition
+            genericNamelesssFunctionDefnition
+        ]
+
+
 
 let statement =
     choice [

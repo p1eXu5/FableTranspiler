@@ -71,7 +71,7 @@ module Statements =
         task {
             let! input = readFile ``types/reac-scroll/index.d.ts``
             let doc = document input
-            let expected : Statements =
+            let expected : StatementList =
                 [
                     Dsl.Comment.create "// Type definitions for react-scroll 1.8"
                     Dsl.Comment.create "// Project: https://github.com/fisshy/react-scroll"
@@ -92,7 +92,7 @@ module Statements =
         task {
             let! input = readFile ``types/reac-scroll/modules/index.d.ts``
             let doc = document input
-            let expeced : Statements =
+            let expeced : StatementList =
                 [
                     Dsl.Export.defaultAliasedS "Button" "./components/Button"
                     Dsl.Export.defaultAliasedS "Element" "./components/Element"
@@ -162,7 +162,7 @@ module Statements =
         let a = StringLiteral "sdf"
         let b = StringLiteral "sdf"
 
-        document input |> shouldL equal (Result<Statements, string>.Ok output)
+        document input |> shouldL equal (Result<StatementList, string>.Ok output)
 
 
     [<Test>]
@@ -173,7 +173,7 @@ module Statements =
             const mimeTypes = Object.freeze
         """
 
-        let expected : Result<Statements, string> =
+        let expected : Result<StatementList, string> =
             Statement.Const (
                 Expression.Binary (
                     ExpressionKind.Assignment
@@ -202,7 +202,7 @@ module Statements =
             const mimeTypes = Object.freeze()
         """
 
-        let expected : Result<Statements, string> =
+        let expected : Result<StatementList, string> =
             Statement.Const (
                 Expression.Binary (
                     ExpressionKind.Assignment

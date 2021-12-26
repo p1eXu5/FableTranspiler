@@ -66,6 +66,10 @@ module StructuresTests =
         let result = run Structures.``type`` input
         result |> shouldSuccess expected
 
+    [<TestCaseSource(typeof<TestCases>, nameof(TestCases.DTsTypeCases))>]
+    let ``type test`` (input: string, expected: DTsType) = 
+        let result = run Structures.``type`` input
+        result |> shouldSuccess expected
 
     // -------------------
     //       Field        
