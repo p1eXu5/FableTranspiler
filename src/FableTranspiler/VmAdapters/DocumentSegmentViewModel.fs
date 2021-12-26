@@ -2,9 +2,6 @@
 
 open FableTranspiler.Parsers.Types
 open FableTranspiler.Parsers.Dsl
-open System.Windows
-open System.Windows.Documents
-open System
 open System.Linq
 
 type DocumentSegmentViewModel =

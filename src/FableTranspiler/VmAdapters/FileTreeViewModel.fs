@@ -29,7 +29,6 @@ type FileTreeViewModel
                     <| [
                         { Tag = Tag.EndOfDocument; Content = null }
                     ]).ToList()
-                    
             )
 
         member val DocumentSegmentVmCollection = documentSegmentVmCollection.Value

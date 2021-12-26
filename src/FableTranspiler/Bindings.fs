@@ -2,8 +2,6 @@
 
 open Elmish.WPF
 open Types
-open VmAdapters.DocumentSegment
-open VmAdapters.FileTree
 
 
 let bindings () =

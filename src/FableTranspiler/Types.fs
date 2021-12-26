@@ -1,6 +1,5 @@
 ﻿module FableTranspiler.Types
 
-open FableTranspiler.Parsers.Types
 open Elmish
 open Infrastruture
 open FableTranspiler.VmAdapters

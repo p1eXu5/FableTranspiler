@@ -1,8 +1,6 @@
 ﻿module FableTranspiler.Infrastruture
 
-open System
 open System.IO
-open System.Windows
 open Microsoft.Win32
 open Parsers.Identifier
 open FableTranspiler.Parsers.Types
@@ -26,8 +24,10 @@ let readFile file =
         return! stream.ReadToEndAsync()
     }
 
+
 let join (p:Map<'a,'b>) (q:Map<'a,'b>) = 
     Map(Seq.concat [ (Map.toSeq p) ; (Map.toSeq q) ])
+
 
 let rec parseFile fileName (accum: Map<string, ModuleTree>) : Task<(ModuleTree * Map<string, ModuleTree>)> =
     task {
