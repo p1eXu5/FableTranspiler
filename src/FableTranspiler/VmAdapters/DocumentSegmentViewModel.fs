@@ -421,6 +421,24 @@ module internal rec DocumentSegment =
                 yield { Tag = Tag.EndOfLine; Content = ";" }
             ]
 
+        | StructureStatement.ConstDefinition (ConstDefinition.DeclareConst ((Identifier i), tdef)) ->
+            [
+                yield { Tag = Tag.Keyword; Content = "declare const " }
+                yield { Tag = Tag.Text; Content = i }
+                yield { Tag = Tag.Text; Content = ": " }
+                yield! constructTypeDefinition tdef
+                yield { Tag = Tag.EndOfLine; Content = ";" }
+            ]
+
+        | StructureStatement.ConstDefinition (ConstDefinition.Const ((Identifier i), tdef)) ->
+            [
+                yield { Tag = Tag.Keyword; Content = "const " }
+                yield { Tag = Tag.Text; Content = i }
+                yield { Tag = Tag.Text; Content = ": " }
+                yield! constructTypeDefinition tdef
+                yield { Tag = Tag.EndOfLine; Content = ";" }
+            ]
+
 
     let toDocumentSegmentVmList statements =
 
@@ -616,32 +634,6 @@ module internal rec DocumentSegment =
                             ]
 
                     continueInterpret tail s "comment"
-
-
-                | Statement.DeclareConst ((Identifier i), tdef) ->
-                    continueInterpret tail
-                        [
-                            // each time insert break line
-                            yield { Tag = Tag.EndOfLine; Content = "" }
-                            yield { Tag = Tag.Keyword; Content = "declare const " }
-                            yield { Tag = Tag.Text; Content = i }
-                            yield { Tag = Tag.Text; Content = ": " }
-                            yield! constructTypeDefinition tdef
-                            yield { Tag = Tag.EndOfLine; Content = ";" }
-                        ]
-                        ""
-                | Statement.ConstDefinition ((Identifier i), tdef) ->
-                    continueInterpret tail
-                        [
-                            if lastTag <> "const" then
-                                yield { Tag = Tag.EndOfLine; Content = "" }
-                            yield { Tag = Tag.Keyword; Content = "const " }
-                            yield { Tag = Tag.Text; Content = i }
-                            yield { Tag = Tag.Text; Content = ": " }
-                            yield! constructTypeDefinition tdef
-                            yield { Tag = Tag.EndOfLine; Content = ";" }
-                        ]
-                        "const"
 
                 | Statement.NamespaceDeclaration ((Identifier i), statements') ->
                     continueInterpret tail

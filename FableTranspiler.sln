@@ -41,6 +41,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "mixins", "mixins", "{00C429
 		node_modules\@types\react-scroll\modules\mixins\scroller.d.ts = node_modules\@types\react-scroll\modules\mixins\scroller.d.ts
 	EndProjectSection
 EndProject
+Project("{9092AA53-FB77-4645-B42D-1CCCA6BD08BD}") = "NodejsConsoleApp", "src\NodejsConsoleApp\NodejsConsoleApp.njsproj", "{323C6771-1149-4C54-9FB3-DEE039C4AEDF}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -59,6 +61,10 @@ Global
 		{F8B52129-F584-433C-9A00-90CF05BFD209}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F8B52129-F584-433C-9A00-90CF05BFD209}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{F8B52129-F584-433C-9A00-90CF05BFD209}.Release|Any CPU.Build.0 = Release|Any CPU
+		{323C6771-1149-4C54-9FB3-DEE039C4AEDF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{323C6771-1149-4C54-9FB3-DEE039C4AEDF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{323C6771-1149-4C54-9FB3-DEE039C4AEDF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{323C6771-1149-4C54-9FB3-DEE039C4AEDF}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -70,6 +76,7 @@ Global
 		{EAC0E465-4CA5-46B3-90C8-3917F830EA07} = {A571C6EA-E1C8-4FE9-8C53-EF52D3992A36}
 		{EAE939E3-06E5-4B45-9F7F-2FDA54428F85} = {EAC0E465-4CA5-46B3-90C8-3917F830EA07}
 		{00C42972-8E25-4A06-BF4F-585BCD13F87F} = {EAC0E465-4CA5-46B3-90C8-3917F830EA07}
+		{323C6771-1149-4C54-9FB3-DEE039C4AEDF} = {936223DC-03A8-40AB-88C4-6F05B109AB89}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {94509709-A3DE-4954-B4F0-0C9AE004BF3F}

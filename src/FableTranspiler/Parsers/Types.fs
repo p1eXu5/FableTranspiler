@@ -68,12 +68,20 @@ type FunctionDefinition =
     | GenericNameless of typeParams: Identifier list * parameters: FieldList * returnType: TypeDefinition
 
 
+type ConstDefinition =
+    | DeclareConst of Identifier * TypeDefinition
+    | Const of Identifier * TypeDefinition
+
+
 type StructureStatement =
     | TypeAlias of TypeAlias
     | ClassDefinition of ClassDefinition
     | InterfaceDefinition of InterfaceDefinition
     | FunctionDefinition of  FunctionDefinition
+    | ConstDefinition of  ConstDefinition
     // | TypeDefinition of Identifier * TypeDefinition
+
+
 
 
 type ImportEntity =
@@ -130,8 +138,6 @@ type Statement =
     | Import of ImportEntity list * modulePath: DtsModule
     | Export of ExportStatement
     | Const of Expression
-    | DeclareConst of Identifier * TypeDefinition
-    | ConstDefinition of Identifier * TypeDefinition
     | Structure of StructureStatement
     | NamespaceDeclaration of Identifier * StatementList
 

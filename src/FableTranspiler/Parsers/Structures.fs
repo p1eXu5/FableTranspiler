@@ -343,6 +343,40 @@ module FunctionDefinition =
         ]
 
 
+[<AutoOpen>]
+module ConstDefinition =
+
+    let declareConst =
+        skipString "declare const"
+        >>. ws1
+        >>. identifier
+        .>> ws
+        .>> skipChar ':'
+        .>> ws
+        .>>. typeDefinition 
+        |>> ConstDefinition.DeclareConst
+        .>> skipChar ';'
+
+
+
+    let ``const`` =
+        skipString "const"
+        >>? ws1
+        >>. identifier
+        .>> ws
+        .>>? skipChar ':'
+        .>> ws
+        .>>. typeDefinition
+        |>> ConstDefinition.Const
+        .>> skipChar ';'
+
+
+    let constDefinition =
+        choice [
+            declareConst
+            ``const``
+        ] |>> StructureStatement.ConstDefinition
+
 
 let statement =
     choice [
@@ -350,4 +384,5 @@ let statement =
         classDefinition
         interfaceDefinition
         functionDefnition
+        constDefinition
     ]

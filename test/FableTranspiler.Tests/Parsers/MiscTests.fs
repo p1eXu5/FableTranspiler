@@ -17,7 +17,7 @@ module MiscTests =
         let input = "declare const scrollSpy: ScrollSpy;"
         let i = Identifier.Create "scrollSpy"
         let typeDef = Dsl.DTsTypes.plainType ["ScrollSpy"] |> TypeDefinition.Single
-        let expected = Statement.DeclareConst (i, typeDef)
+        let expected = ConstDefinition.DeclareConst (i, typeDef) |> StructureStatement.ConstDefinition |> Statement.Structure
 
         let result = run Identifier.statement input
         result |> shouldSuccess expected
@@ -31,7 +31,7 @@ module MiscTests =
         """
         let i = Identifier.Create "scrollSpy"
         let typeDef = Dsl.DTsTypes.plainType ["ScrollSpy"] |> TypeDefinition.Single
-        let declareConst = Statement.DeclareConst (i, typeDef)
+        let declareConst = ConstDefinition.DeclareConst (i, typeDef) |> StructureStatement.ConstDefinition |> Statement.Structure
         let export =
             "scrollSpy"
             |> Identifier.Create

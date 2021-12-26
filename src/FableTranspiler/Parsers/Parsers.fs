@@ -111,8 +111,6 @@ let statement =
     choice [
         skipString "declare" >>? ws1 >>? namespaceDefinition |>> NamespaceDeclaration
         skipString "export" >>? ws1 >>? namespaceDefinition |>> (ExportStatement.Namespace >> Statement.Export)
-        Misc.declareConst
-        Misc.constDefinition
         Import.statement
         Export.statement
         Comment.statement
