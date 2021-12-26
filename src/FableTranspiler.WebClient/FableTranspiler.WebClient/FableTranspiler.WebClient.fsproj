@@ -1,0 +1,25 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="Components\TestEntity.fs" />
+    <Compile Include="App.fs" />
+    <Compile Include="Program.fs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Fable.Elmish.React" Version="3.0.1" />
+    <PackageReference Include="Feliz" Version="1.57.0" />
+    <PackageReference Include="Feliz.MaterialUI" Version="1.2.6" />
+    <PackageReference Include="Feliz.Router" Version="3.8.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="TranspilerOutput\" />
+  </ItemGroup>
+
+</Project>
