@@ -132,12 +132,12 @@ module internal rec DocumentSegment =
         constructCombination "" [tn] []
 
 
-    let rec private constructObjectLiteral (fields: (Field * TypeDefinition) list) endLine =
+    let rec private constructObjectLiteral (fields: (Field * TypeDefinition) list) (endLine: bool * string) =
         fields
         |> List.mapi (fun ind l ->
             let (fld, tdef) = l
             [
-                if endLine then
+                if fst endLine then
                     yield { Tag = Tag.Text; Content = "    " }
 
                 match fld with
@@ -150,12 +150,12 @@ module internal rec DocumentSegment =
                 | FuncOpt (Identifier i, fl) ->
                     yield { Tag = Tag.Text; Content = i }
                     yield { Tag = Tag.Parentheses; Content = "?(" }
-                    yield! constructObjectLiteral fl false
-                    yield { Tag = Tag.Text; Content = "): " }
+                    yield! constructObjectLiteral fl (false, ", ")
+                    yield { Tag = Tag.Parentheses; Content = "): " }
                 | FuncReq (Identifier i, fl) ->
                     yield { Tag = Tag.Text; Content = i }
                     yield { Tag = Tag.Parentheses; Content = "(" }
-                    yield! constructObjectLiteral fl false
+                    yield! constructObjectLiteral fl (false, ", ")
                     yield { Tag = Tag.Parentheses; Content = "): " }
 
                 yield! constructTypeDefinition tdef
@@ -171,10 +171,10 @@ module internal rec DocumentSegment =
 
 
 
-                if endLine then
-                    yield { Tag = Tag.EndOfLine; Content = ";" }
+                if fst endLine then
+                    yield { Tag = Tag.EndOfLine; Content = snd endLine }
                 elif ind < (fields.Length - 1) then
-                    yield { Tag = Tag.Text; Content = ", " }
+                    yield { Tag = Tag.Text; Content = snd endLine }
             ]
         )
         |> List.concat
@@ -211,7 +211,7 @@ module internal rec DocumentSegment =
             | DTsType.InlineObject fl ->
                 [
                     { Tag = Tag.Parentheses; Content = "{" }
-                    yield! constructObjectLiteral fl false
+                    yield! constructObjectLiteral fl (false, ", ")
                     { Tag = Tag.Parentheses; Content = "}" }
                 ]
                 
@@ -257,7 +257,7 @@ module internal rec DocumentSegment =
                 let l =
                     [
                         { Tag = Tag.Parentheses; Content = "((" }
-                        yield! constructObjectLiteral fl false
+                        yield! constructObjectLiteral fl (false, ", ")
                         { Tag = Tag.Parentheses; Content = ") => " }
 
                         yield! constructTypeDefinition tdef
@@ -348,7 +348,7 @@ module internal rec DocumentSegment =
                 yield { Tag = Tag.Parentheses; Content = "{" }
                 yield { Tag = Tag.EndOfLine; Content = null }
                     
-                yield! constructObjectLiteral lit true
+                yield! constructObjectLiteral lit (true, ", ")
                     
                 yield { Tag = Tag.Parentheses; Content = "}" }
                 yield { Tag = Tag.EndOfLine; Content = null }
@@ -362,7 +362,7 @@ module internal rec DocumentSegment =
                 yield { Tag = Tag.Parentheses; Content = "{" }
                 yield { Tag = Tag.EndOfLine; Content = null }
                     
-                yield! constructObjectLiteral fl true
+                yield! constructObjectLiteral fl (true, ", ")
                     
                 yield { Tag = Tag.Parentheses; Content = "}" }
                 yield { Tag = Tag.EndOfLine; Content = null }
@@ -375,7 +375,7 @@ module internal rec DocumentSegment =
 
                 yield { Tag = Tag.Parentheses; Content = "(" }
                     
-                yield! constructObjectLiteral fl false
+                yield! constructObjectLiteral fl (false, ", ")
                     
                 yield { Tag = Tag.Parentheses; Content = ")" }
                 yield { Tag = Tag.Text; Content = ": " }
@@ -394,7 +394,7 @@ module internal rec DocumentSegment =
 
                 yield { Tag = Tag.Parentheses; Content = "(" }
                     
-                yield! constructObjectLiteral fl false
+                yield! constructObjectLiteral fl (false, ", ")
                     
                 yield { Tag = Tag.Parentheses; Content = ")" }
                 yield { Tag = Tag.Text; Content = ": " }
@@ -412,7 +412,7 @@ module internal rec DocumentSegment =
 
                 yield { Tag = Tag.Parentheses; Content = "(" }
                     
-                yield! constructObjectLiteral fl false
+                yield! constructObjectLiteral fl (false, ", ")
                     
                 yield { Tag = Tag.Parentheses; Content = ")" }
                 yield { Tag = Tag.Text; Content = ": " }
