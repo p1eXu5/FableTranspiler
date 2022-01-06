@@ -72,6 +72,15 @@ let private interpretStructure tabLevel fileName (structure: StructureStatement)
     | FunctionDefinition (FunctionDefinition.Plain ((Identifier name), parameters, returnType)) ->
         [
             yield tab tabLevel
+            yield vmPrn "[<"
+            yield vmType "Import"
+            yield vmPrn "("
+            yield vmText $"\"{name}\", "
+            yield vmKeyword "from"
+            yield vmText $"=\"{fileName}\""
+            yield vmPrn ")>]"
+            yield vmEndLine null
+            yield tab tabLevel
             yield vmKeyword "let "
             yield vmTextS name
             match parameters with
@@ -83,6 +92,7 @@ let private interpretStructure tabLevel fileName (structure: StructureStatement)
                 yield! interpretFields parameters
                 yield vmPrn ": "
             yield! interpretTypeDefinition returnType
+            yield vmEndLine null
             yield vmEndLine null
         ]
     | _ -> failwith "Not implemented"
