@@ -11,6 +11,7 @@ type Model =
         SelectedDocument: FileTreeViewModel option
         IsBusy: bool
         LastError: string option
+        DtsFsTrigger: DtsFsTrigger
     }
     with 
         static member Init () =
@@ -20,12 +21,20 @@ type Model =
                 File = null
                 IsBusy = false
                 LastError = None
+                DtsFsTrigger = Dts
             },
             Cmd.none
+and 
+    DtsFsTrigger =
+        | Dts
+        | Fs
+
 
 type Msg =
     | ParseFile
     | FileParsed of Result<ModuleTree, string>
     | Failed of exn
     | SelectFile of obj
+    | SetShowDtsDocument
+    | SetShowFsDocument
     

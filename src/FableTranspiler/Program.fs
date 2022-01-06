@@ -18,6 +18,8 @@ let update (msg: Msg) (model: Model) =
                 }, Cmd.none
         | _ -> failwith "Unknown type SelectFile message"
 
+    | SetShowDtsDocument -> {model with DtsFsTrigger = Dts}, Cmd.none
+    | SetShowFsDocument -> {model with DtsFsTrigger = Fs}, Cmd.none
 
     | ParseFile -> 
         {
@@ -27,10 +29,13 @@ let update (msg: Msg) (model: Model) =
         Cmd.OfTask.either openFile () FileParsed Failed
 
     | FileParsed (Ok moduleTree) ->
+        let fileTree =  moduleTree |> FileTree.toFileTreeVm |> List.singleton |> Some
         {
             model with 
-                FileTree = moduleTree |> FileTree.toFileTreeVm |> List.singleton |> Some
+                FileTree = fileTree
+                SelectedDocument = fileTree |> Option.map (fun l -> l |> List.head)
                 IsBusy = false
         }, Cmd.none
+
 
     | _ -> {model with IsBusy = false}, Cmd.none

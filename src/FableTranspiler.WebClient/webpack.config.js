@@ -9,7 +9,10 @@ const projectName = "FableTranspiler.WebClient";
 
 module.exports = {
     context: path.resolve(__dirname, projectName),
-    entry: './' + projectName + '.fsproj',
+    entry: [
+        //'./../../NodejsConsoleApp/lib/test.js',
+        './' + projectName + '.fsproj'
+    ],
     output: {
         filename: '[name].[chunkhash].bundle.js',
         path: path.resolve(__dirname, 'public'),

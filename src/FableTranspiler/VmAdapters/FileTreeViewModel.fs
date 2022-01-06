@@ -11,27 +11,38 @@ type FileTreeViewModel
         StatementsResult: StatementsResult,
         Modules: FileTreeViewModel list
     ) =
-        let documentSegmentVmCollection =
+        let interpretError (err: string) =
+            (err.Split(Environment.NewLine)
+            |> Array.toList
+            |> List.map (fun s ->
+                [
+                    { Tag = Tag.Text; Content = s }
+                    { Tag = Tag.EndOfLine; Content = null }
+                ]
+            )
+            |> List.concat
+            |> List.append 
+            <| [
+                { Tag = Tag.EndOfDocument; Content = null }
+            ]).ToList()
+            
+
+        let dtsDocumentSegmentVmCollection =
             lazy (
                 match StatementsResult.Statements with
-                | Ok l -> DocumentSegment.toDocumentSegmentVmList l
-                | Error err ->
-                    (err.Split(Environment.NewLine)
-                    |> Array.toList
-                    |> List.map (fun s ->
-                        [
-                            { Tag = Tag.Text; Content = s }
-                            { Tag = Tag.EndOfLine; Content = null }
-                        ]
-                    )
-                    |> List.concat
-                    |> List.append 
-                    <| [
-                        { Tag = Tag.EndOfDocument; Content = null }
-                    ]).ToList()
+                | Ok l -> DtsDocumentInterpreter.toDocumentSegmentVmList l
+                | Error err -> interpretError err
             )
 
-        member val DocumentSegmentVmCollection = documentSegmentVmCollection.Value
+        let fsDocumentSegmentVmCollection =
+            lazy (
+                match StatementsResult.Statements with
+                | Ok l -> FsDocumentInterpreter.toDocumentSegmentVmList l FileName None
+                | Error err -> interpretError err
+            )
+
+        member val DtsDocumentSegmentVmCollection = dtsDocumentSegmentVmCollection.Value
+        member val FsDocumentSegmentVmCollection = fsDocumentSegmentVmCollection.Value
         member val FileName = FileName
         member val Modules = Modules
 

@@ -20,6 +20,8 @@
     <Compile Include="Parsers\Parsers.fs" />
     <Compile Include="Infrastruture.fs" />
     <Compile Include="VmAdapters\DocumentSegmentViewModel.fs" />
+    <Compile Include="VmAdapters\DtsDocumentInterpreter.fs" />
+    <Compile Include="VmAdapters\FsDocumentInterpreter.fs" />
     <Compile Include="VmAdapters\FileTreeViewModel.fs" />
     <Compile Include="Types.fs" />
     <Compile Include="Program.fs" />

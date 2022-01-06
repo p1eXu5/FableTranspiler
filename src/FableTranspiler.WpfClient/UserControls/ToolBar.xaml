@@ -14,11 +14,13 @@
             <RadioButton GroupName="YYY"
                          Style="{DynamicResource MaterialDesignToolRadioButton}"
                          Content="{materialDesign:PackIcon Kind=Radio}"
+                         IsChecked="{Binding ShowDtsDocument}"
                          />
 
             <RadioButton GroupName="YYY"
                          Style="{DynamicResource MaterialDesignToolRadioButton}"
                          Content="{materialDesign:PackIcon Kind=EmoticonPoop}"
+                         IsChecked="{Binding ShowFsDocument}"
                          />
         </ToolBar>
     </ToolBarTray>

@@ -2,7 +2,7 @@
   "name": "nodejs-console-app",
   "version": "0.0.0",
   "description": "NodejsConsoleApp",
-  "main": "app.js",
+  "main": "test.js",
   "author": {
     "name": ""
   },
