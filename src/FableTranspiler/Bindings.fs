@@ -35,6 +35,20 @@ let bindings () =
             )
         )
 
+        "SelectedDtsModule" |> Binding.oneWayOpt(fun m -> 
+            m.SelectedDocument
+            |> Option.map (fun d ->
+                d.DtsDocumentSegmentVmCollection
+            )
+        )
+
+        "SelectedFsModule" |> Binding.oneWayOpt(fun m -> 
+            m.SelectedDocument
+            |> Option.map (fun d ->
+                d.FsDocumentSegmentVmCollection
+            )
+        )
+
         "ShowDtsDocument" 
             |> Binding.twoWay
                 (

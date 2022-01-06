@@ -15,17 +15,34 @@
     <materialDesign:ColorZone Padding="16" VerticalAlignment="Stretch">
         <DockPanel LastChildFill="True">
             <local:ToolBar DockPanel.Dock="Top"/>
-            <RichTextBox MinWidth="280"
-                         AcceptsReturn="True"
-                         IsDocumentEnabled="True"
-                         IsReadOnly="true"
-                         VerticalScrollBarVisibility="Auto"
-                         SpellCheck.IsEnabled="True"
-                         materialDesign:HintAssist.Hint="Multiline text"
-                        prop:RichTextBoxHelper.DtsDocument="{Binding SelectedModule, Mode=OneWay}"
-                        prop:RichTextBoxHelper.DocumentError="{Binding LastError, Mode=OneWay}"
-                         >
-            </RichTextBox>
+            <Grid HorizontalAlignment="Stretch">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <RichTextBox Grid.Column="0"
+                             AcceptsReturn="True"
+                             IsDocumentEnabled="True"
+                             IsReadOnly="true"
+                             VerticalScrollBarVisibility="Auto"
+                             SpellCheck.IsEnabled="True"
+                             materialDesign:HintAssist.Hint="Multiline text"
+                            prop:RichTextBoxHelper.DtsDocument="{Binding SelectedDtsModule, Mode=OneWay}"
+                            prop:RichTextBoxHelper.DocumentError="{Binding LastError, Mode=OneWay}"
+                             />
+
+                <RichTextBox Grid.Column="1"
+                             MinWidth="280"
+                             AcceptsReturn="True"
+                             IsDocumentEnabled="True"
+                             IsReadOnly="true"
+                             VerticalScrollBarVisibility="Auto"
+                             SpellCheck.IsEnabled="True"
+                             materialDesign:HintAssist.Hint="Multiline text"
+                            prop:RichTextBoxHelper.DtsDocument="{Binding SelectedFsModule, Mode=OneWay}"
+                            prop:RichTextBoxHelper.DocumentError="{Binding LastError, Mode=OneWay}"
+                             />
+            </Grid>
         </DockPanel>
     </materialDesign:ColorZone>
 </UserControl>
