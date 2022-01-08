@@ -22,6 +22,8 @@ and
 
 type FsDocumentSegmentListViewModel =
     | Nameless of DocumentSegmentViewModel list
+    | Named of Name: string * DocumentSegmentViewModel list
+    | Link of Name: string * FsDocumentSegmentListViewModel
     | Let of Name: string * DocumentSegmentViewModel list * TypeConstructor: (unit -> DocumentSegmentViewModel list)
     | Typed of Name: string * DocumentSegmentViewModel list * TypeConstructor: DocumentSegmentViewModel list
 
@@ -31,16 +33,22 @@ type FsDocumentSegmentListViewModel =
 module internal DocumentSegmentViewModel =
     let name = function
         | Nameless _ -> failwith "No name"
+        | Named (n, _) -> n
+        | Link (n, _) -> n
         | Let (n, _, _) -> n
         | Typed (n, _, _) -> n
 
-    let segments = function
+    let rec segments = function
         | Nameless l -> l
+        | Named (_, l) -> l
+        | Link (_, l) -> l |> segments
         | Let (_, l, _) -> l
         | Typed (_, l, _) -> l
 
-    let construct = function
+    let rec construct = function
         | Nameless _ -> failwith "No type constructor"
+        | Named (_, l) -> l
+        | Link (_, l) -> l |> construct
         | Let (_, _, f) -> f()
         | Typed (_, _, l) -> l
 

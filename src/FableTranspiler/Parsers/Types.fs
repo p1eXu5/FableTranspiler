@@ -77,8 +77,8 @@ type StructureStatement =
     | TypeAlias of TypeAlias
     | ClassDefinition of ClassDefinition
     | InterfaceDefinition of InterfaceDefinition
-    | FunctionDefinition of  FunctionDefinition
-    | ConstDefinition of  ConstDefinition
+    | FunctionDefinition of FunctionDefinition
+    | ConstDefinition of ConstDefinition
     // | TypeDefinition of Identifier * TypeDefinition
 
 

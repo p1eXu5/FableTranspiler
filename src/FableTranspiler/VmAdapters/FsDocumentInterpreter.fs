@@ -19,29 +19,44 @@ let private interpretType l : DocumentSegmentViewModel list =
     )
 
 
-let private interpretSingleType (dict: Dictionary<string, FsDocumentSegmentListViewModel>) (type': DTsType) : DocumentSegmentViewModel list =
+let rec private interpretSingleType 
+    (dict: Dictionary<string, FsDocumentSegmentListViewModel>) 
+    (type': DTsType) 
+        : Choice<DocumentSegmentViewModel list, FsDocumentSegmentListViewModel> =
+
     match type' with
-    | DTsType.Plain p -> interpretType p
-    | DTsType.Any -> [vmType "obj"]
-    | DTsType.Void -> [vmKeyword "unit"]
+    | DTsType.Plain p -> 
+        let typeNameVms = interpretType p
+        let typeName = String.Join("", typeNameVms |> List.map (fun t -> t.Content))
+        match dict.TryGetValue(typeName) with
+        | true, v -> v |> Choice2Of2
+        | false, _ -> typeNameVms |> Choice1Of2
+
+    | DTsType.Any -> [vmType "obj"] |> Choice1Of2
+    | DTsType.Void -> [vmKeyword "unit"] |> Choice1Of2
     | DTsType.Typeof (Identifier typeName) ->
-        dict[typeName] |> construct
+        dict[typeName] |> Choice2Of2
+    | DTsType.Array t ->
+        match interpretSingleType dict t with
+        | Choice1Of2 l -> (l @ [vmPrn "[]"]) |> Choice1Of2
+        | _ -> failwith "Not implemented"
     | _ -> failwith "Not implemented"
 
 
-let private interpretTypeDefinition (dict: Dictionary<string, FsDocumentSegmentListViewModel>) (tdef: TypeDefinition) : DocumentSegmentViewModel list =
-    [
-        match tdef with
-        | TypeDefinition.Single tn -> 
-            yield! interpretSingleType dict tn
-        | TypeDefinition.Combination comb ->
-            failwith "Not implemented"
-            //match comb with
-            //| Union l ->
-            //    yield! constructCombination " | " l []
-            //| Composition l ->
-            //    yield!  constructCombination " & " l [] 
-    ]
+let private interpretTypeDefinition 
+    (dict: Dictionary<string, FsDocumentSegmentListViewModel>) 
+    (tdef: TypeDefinition) 
+        : Choice<DocumentSegmentViewModel list, FsDocumentSegmentListViewModel> =
+    match tdef with
+    | TypeDefinition.Single tn -> 
+        interpretSingleType dict tn
+    | TypeDefinition.Combination comb ->
+        failwith "Not implemented"
+        //match comb with
+        //| Union l ->
+        //    yield! constructCombination " | " l []
+        //| Composition l ->
+        //    yield!  constructCombination " & " l [] 
 
 
 
@@ -56,17 +71,20 @@ let private interpretFnParameters (dict: Dictionary<string, FsDocumentSegmentLis
                         vmPrn "("
                         vmText field
                         vmPrn ": "
-                        yield! interpretTypeDefinition dict td
+                        match interpretTypeDefinition dict td with
+                        | Choice1Of2 l -> yield! l
+                        | Choice2Of2 vm -> yield! (vm |> construct)
                         vmPrn ") "
                     ]
                 interpret tail (List.append result xvm)
+
 
             | _ -> failwith "Not implemented"
 
         | [] -> result
     
     match fields with
-    | [] -> failwith "Fields must not be empty"
+    | [] -> [vmPrn "()"]
     | _ -> interpret fields []
 
 
@@ -76,8 +94,22 @@ let private interpretField (dict: Dictionary<string, FsDocumentSegmentListViewMo
         [
             vmKeyword "abstract "
             vmText name
-            //vmPrn ": "
-            yield! interpretTypeDefinition dict td
+            vmPrn " : "
+            match interpretTypeDefinition dict td with
+            | Choice1Of2 l -> yield! l
+            | Choice2Of2 vm -> yield! (vm |> construct)
+            vmEndLineNull
+        ]
+
+    | (Field.FuncReq ((Identifier name), fl), td) ->
+        [
+            vmKeyword "abstract "
+            vmTextS name
+            yield! interpretFnParameters dict fl
+            vmPrn " : "
+            match interpretTypeDefinition dict td with
+            | Choice1Of2 l -> yield! l
+            | Choice2Of2 vm -> yield! (vm |> construct)
             vmEndLineNull
         ]
 
@@ -110,7 +142,9 @@ let private interpretFn (dict: Dictionary<string, FsDocumentSegmentListViewModel
         | _ -> 
             yield! interpretFnParameters dict parameters
             yield vmPrn ": "
-        yield! interpretTypeDefinition dict returnType
+        match interpretTypeDefinition dict returnType with
+        | Choice1Of2 l -> yield! l
+        | Choice2Of2 vm -> yield! (vm |> construct)
     ]
 
 
@@ -158,6 +192,11 @@ let private interpretStructure tabLevel fileName (dict: Dictionary<string, FsDoc
         )
         |> Typed
 
+    | ConstDefinition (DeclareConst ((Identifier name), tdef)) ->
+        match interpretTypeDefinition dict tdef with
+        | Choice1Of2 l -> FsDocumentSegmentListViewModel.Named (name, l)
+        | Choice2Of2 vm -> FsDocumentSegmentListViewModel.Link (name, vm)
+
     | _ -> failwith "Not implemented"
 
 
@@ -185,16 +224,31 @@ let toDocumentSegmentVmList ns fileName (dict: Dictionary<string, Dictionary<str
                 let vm = interpretStructure tabLevel jsModuleName (dict[fileName]) structure
                 dict[fileName][vm |> name] <- vm
                 continueInterpret tail [vm]
+
+            | Statement.Structure structure ->
+                let vm = interpretStructure tabLevel jsModuleName (dict[fileName]) structure
+                dict[fileName][vm |> name] <- vm
+                continueInterpret tail []
+
+            | Statement.Export (ExportStatement.OutDefault (Identifier name)) ->
+                continueInterpret tail ([dict[fileName][name]])
+
             | _ -> continueInterpret tail []
 
         | [] -> result
 
 
     let fsModuleName =
-        let capitalized = String( (Char.ToUpper(jsModuleName[0]) :: (jsModuleName |> Seq.skip 1 |> Seq.toList)) |> List.toArray)
+        let name =
+            jsModuleName.Split('-')
+            |> Seq.map (fun n ->
+                String( (Char.ToUpper(n[0]) :: (n |> Seq.skip 1 |> Seq.toList)) |> List.toArray)
+            )
+            |> fun l -> String.Join("", l |> Seq.toArray)
+
         match ns with
-        | Some ns' -> $"{ns}.{capitalized}"
-        | _ -> capitalized
+        | Some ns' -> $"{ns'}.{name}"
+        | _ -> name
 
     let initialResult =
         [
