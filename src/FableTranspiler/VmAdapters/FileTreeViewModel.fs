@@ -4,6 +4,7 @@ open FableTranspiler.Infrastruture
 open System
 open System.Linq
 open System.IO
+open System.Collections.Generic
 
 type FileTreeViewModel
     (
@@ -11,6 +12,9 @@ type FileTreeViewModel
         StatementsResult: StatementsResult,
         Modules: FileTreeViewModel list
     ) =
+
+        static let dict = Dictionary<string, Dictionary<string, FsDocumentSegmentListViewModel>>()
+
         let interpretError (err: string) =
             (err.Split(Environment.NewLine)
             |> Array.toList
@@ -37,9 +41,14 @@ type FileTreeViewModel
         let fsDocumentSegmentVmCollection =
             lazy (
                 match StatementsResult.Statements with
-                | Ok l -> FsDocumentInterpreter.toDocumentSegmentVmList l FileName None
+                | Ok l -> FsDocumentInterpreter.toDocumentSegmentVmList None FileName dict l
                 | Error err -> interpretError err
             )
+
+        do
+            if dict.ContainsKey(FileName) |> not then
+                dict[FileName] <- Dictionary<string, FsDocumentSegmentListViewModel>()
+                
 
         member val DtsDocumentSegmentVmCollection = dtsDocumentSegmentVmCollection.Value
         member val FsDocumentSegmentVmCollection = fsDocumentSegmentVmCollection.Value

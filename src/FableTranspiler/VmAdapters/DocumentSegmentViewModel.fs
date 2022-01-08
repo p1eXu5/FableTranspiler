@@ -19,7 +19,30 @@ and
         | Modifier = 7
         | Parentheses = 8
 
+
+type FsDocumentSegmentListViewModel =
+    | Nameless of DocumentSegmentViewModel list
+    | Let of Name: string * DocumentSegmentViewModel list * TypeConstructor: (unit -> DocumentSegmentViewModel list)
+    | Typed of Name: string * DocumentSegmentViewModel list * TypeConstructor: DocumentSegmentViewModel list
+
+
+
+
 module internal DocumentSegmentViewModel =
+    let name = function
+        | Nameless _ -> failwith "No name"
+        | Let (n, _, _) -> n
+        | Typed (n, _, _) -> n
+
+    let segments = function
+        | Nameless l -> l
+        | Let (_, l, _) -> l
+        | Typed (_, l, _) -> l
+
+    let construct = function
+        | Nameless _ -> failwith "No type constructor"
+        | Let (_, _, f) -> f()
+        | Typed (_, _, l) -> l
 
     let vm tag content =
         { Tag = tag; Content = content }
@@ -43,6 +66,9 @@ module internal DocumentSegmentViewModel =
 
     let vmEndLine content =
         { Tag = Tag.EndOfLine; Content = content }
+
+    let vmEndLineNull =
+        { Tag = Tag.EndOfLine; Content = null }
 
     /// Tag.Parentheses
     let vmPrn content =

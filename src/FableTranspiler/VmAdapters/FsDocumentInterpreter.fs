@@ -3,6 +3,8 @@
 open FableTranspiler.VmAdapters.DocumentSegmentViewModel
 open FableTranspiler.Parsers.Types
 open System.Linq
+open System.Collections.Generic
+open System
 
 
 let private interpretType l : DocumentSegmentViewModel list =
@@ -17,19 +19,21 @@ let private interpretType l : DocumentSegmentViewModel list =
     )
 
 
-let private interpretSingleType (type': DTsType) : DocumentSegmentViewModel list =
+let private interpretSingleType (dict: Dictionary<string, FsDocumentSegmentListViewModel>) (type': DTsType) : DocumentSegmentViewModel list =
     match type' with
     | DTsType.Plain p -> interpretType p
     | DTsType.Any -> [vmType "obj"]
     | DTsType.Void -> [vmKeyword "unit"]
+    | DTsType.Typeof (Identifier typeName) ->
+        dict[typeName] |> construct
     | _ -> failwith "Not implemented"
 
 
-let private interpretTypeDefinition (tdef: TypeDefinition) : DocumentSegmentViewModel list =
+let private interpretTypeDefinition (dict: Dictionary<string, FsDocumentSegmentListViewModel>) (tdef: TypeDefinition) : DocumentSegmentViewModel list =
     [
         match tdef with
         | TypeDefinition.Single tn -> 
-            yield! interpretSingleType tn
+            yield! interpretSingleType dict tn
         | TypeDefinition.Combination comb ->
             failwith "Not implemented"
             //match comb with
@@ -41,7 +45,7 @@ let private interpretTypeDefinition (tdef: TypeDefinition) : DocumentSegmentView
 
 
 
-let private interpretFields (fields: FieldList) : DocumentSegmentViewModel list =
+let private interpretFnParameters (dict: Dictionary<string, FsDocumentSegmentListViewModel>) (fields: FieldList) : DocumentSegmentViewModel list =
     let rec interpret (fields: FieldList) result =
         match fields with
         | head :: tail ->
@@ -52,7 +56,7 @@ let private interpretFields (fields: FieldList) : DocumentSegmentViewModel list 
                         vmPrn "("
                         vmText field
                         vmPrn ": "
-                        yield! interpretTypeDefinition td
+                        yield! interpretTypeDefinition dict td
                         vmPrn ") "
                     ]
                 interpret tail (List.append result xvm)
@@ -66,41 +70,109 @@ let private interpretFields (fields: FieldList) : DocumentSegmentViewModel list 
     | _ -> interpret fields []
 
 
+let private interpretField (dict: Dictionary<string, FsDocumentSegmentListViewModel>) (field: Field * TypeDefinition) : DocumentSegmentViewModel list =
+    match field with
+    | ((Field.Required (Identifier name)), td) -> 
+        [
+            vmKeyword "abstract "
+            vmText name
+            //vmPrn ": "
+            yield! interpretTypeDefinition dict td
+            vmEndLineNull
+        ]
 
-let private interpretStructure tabLevel fileName (structure: StructureStatement) : DocumentSegmentViewModel list =
+    | _ -> failwith "Not implemented"
+
+    
+
+
+let import name source =
+    [
+        vmPrn "[<"
+        vmType "Import"
+        vmPrn "("
+        vmText $"\"{name}\", "
+        vmKeyword "from"
+        vmText $"=\"{source}\""
+        vmPrn ")>]"
+    ]
+
+
+let private interpretFn (dict: Dictionary<string, FsDocumentSegmentListViewModel>) keyword name parameters returnType =
+    [
+        yield vmKeywordS keyword
+        yield vmTextS name
+        match parameters with
+        | [] -> 
+            yield vmPrn ": "
+            yield vmKeyword "unit"
+            yield vmPrn " -> "
+        | _ -> 
+            yield! interpretFnParameters dict parameters
+            yield vmPrn ": "
+        yield! interpretTypeDefinition dict returnType
+    ]
+
+
+let private interpretStructure tabLevel fileName (dict: Dictionary<string, FsDocumentSegmentListViewModel>) (structure: StructureStatement) : FsDocumentSegmentListViewModel =
+
+    let import name =
+        [
+            tab tabLevel
+            yield! import name fileName
+            vmEndLineNull
+        ]
+
     match structure with
     | FunctionDefinition (FunctionDefinition.Plain ((Identifier name), parameters, returnType)) ->
-        [
-            yield tab tabLevel
-            yield vmPrn "[<"
-            yield vmType "Import"
-            yield vmPrn "("
-            yield vmText $"\"{name}\", "
-            yield vmKeyword "from"
-            yield vmText $"=\"{fileName}\""
-            yield vmPrn ")>]"
-            yield vmEndLine null
-            yield tab tabLevel
-            yield vmKeyword "let "
-            yield vmTextS name
-            match parameters with
-            | [] -> 
-                yield vmPrn ": "
-                yield vmKeyword "unit"
-                yield vmPrn " -> "
-            | _ -> 
-                yield! interpretFields parameters
-                yield vmPrn ": "
-            yield! interpretTypeDefinition returnType
-            yield vmEndLine null
-            yield vmEndLine null
-        ]
+        (
+            name,
+            [
+                yield! import name
+                tab tabLevel
+                yield! interpretFn dict "let" name parameters returnType
+                vmEndLineNull
+                vmEndLineNull
+            ],
+            (fun () -> interpretFn dict "" "" parameters returnType )
+        )
+        |> Let
+
+    | InterfaceDefinition (InterfaceDefinition.Plain ((Identifier name), fl)) ->
+        (
+            name,
+            [
+                yield! import name
+                tab tabLevel
+                vmKeyword "type "
+                vmTextS name
+                vmText "="
+                vmEndLineNull
+                yield!
+                    fl 
+                    |> List.map (fun t -> (tab (tabLevel + 1)) :: interpretField dict t)
+                    |> List.concat
+                vmEndLineNull
+            ],
+            [ vmType name ]
+        )
+        |> Typed
+
     | _ -> failwith "Not implemented"
 
 
-let toDocumentSegmentVmList statements fileName ns =
 
-    let rec interpret tabLevel statements result : DocumentSegmentViewModel list =
+let toDocumentSegmentViewModelList (fsList: FsDocumentSegmentListViewModel list) : DocumentSegmentViewModel list =
+    fsList
+    |> List.map segments
+    |> List.concat
+
+
+let toDocumentSegmentVmList ns fileName (dict: Dictionary<string, Dictionary<string, FsDocumentSegmentListViewModel>>) statements =
+
+    let jsModuleName = String( fileName |> Seq.takeWhile ((=) '.' >> not) |> Seq.toArray )
+
+    let rec interpret tabLevel statements (result: FsDocumentSegmentListViewModel list) : FsDocumentSegmentListViewModel list =
 
         /// append generated view models to the result and invokes interpret
         let continueInterpret tail xvm =
@@ -110,24 +182,29 @@ let toDocumentSegmentVmList statements fileName ns =
         | head :: tail ->
             match head with
             | Statement.Export (ExportStatement.Structure structure) ->
-                let xvm = interpretStructure tabLevel fileName structure
-                continueInterpret tail xvm
+                let vm = interpretStructure tabLevel jsModuleName (dict[fileName]) structure
+                dict[fileName][vm |> name] <- vm
+                continueInterpret tail [vm]
             | _ -> continueInterpret tail []
 
-        | [] -> result @ [{ Tag = Tag.EndOfDocument; Content = null }]
+        | [] -> result
 
 
-    let moduleName =
+    let fsModuleName =
+        let capitalized = String( (Char.ToUpper(jsModuleName[0]) :: (jsModuleName |> Seq.skip 1 |> Seq.toList)) |> List.toArray)
         match ns with
-        | Some ns' -> $"{ns}.{fileName}"
-        | _ -> fileName
+        | Some ns' -> $"{ns}.{capitalized}"
+        | _ -> capitalized
 
     let initialResult =
         [
             vmKeyword "module "
-            vmText moduleName
+            vmText fsModuleName
             vmEndLine null
             vmEndLine null
-        ]
+        ] 
+        |> Nameless
+        |> List.singleton
 
-    (interpret 0 statements initialResult ).ToList()
+
+    ((interpret 0 statements initialResult  |> toDocumentSegmentViewModelList)  @ [{ Tag = Tag.EndOfDocument; Content = null }]).ToList()
