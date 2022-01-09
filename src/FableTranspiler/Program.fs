@@ -18,9 +18,6 @@ let update (msg: Msg) (model: Model) =
                 }, Cmd.none
         | _ -> failwith "Unknown type SelectFile message"
 
-    | SetShowDtsDocument -> {model with DtsFsTrigger = Dts}, Cmd.none
-    | SetShowFsDocument -> {model with DtsFsTrigger = Fs}, Cmd.none
-
     | ParseFile -> 
         {
             model with

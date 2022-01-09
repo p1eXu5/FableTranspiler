@@ -26,14 +26,6 @@ let bindings () =
         //)
 
         "SelectFile" |> Binding.cmdParam (SelectFile)
-        "SelectedModule" |> Binding.oneWayOpt(fun m -> 
-            m.SelectedDocument
-            |> Option.map (fun d ->
-                match m.DtsFsTrigger with
-                | Dts -> d.DtsDocumentSegmentVmCollection
-                | Fs -> d.FsDocumentSegmentVmCollection
-            )
-        )
 
         "SelectedDtsModule" |> Binding.oneWayOpt(fun m -> 
             m.SelectedDocument
@@ -48,28 +40,6 @@ let bindings () =
                 d.FsDocumentSegmentVmCollection
             )
         )
-
-        "ShowDtsDocument" 
-            |> Binding.twoWay
-                (
-                    fun m -> 
-                        match m.DtsFsTrigger with
-                        | Dts -> true
-                        | Fs -> false
-                    ,
-                    (fun v -> if v then SetShowDtsDocument else SetShowFsDocument)
-                )
-
-        "ShowFsDocument" 
-            |> Binding.twoWay
-                (
-                    fun m -> 
-                        match m.DtsFsTrigger with
-                        | Dts -> false
-                        | Fs -> true
-                    ,
-                    (fun v -> if v then SetShowFsDocument else SetShowDtsDocument)
-                )
         
         "LastError" |> Binding.oneWayOpt (fun m -> m.LastError)
     ]

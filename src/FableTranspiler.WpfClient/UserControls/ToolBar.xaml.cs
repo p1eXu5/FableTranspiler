@@ -23,6 +23,36 @@ namespace FableTranspiler.WpfClient.UserControls
         public ToolBar()
         {
             InitializeComponent();
+            ShowTsContent = true;
+            ShowFelizContent = true;
+        }
+
+        public static readonly DependencyProperty ShowTsContentProperty =
+            DependencyProperty.Register("ShowTsContent", typeof(bool), typeof(ToolBar), new UIPropertyMetadata(null));
+
+        public bool ShowTsContent
+        {
+            get { return (bool)GetValue(ShowTsContentProperty); }
+            set { SetValue(ShowTsContentProperty, value); }
+        }
+
+
+        public static readonly DependencyProperty ShowFelizContentProperty =
+            DependencyProperty.Register("ShowFelizContent", typeof(bool), typeof(ToolBar), new UIPropertyMetadata(null));
+
+        public bool ShowFelizContent
+        {
+            get { return (bool)GetValue(ShowFelizContentProperty); }
+            set { SetValue(ShowFelizContentProperty, value); }
+        }
+
+        public static readonly DependencyProperty ShowFableContentProperty =
+            DependencyProperty.Register("ShowFableContent", typeof(bool), typeof(ToolBar), new UIPropertyMetadata(null));
+
+        public bool ShowFableContent
+        {
+            get { return (bool)GetValue(ShowFableContentProperty); }
+            set { SetValue(ShowFableContentProperty, value); }
         }
     }
 }

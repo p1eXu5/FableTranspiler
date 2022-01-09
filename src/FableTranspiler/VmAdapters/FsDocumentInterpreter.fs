@@ -88,6 +88,46 @@ let private interpretFnParameters (dict: Dictionary<string, FsDocumentSegmentLis
     | _ -> interpret fields []
 
 
+let private interpretFnParameterTypes (dict: Dictionary<string, FsDocumentSegmentListViewModel>) (fields: FieldList) : DocumentSegmentViewModel list =
+    let rec interpret (fields: FieldList) result =
+        match fields with
+        | head :: [] ->
+            match head with
+            | ((Field.Required (Identifier field)), td) -> 
+                let xvm = 
+                    [
+                        match interpretTypeDefinition dict td with
+                        | Choice1Of2 l -> yield! l
+                        | Choice2Of2 vm -> yield! (vm |> construct)
+                    ]
+                interpret [] (List.append result xvm)
+
+
+            | _ -> failwith "Not implemented"
+
+        | head :: tail ->
+            match head with
+            | ((Field.Required (Identifier field)), td) -> 
+                let xvm = 
+                    [
+                        match interpretTypeDefinition dict td with
+                        | Choice1Of2 l -> yield! l
+                        | Choice2Of2 vm -> yield! (vm |> construct)
+
+                        vmPrn " -> "
+                    ]
+                interpret tail (List.append result xvm)
+
+
+            | _ -> failwith "Not implemented"
+
+        | [] -> result
+    
+    match fields with
+    | [] -> [vmKeyword "unit"]
+    | _ -> interpret fields []
+
+
 let private interpretField (dict: Dictionary<string, FsDocumentSegmentListViewModel>) (field: Field * TypeDefinition) : DocumentSegmentViewModel list =
     match field with
     | ((Field.Required (Identifier name)), td) -> 
@@ -148,6 +188,21 @@ let private interpretFn (dict: Dictionary<string, FsDocumentSegmentListViewModel
     ]
 
 
+let private interpretFnType (dict: Dictionary<string, FsDocumentSegmentListViewModel>) parameters returnType =
+    [
+        match parameters with
+        | [] -> 
+            yield vmKeyword "unit"
+            yield vmPrn " -> "
+        | _ -> 
+            yield! interpretFnParameterTypes dict parameters
+            yield vmPrn " -> "
+        match interpretTypeDefinition dict returnType with
+        | Choice1Of2 l -> yield! l
+        | Choice2Of2 vm -> yield! (vm |> construct)
+    ]
+
+
 let private interpretStructure tabLevel fileName (dict: Dictionary<string, FsDocumentSegmentListViewModel>) (structure: StructureStatement) : FsDocumentSegmentListViewModel =
 
     let import name =
@@ -168,7 +223,7 @@ let private interpretStructure tabLevel fileName (dict: Dictionary<string, FsDoc
                 vmEndLineNull
                 vmEndLineNull
             ],
-            (fun () -> interpretFn dict "" "" parameters returnType )
+            (fun () -> interpretFnType dict parameters returnType )
         )
         |> Let
 

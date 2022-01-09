@@ -30,6 +30,9 @@ let greeterO : IGreeter = jsNative
 
 console.log(greeterO.Greeter("John"))
 
+let obj = createObj !![("a", 1)]
+console.log(obj)
+
 
 open Elmish
 open Elmish.React
