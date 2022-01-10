@@ -11,16 +11,17 @@
              d:DesignHeight="450" d:DesignWidth="1200">
     <UserControl.Resources>
         <conv:StatementListToFlowDocumentConverter x:Key="conv_StatementListToFlowDocumentConverter" />
+        <conv:ParentWidthConverter x:Key="conv_ParentWidthConverter" />
         <materialDesign:BooleanToVisibilityConverter x:Key="conv_BoolToVis"/>
     </UserControl.Resources>
     <materialDesign:ColorZone Padding="16" VerticalAlignment="Stretch">
         <DockPanel LastChildFill="True">
             <local:ToolBar x:Name="m_ContentToggler" DockPanel.Dock="Top"/>
 
-            <StackPanel HorizontalAlignment="Stretch" Orientation="Horizontal">
-                <RichTextBox Width="400"
-                             Visibility="{Binding ElementName=m_ContentToggler, Path=ShowTsContent, Converter={StaticResource conv_BoolToVis}, Mode=OneWay}"
+            <StackPanel x:Name="m_ContentContainer" HorizontalAlignment="Stretch" Orientation="Horizontal">
+                <RichTextBox Visibility="{Binding ElementName=m_ContentToggler, Path=ShowTsContent, Converter={StaticResource conv_BoolToVis}, Mode=OneWay}"
                              d:Visibility="Visible"
+                             d:Width="400"
                              Margin="5"
                              AcceptsReturn="True"
                              IsDocumentEnabled="True"
@@ -30,11 +31,21 @@
                              materialDesign:HintAssist.Hint="TS Content"
                              prop:RichTextBoxHelper.DtsDocument="{Binding SelectedDtsModule, Mode=OneWay}"
                              prop:RichTextBoxHelper.DocumentError="{Binding LastError, Mode=OneWay}"
-                             />
+                             >
+                    <RichTextBox.Width>
+                        <MultiBinding Converter="{StaticResource conv_ParentWidthConverter}" Mode="OneWay">
+                            <Binding ElementName="m_ContentContainer" Path="ActualWidth" />
+                            <Binding ElementName="m_ContentToggler" Path="ShowTsContent" />
+                            <Binding ElementName="m_ContentToggler" Path="ShowFelizContent" />
+                            <Binding ElementName="m_ContentToggler" Path="ShowFableContent" />
+                            <Binding Path="Margin" RelativeSource="{RelativeSource Mode=Self}" />
+                        </MultiBinding>
+                    </RichTextBox.Width>
+                </RichTextBox>
 
-                <RichTextBox Width="400"
-                             Visibility="{Binding ElementName=m_ContentToggler, Path=ShowFelizContent, Converter={StaticResource conv_BoolToVis}, Mode=OneWay}"
+                <RichTextBox Visibility="{Binding ElementName=m_ContentToggler, Path=ShowFelizContent, Converter={StaticResource conv_BoolToVis}, Mode=OneWay}"
                              d:Visibility="Visible"
+                             d:Width="400"
                              Margin="5"
                              AcceptsReturn="True"
                              IsDocumentEnabled="True"
@@ -44,11 +55,21 @@
                              materialDesign:HintAssist.Hint="Feliz Content"
                             prop:RichTextBoxHelper.DtsDocument="{Binding SelectedFsModule, Mode=OneWay}"
                             prop:RichTextBoxHelper.DocumentError="{Binding LastError, Mode=OneWay}"
-                             />
+                            >
+                    <RichTextBox.Width>
+                        <MultiBinding Converter="{StaticResource conv_ParentWidthConverter}" Mode="OneWay">
+                            <Binding ElementName="m_ContentContainer" Path="ActualWidth" />
+                            <Binding ElementName="m_ContentToggler" Path="ShowTsContent" />
+                            <Binding ElementName="m_ContentToggler" Path="ShowFelizContent" />
+                            <Binding ElementName="m_ContentToggler" Path="ShowFableContent" />
+                            <Binding Path="Margin" RelativeSource="{RelativeSource Mode=Self}" />
+                        </MultiBinding>
+                    </RichTextBox.Width>
+                </RichTextBox>
 
-                <RichTextBox Width="400"
-                             Visibility="{Binding ElementName=m_ContentToggler, Path=ShowFableContent, Converter={StaticResource conv_BoolToVis}, FallbackValue=Visible, Mode=OneWay}"
-                             d:Visibility="Visible"
+                <RichTextBox Visibility="{Binding ElementName=m_ContentToggler, Path=ShowFableContent, Converter={StaticResource conv_BoolToVis}, FallbackValue=Visible, Mode=OneWay}"
+                             d:Visibility="Collapsed"
+                             d:Width="400"
                              Margin="5"
                              AcceptsReturn="True"
                              IsDocumentEnabled="True"
@@ -58,7 +79,17 @@
                              materialDesign:HintAssist.Hint="Fable Content"
                             prop:RichTextBoxHelper.DtsDocument="{Binding SelectedFableModule, Mode=OneWay}"
                             prop:RichTextBoxHelper.DocumentError="{Binding LastError, Mode=OneWay}"
-                             />
+                             >
+                    <RichTextBox.Width>
+                        <MultiBinding Converter="{StaticResource conv_ParentWidthConverter}" Mode="OneWay">
+                            <Binding ElementName="m_ContentContainer" Path="ActualWidth" />
+                            <Binding ElementName="m_ContentToggler" Path="ShowTsContent" />
+                            <Binding ElementName="m_ContentToggler" Path="ShowFelizContent" />
+                            <Binding ElementName="m_ContentToggler" Path="ShowFableContent" />
+                            <Binding Path="Margin" RelativeSource="{RelativeSource Mode=Self}" />
+                        </MultiBinding>
+                    </RichTextBox.Width>
+                </RichTextBox>
             </StackPanel>
         </DockPanel>
     </materialDesign:ColorZone>
