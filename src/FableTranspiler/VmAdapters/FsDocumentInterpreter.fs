@@ -1,6 +1,7 @@
 ﻿module internal rec FableTranspiler.VmAdapters.FsDocumentInterpreter
 
 open FableTranspiler.VmAdapters.DocumentSegmentViewModel
+open FableTranspiler.VmAdapters.FsDocumentSegmentListViewModel
 open FableTranspiler.Parsers.Types
 open System.Linq
 open System.Collections.Generic
@@ -9,11 +10,11 @@ open System
 
 let private interpretType l : DocumentSegmentViewModel list =
     l
-    |> List.map (fun t -> [{ Tag = Tag.Type; Content = Identifier.Value(t)}])
+    |> List.map (fun t -> [ Identifier.Value(t) |> vmType ])
     |> List.reduce (fun t1 t2 -> 
         [
             yield! t1
-            { Tag = Tag.Text; Content = "." }
+            vmText "."
             yield! t2
         ]
     )
@@ -276,12 +277,18 @@ let toDocumentSegmentVmList ns fileName (dict: Dictionary<string, Dictionary<str
         | head :: tail ->
             match head with
             | Statement.Export (ExportStatement.Structure structure) ->
-                let vm = interpretStructure tabLevel jsModuleName (dict[fileName]) structure
+                let vm = 
+                    interpretStructure tabLevel jsModuleName (dict[fileName]) structure
+                    |> insertAtEnd (vmEndStatement (ref head))
+
                 dict[fileName][vm |> name] <- vm
                 continueInterpret tail [vm]
 
             | Statement.Structure structure ->
-                let vm = interpretStructure tabLevel jsModuleName (dict[fileName]) structure
+                let vm = 
+                    interpretStructure tabLevel jsModuleName (dict[fileName]) structure
+                    |> insertAtEnd (vmEndStatement (ref head))
+
                 dict[fileName][vm |> name] <- vm
                 continueInterpret tail []
 
@@ -316,4 +323,4 @@ let toDocumentSegmentVmList ns fileName (dict: Dictionary<string, Dictionary<str
         |> List.singleton
 
 
-    ((interpret 0 statements initialResult  |> toDocumentSegmentViewModelList)  @ [{ Tag = Tag.EndOfDocument; Content = null }]).ToList()
+    ((interpret 0 statements initialResult  |> toDocumentSegmentViewModelList)  @ [ vmEndDocument ]).ToList()

@@ -5,6 +5,7 @@ open System
 open System.Linq
 open System.IO
 open System.Collections.Generic
+open FableTranspiler.VmAdapters.DocumentSegmentViewModel
 
 type FileTreeViewModel
     (
@@ -20,14 +21,14 @@ type FileTreeViewModel
             |> Array.toList
             |> List.map (fun s ->
                 [
-                    { Tag = Tag.Text; Content = s }
-                    { Tag = Tag.EndOfLine; Content = null }
+                    vmText s
+                    vmEndLineNull
                 ]
             )
             |> List.concat
             |> List.append 
             <| [
-                { Tag = Tag.EndOfDocument; Content = null }
+                DocumentSegmentViewModel.vmEndDocument
             ]).ToList()
             
 

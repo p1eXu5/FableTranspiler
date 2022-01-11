@@ -2,7 +2,7 @@
 
 open FableTranspiler.Parsers.Types
 open System.Linq
-
+open FableTranspiler.VmAdapters.DocumentSegmentViewModel
 
 type EntityOrder =
     | Single
@@ -11,8 +11,8 @@ type EntityOrder =
     | Middle
 
 let private modulePath = function
-    | NodeModule (ModulePath path) -> { Tag = Tag.Text; Content = sprintf "'%s'" path}
-    | Relative (ModulePath path) -> { Tag = Tag.Text; Content = sprintf "'%s'" path}
+    | NodeModule (ModulePath path) -> vmText $"'%s{path}'"
+    | Relative (ModulePath path) -> vmText $"'%s{path}'"
 
 
 let private insertWithOrder entityOrder posfix content =
@@ -27,53 +27,53 @@ let private insertAsWithOrder entityOrder nameTag name alias postfix =
     match entityOrder with
     | First ->
         [
-            { Tag = Tag.Text; Content = "{ "}
-            { Tag = nameTag; Content = name }
-            { Tag = Tag.Keyword; Content = " as "}
-            { Tag = Tag.Type; Content = alias}
-            { Tag = Tag.Text; Content = ", "}
+            vmPrn "{ "
+            vm nameTag name
+            vmKeyword " as "
+            vmType alias
+            vmPrn ", "
         ]
     | Last ->
         [
-            { Tag = nameTag; Content = name }
-            { Tag = Tag.Keyword; Content = " as "}
-            { Tag = Tag.Type; Content = alias}
-            { Tag = Tag.Text; Content = " }" + postfix}
+            vm nameTag name
+            vmKeyword " as "
+            vmType alias
+            vmPrn $" }}{postfix}"
         ]
     | Middle ->
         [
-            { Tag = nameTag; Content = name }
-            { Tag = Tag.Keyword; Content = " as "}
-            { Tag = Tag.Type; Content = alias}
-            { Tag = Tag.Text; Content = ", "}
+            vm nameTag name
+            vmKeyword " as "
+            vmType alias
+            vmPrn ", "
         ]
     | Single ->
         [
-            { Tag = Tag.Text; Content = "{ "}
-            { Tag = nameTag; Content = name }
-            { Tag = Tag.Keyword; Content = " as "}
-            { Tag = Tag.Type; Content = alias}
-            { Tag = Tag.Text; Content = " }" + postfix}
+            vmPrn "{ "
+            vm nameTag name
+            vmKeyword " as "
+            vmType alias
+            vmPrn $" }}{postfix}"
         ]
 
 
 let private importEntity postfix entity entityOrder = 
     match entity with
-    | No -> [{ Tag = Tag.NoContent; Content = null }]
-    | ImportEntity.Named (Identifier identifier) -> [{ Tag = Tag.Text; Content = identifier |> insertWithOrder entityOrder postfix}]
+    | No -> [vmNo]
+    | ImportEntity.Named (Identifier identifier) -> [ identifier |> insertWithOrder entityOrder postfix |> vmText ]
     | Aliased (Identifier name, Identifier alias) -> insertAsWithOrder entityOrder Tag.Text name alias postfix
-    | All -> [{ Tag = Tag.Text; Content = "* "}]
+    | All -> [vmPrn "* "]
     | AllAliased (Identifier alias) -> 
         [
-            { Tag = Tag.Text; Content = "* "}
-            { Tag = Tag.Keyword; Content = "as "}
-            { Tag = Tag.Type; Content = sprintf "%s " alias}
+            vmPrn "* "
+            vmKeyword "as "
+            vmTypeS alias
         ]
 
 
 let private exportEntity postfix entity entityOrder = 
     match entity with
-    | ExportEntity.Named (Identifier identifier) -> [{ Tag = Tag.Text; Content = identifier |> insertWithOrder entityOrder postfix}]
+    | ExportEntity.Named (Identifier identifier) -> [identifier |> insertWithOrder entityOrder postfix |> vmText]
     | DefaultAliased (Identifier alias) -> insertAsWithOrder entityOrder Tag.Modifier "default" alias postfix
 
 
@@ -98,11 +98,11 @@ let rec private buildImportExportEntities builder l res =
 
 let private constructType l : DocumentSegmentViewModel list =
     l
-    |> List.map (fun t -> [{ Tag = Tag.Type; Content = Identifier.Value(t)}])
+    |> List.map (fun t -> [vmType (Identifier.Value(t))])
     |> List.reduce (fun t1 t2 -> 
         [
             yield! t1
-            { Tag = Tag.Text; Content = "." }
+            vmText "."
             yield! t2
         ]
     )
@@ -118,25 +118,25 @@ let rec private constructObjectLiteral (fields: (Field * TypeDefinition) list) (
         let (fld, tdef) = l
         [
             if fst endLine then
-                yield { Tag = Tag.Text; Content = "    " }
+                yield vmText "    "
 
             match fld with
             | Required (Identifier i) ->
-                yield { Tag = Tag.Text; Content = i }
-                yield { Tag = Tag.Parentheses; Content = ": " }
+                yield vmText i
+                yield vmPrn ": "
             | Optional (Identifier i) ->
-                yield { Tag = Tag.Text; Content = i }
-                yield { Tag = Tag.Parentheses; Content = "?: " }
+                yield vmText i
+                yield vmPrn "?: "
             | FuncOpt (Identifier i, fl) ->
-                yield { Tag = Tag.Text; Content = i }
-                yield { Tag = Tag.Parentheses; Content = "?(" }
+                yield vmText i
+                yield vmPrn "?("
                 yield! constructObjectLiteral fl (false, ", ")
-                yield { Tag = Tag.Parentheses; Content = "): " }
+                yield vmPrn "): "
             | FuncReq (Identifier i, fl) ->
-                yield { Tag = Tag.Text; Content = i }
-                yield { Tag = Tag.Parentheses; Content = "(" }
+                yield vmText i
+                yield vmPrn "("
                 yield! constructObjectLiteral fl (false, ", ")
-                yield { Tag = Tag.Parentheses; Content = "): " }
+                yield vmPrn "): "
 
             yield! constructTypeDefinition tdef
             //match tdef with
@@ -152,9 +152,9 @@ let rec private constructObjectLiteral (fields: (Field * TypeDefinition) list) (
 
 
             if fst endLine then
-                yield { Tag = Tag.EndOfLine; Content = snd endLine }
+                yield vmEndLine <| snd endLine
             elif ind < (fields.Length - 1) then
-                yield { Tag = Tag.Text; Content = snd endLine }
+                yield vmText <| snd endLine
         ]
     )
     |> List.concat
@@ -182,7 +182,7 @@ let rec private constructCombination sep combination res =
         |> List.reduce (fun t1 t2 -> 
             [
                 yield! t1
-                { Tag = Tag.Parentheses; Content = sep }
+                vmPrn sep
                 yield! t2
             ]
         )
@@ -190,9 +190,9 @@ let rec private constructCombination sep combination res =
         match head with
         | DTsType.InlineObject fl ->
             [
-                { Tag = Tag.Parentheses; Content = "{" }
+                vmPrn "{"
                 yield! constructObjectLiteral fl (false, ", ")
-                { Tag = Tag.Parentheses; Content = "}" }
+                vmPrn "}"
             ]
                 
 
@@ -206,50 +206,50 @@ let rec private constructCombination sep combination res =
             let l =
                 [
                     yield! main
-                    { Tag = Tag.Text; Content = "<" }
+                    vmText "<"
                     yield! inner
-                    { Tag = Tag.Text; Content = ">" }
+                    vmText ">"
                 ]
             constructCombination sep tail (l :: res)
 
         | DTsType.Undefined -> 
             let l =
                 [
-                    { Tag = Tag.Type; Content = "undefined" }
+                    vmType "undefined"
                 ]
             constructCombination sep tail (l :: res)
 
         | DTsType.Void -> 
             let l =
                 [
-                    { Tag = Tag.Type; Content = "void" }
+                    vmType "void"
                 ]
             constructCombination sep tail (l :: res)
 
         | DTsType.Any -> 
             let l =
                 [
-                    { Tag = Tag.Type; Content = "any" }
+                    vmType "any"
                 ]
             constructCombination sep tail (l :: res)
 
         | DTsType.Func (fl, tdef) ->
             let l =
                 [
-                    { Tag = Tag.Parentheses; Content = "((" }
+                    vmPrn "(("
                     yield! constructObjectLiteral fl (false, ", ")
-                    { Tag = Tag.Parentheses; Content = ") => " }
+                    vmPrn ") => "
 
                     yield! constructTypeDefinition tdef
-                    { Tag = Tag.Parentheses; Content = ")" }
+                    vmPrn ")"
                 ]
             constructCombination sep tail (l :: res)
 
         | DTsType.Typeof (Identifier i) ->
             let l =
                 [
-                    { Tag = Tag.Keyword; Content = "typeof " }
-                    { Tag = Tag.Text; Content = i }
+                    vmKeyword "typeof "
+                    vmText i
                 ]
             constructCombination sep tail (l :: res)
 
@@ -257,7 +257,7 @@ let rec private constructCombination sep combination res =
             let l = 
                 [
                     yield! constructSingleType t
-                    {Tag = Tag.Parentheses; Content = "[]"}
+                    vmPrn "[]"
                 ]
             constructCombination sep tail (l :: res)
 
@@ -267,9 +267,9 @@ let constructTypeParams typeParams =
     typeParams
     |> List.mapi (fun ind (Identifier i) ->
         [
-            yield { Tag = Tag.Type; Content = i }
+            vmType i
             if ind < (typeParams.Length - 1) then
-                yield { Tag = Tag.Text; Content = ", " }
+                vmText ", "
         ]
     )
     |> List.concat
@@ -279,144 +279,144 @@ let rec private interpretStructure structure : DocumentSegmentViewModel list =
     match structure with
     | TypeAlias (TypeAlias.Plain (Identifier identifier, combination)) ->
         [
-            yield { Tag = Tag.Keyword; Content = "type " }
-            yield { Tag = Tag.Type; Content = identifier }
-            yield { Tag = Tag.Text; Content = " = " }
+            yield vmKeyword "type "
+            yield vmType identifier
+            yield vmText " = "
             match combination with
             | Union l ->
                 yield! constructCombination " | " l []
             | Composition l ->
                 yield!  constructCombination " & " l []
-            yield { Tag = Tag.EndOfLine; Content = ";" }
+            yield vmEndLine ";"
         ]
 
     | TypeAlias (TypeAlias.Generic (Identifier identifier, typeParams, combination)) ->
         [
-            yield { Tag = Tag.Keyword; Content = "type " }
-            yield { Tag = Tag.Type; Content = identifier }
-            yield { Tag = Tag.Parentheses; Content = "<" }
+            yield vmKeyword "type "
+            yield vmType identifier
+            yield vmPrn "<"
             yield! constructTypeParams typeParams 
-            yield { Tag = Tag.Text; Content = " = " }
+            yield vmText " = "
             match combination with
             | Union l ->
                 yield! constructCombination " | " l []
             | Composition l ->
                 yield!  constructCombination " & " l []
-            yield { Tag = Tag.EndOfLine; Content = ";" }
+            yield vmEndLine ";"
         ]
 
     | ClassDefinition (ExtendsEmpty (Identifier idetifier, tn)) -> 
         [
-            yield { Tag = Tag.Keyword; Content = "class " }
-            yield { Tag = Tag.Type; Content = idetifier }
-            yield { Tag = Tag.Keyword; Content = " extends " }
+            yield vmKeyword "class "
+            yield vmType idetifier
+            yield vmKeyword " extends "
 
             yield! constructSingleType tn // construct combination from single operand
 
-            yield { Tag = Tag.Parentheses; Content = "{}" }
-            yield { Tag = Tag.EndOfLine; Content = null }
+            yield vmPrn "{}"
+            yield vmEndLineNull
         ]
 
     | InterfaceDefinition (Extends (Identifier idetifier, tn, lit)) ->
         [
-            yield { Tag = Tag.Keyword; Content = "interface " }
-            yield { Tag = Tag.Type; Content = idetifier }
-            yield { Tag = Tag.Keyword; Content = " extends " }
+            yield vmKeyword "interface "
+            yield vmType idetifier
+            yield vmKeyword " extends "
                     
             yield! constructSingleType tn  // construct combination from single operand
 
-            yield { Tag = Tag.Parentheses; Content = "{" }
-            yield { Tag = Tag.EndOfLine; Content = null }
+            yield vmPrn "{"
+            yield vmEndLineNull
                     
             yield! constructObjectLiteral lit (true, ", ")
                     
-            yield { Tag = Tag.Parentheses; Content = "}" }
-            yield { Tag = Tag.EndOfLine; Content = null }
+            yield vmPrn "}"
+            yield vmEndLineNull
         ]
 
     | InterfaceDefinition (InterfaceDefinition.Plain (Identifier idetifier, fl)) ->
         [
-            yield { Tag = Tag.Keyword; Content = "interface " }
-            yield { Tag = Tag.Type; Content = idetifier }
+            yield vmKeyword "interface "
+            yield vmType idetifier
 
-            yield { Tag = Tag.Parentheses; Content = "{" }
-            yield { Tag = Tag.EndOfLine; Content = null }
+            yield vmPrn "{"
+            yield vmEndLineNull
                     
             yield! constructObjectLiteral fl (true, ", ")
                     
-            yield { Tag = Tag.Parentheses; Content = "}" }
-            yield { Tag = Tag.EndOfLine; Content = null }
+            yield vmPrn "}"
+            yield vmEndLineNull
         ]
 
     | FunctionDefinition (FunctionDefinition.Plain ((Identifier i), fl, tdef)) ->
         [
-            yield { Tag = Tag.Keyword; Content = "function " }
-            yield { Tag = Tag.Type; Content = i }
+            yield vmKeyword "function "
+            yield vmType i
 
-            yield { Tag = Tag.Parentheses; Content = "(" }
+            yield vmPrn "("
                     
             yield! constructObjectLiteral fl (false, ", ")
                     
-            yield { Tag = Tag.Parentheses; Content = ")" }
-            yield { Tag = Tag.Text; Content = ": " }
+            yield vmPrn ")"
+            yield vmText ": "
 
             yield! constructTypeDefinition tdef
-            yield { Tag = Tag.EndOfLine; Content = ";" }
+            yield vmEndLine ";"
         ]
 
     | FunctionDefinition (FunctionDefinition.Generic ((Identifier i), il, fl, tdef)) ->
         [
-            yield { Tag = Tag.Keyword; Content = "function " }
-            yield { Tag = Tag.Type; Content = i }
-            yield { Tag = Tag.Parentheses; Content = "<" }
+            yield vmKeyword "function "
+            yield vmType i
+            yield vmPrn "<"
             yield! constructTypeParams il
-            yield { Tag = Tag.Parentheses; Content = ">" }
+            yield vmPrn ">"
 
-            yield { Tag = Tag.Parentheses; Content = "(" }
+            yield vmPrn "("
                     
             yield! constructObjectLiteral fl (false, ", ")
                     
-            yield { Tag = Tag.Parentheses; Content = ")" }
-            yield { Tag = Tag.Text; Content = ": " }
+            yield vmPrn ")"
+            yield vmText ": "
 
             yield! constructTypeDefinition tdef
-            yield { Tag = Tag.EndOfLine; Content = ";" }
+            yield vmEndLine ";"
         ]
 
     | FunctionDefinition (FunctionDefinition.GenericNameless (il, fl, tdef)) ->
         [
-            yield { Tag = Tag.Keyword; Content = "function" }
-            yield { Tag = Tag.Parentheses; Content = "<" }
+            yield vmKeyword "function"
+            yield vmPrn "<"
             yield! constructTypeParams il
-            yield { Tag = Tag.Parentheses; Content = ">" }
+            yield vmPrn ">"
 
-            yield { Tag = Tag.Parentheses; Content = "(" }
+            yield vmPrn "("
                     
             yield! constructObjectLiteral fl (false, ", ")
                     
-            yield { Tag = Tag.Parentheses; Content = ")" }
-            yield { Tag = Tag.Text; Content = ": " }
+            yield vmPrn ")"
+            yield vmText ": "
 
             yield! constructTypeDefinition tdef
-            yield { Tag = Tag.EndOfLine; Content = ";" }
+            yield vmEndLine ";"
         ]
 
     | StructureStatement.ConstDefinition (ConstDefinition.DeclareConst ((Identifier i), tdef)) ->
         [
-            yield { Tag = Tag.Keyword; Content = "declare const " }
-            yield { Tag = Tag.Text; Content = i }
-            yield { Tag = Tag.Text; Content = ": " }
+            yield vmKeyword "declare const "
+            yield vmText i
+            yield vmText ": "
             yield! constructTypeDefinition tdef
-            yield { Tag = Tag.EndOfLine; Content = ";" }
+            yield vmEndLine ";"
         ]
 
     | StructureStatement.ConstDefinition (ConstDefinition.Const ((Identifier i), tdef)) ->
         [
-            yield { Tag = Tag.Keyword; Content = "const " }
-            yield { Tag = Tag.Text; Content = i }
-            yield { Tag = Tag.Text; Content = ": " }
+            yield vmKeyword "const "
+            yield vmText i
+            yield vmText ": "
             yield! constructTypeDefinition tdef
-            yield { Tag = Tag.EndOfLine; Content = ";" }
+            yield vmEndLine ";"
         ]
 
 
@@ -429,25 +429,26 @@ let toDocumentSegmentVmList statements =
             interpret tail endTag (List.append result xvm)
 
         match statements with
-        | head :: tail ->
-            match head with
+        | statement :: tail ->
+            match statement with
             | Statement.Import (entities, ``module``) ->
                 let s =
                     if lastTag <> "import"  then
                         [
-                            yield { Tag = Tag.EndOfLine; Content = "" }
-                            yield { Tag = Tag.Keyword; Content = "import " }
+                            vmEndLineNull
+                            vmKeyword "import "
                         ]
                     else
-                        [yield { Tag = Tag.Keyword; Content = "import " }]
+                        [ vmKeyword "import " ]
 
                 continueInterpret tail
                     [
                         yield! s
                         yield! (buildImportExportEntities (importEntity " ") entities [])
-                        yield { Tag = Tag.Keyword; Content = "from " }
+                        yield vmKeyword "from "
                         yield ``module`` |> modulePath
-                        yield { Tag = Tag.EndOfLine; Content = ";" }
+                        yield vmEndLine ";"
+                        yield vmEndStatement (ref statement)
                     ]
                     "import"
 
@@ -455,19 +456,20 @@ let toDocumentSegmentVmList statements =
                 let s =
                     if lastTag <> "export"  then
                         [
-                            yield { Tag = Tag.EndOfLine; Content = "" }
-                            yield { Tag = Tag.Modifier; Content = "export " }
+                            vmEndLineNull
+                            vmModifier "export "
                         ]
                     else
-                        [yield { Tag = Tag.Modifier; Content = "export " }]
+                        [ vmModifier "export " ]
 
                 continueInterpret tail
                     [
                         yield! s
                         yield! (buildImportExportEntities (exportEntity " ") entities [])
-                        yield { Tag = Tag.Keyword; Content = "from " }
+                        yield vmKeyword "from "
                         yield ``module`` |> modulePath
-                        yield { Tag = Tag.EndOfLine; Content = ";" }
+                        yield vmEndLine ";"
+                        yield vmEndStatement (ref statement)
                     ]
                     "export"
 
@@ -476,17 +478,18 @@ let toDocumentSegmentVmList statements =
                 let s =
                     if lastTag <> "export"  then
                         [
-                            yield { Tag = Tag.EndOfLine; Content = "" }
-                            yield { Tag = Tag.Modifier; Content = "export " }
+                            vmEndLineNull
+                            vmModifier "export "
                         ]
                     else
-                        [yield { Tag = Tag.Modifier; Content = "export " }]
+                        [ vmModifier "export " ]
 
                 continueInterpret tail
                     [
                         yield! s
                         yield! (buildImportExportEntities (exportEntity "") (entities |> List.map (Named)) [])
-                        yield { Tag = Tag.EndOfLine; Content = ";" }
+                        yield vmEndLine ";"
+                        yield vmEndStatement (ref statement)
                     ]
                     "export"
 
@@ -495,18 +498,19 @@ let toDocumentSegmentVmList statements =
                 let s =
                     if lastTag <> "export"  then
                         [
-                            yield { Tag = Tag.EndOfLine; Content = "" }
-                            yield { Tag = Tag.Modifier; Content = "export " }
+                            vmEndLineNull
+                            vmModifier "export "
                         ]
                     else
-                        [yield { Tag = Tag.Modifier; Content = "export " }]
+                        [ vmModifier "export " ]
 
                 continueInterpret tail
                     [
                         yield! s
-                        yield { Tag = Tag.Modifier; Content = "default " }
-                        yield { Tag = Tag.Text; Content = i }
-                        yield { Tag = Tag.EndOfLine; Content = ";" }
+                        yield vmModifier "default "
+                        yield vmText i
+                        yield vmEndLine ";"
+                        yield vmEndStatement (ref statement)
                     ]
                     "export"
 
@@ -515,18 +519,21 @@ let toDocumentSegmentVmList statements =
                 let s =
                     if lastTag <> "export"  then
                         [
-                            yield { Tag = Tag.EndOfLine; Content = "" }
-                            yield { Tag = Tag.Modifier; Content = "export" }
+                            vmEndLineNull
+                            vmModifier "export"
                         ]
                     else
-                        [yield { Tag = Tag.Modifier; Content = "export" }]
+                        [
+                            vmModifier "export"
+                        ]
 
                 continueInterpret tail
                     [
                         yield! s
-                        yield { Tag = Tag.Text; Content = " = " }
-                        yield { Tag = Tag.Type; Content = identifier }
-                        yield { Tag = Tag.EndOfLine; Content = ";" }
+                        yield vmText " = "
+                        yield vmType identifier
+                        yield vmEndLine ";"
+                        yield vmEndStatement (ref statement)
                     ]
                     "export"
 
@@ -544,11 +551,12 @@ let toDocumentSegmentVmList statements =
                     [
                         // each time insert break line
                         if breakeLine then
-                            yield { Tag = Tag.EndOfLine; Content = "" }
+                            yield vmEndLineNull
                             
-                        yield { Tag = Tag.Modifier; Content = "export " }
+                        yield vmModifier "export "
                             
                         yield! xvm
+                        yield vmEndStatement (ref statement)
                     ]
                     lastTag'
 
@@ -565,27 +573,29 @@ let toDocumentSegmentVmList statements =
                         [
                             // each time insert break line
                             if breakeLine then
-                                yield { Tag = Tag.EndOfLine; Content = "" }
+                                yield vmEndLineNull
                                             
-                            yield { Tag = Tag.Modifier; Content = "export " }
-                            yield { Tag = Tag.Keyword; Content = "default " }
+                            yield vmModifier "export "
+                            yield vmKeyword "default "
                                             
                             yield! xvm
+                            yield vmEndStatement (ref statement)
                         ]
                         lastTag'
 
             | Statement.Export (ExportStatement.Namespace ((Identifier i), statements')) ->
                 continueInterpret tail
                     [
-                        yield { Tag = Tag.EndOfLine; Content = "" }
-                        yield { Tag = Tag.Modifier; Content = "export " }
-                        yield { Tag = Tag.Keyword; Content = "namespace " }
-                        yield { Tag = Tag.Type; Content = i }
-                        yield { Tag = Tag.Parentheses; Content = " {" }
-                        yield { Tag = Tag.EndOfLine; Content = "" }
+                        yield vmEndLineNull
+                        yield vmModifier "export "
+                        yield vmKeyword "namespace "
+                        yield vmType i
+                        yield vmPrn " {"
+                        yield vmEndLineNull
                         yield! interpret statements' (Tag.EndOfLine) [] ""
-                        yield { Tag = Tag.Parentheses; Content = "}" }
-                        yield { Tag = Tag.EndOfLine; Content = null }
+                        yield vmPrn "}"
+                        yield vmEndLineNull
+                        yield vmEndStatement (ref statement)
                     ]
                     ""
 
@@ -594,8 +604,9 @@ let toDocumentSegmentVmList statements =
                 let xvm = interpretStructure structure
                 continueInterpret tail
                     [
-                        yield { Tag = Tag.EndOfLine; Content = "" }
+                        yield vmEndLineNull
                         yield! xvm
+                        yield vmEndStatement (ref statement)
                     ]
                     ""
 
@@ -603,14 +614,16 @@ let toDocumentSegmentVmList statements =
                 let s =
                     if lastTag <> "comment"  then
                         [
-                            yield { Tag = Tag.EndOfLine; Content = "" }
-                            yield { Tag = Tag.Comment; Content = comment }
-                            yield { Tag = Tag.EndOfLine; Content = "" }
+                            yield vmEndLineNull
+                            yield vmComment comment
+                            yield vmEndLineNull
+                            yield vmEndStatement (ref statement)
                         ]
                     else
                         [
-                            yield { Tag = Tag.Comment; Content = comment }
-                            yield { Tag = Tag.EndOfLine; Content = "" }
+                            yield vmComment comment
+                            yield vmEndLineNull
+                            yield vmEndStatement (ref statement)
                         ]
 
                 continueInterpret tail s "comment"
@@ -618,18 +631,19 @@ let toDocumentSegmentVmList statements =
             | Statement.NamespaceDeclaration ((Identifier i), statements') ->
                 continueInterpret tail
                     [
-                        yield { Tag = Tag.EndOfLine; Content = "" }
-                        yield { Tag = Tag.Keyword; Content = "declare namespace " }
-                        yield { Tag = Tag.Type; Content = i }
-                        yield { Tag = Tag.Parentheses; Content = " {" }
-                        yield { Tag = Tag.EndOfLine; Content = "" }
+                        yield vmEndLineNull
+                        yield vmKeyword "declare namespace "
+                        yield vmType i
+                        yield vmPrn " {"
+                        yield vmEndLineNull
                         yield! interpret statements' (Tag.EndOfLine) [] ""
-                        yield { Tag = Tag.Parentheses; Content = "}" }
-                        yield { Tag = Tag.EndOfLine; Content = null }
+                        yield vmPrn "}"
+                        yield vmEndLineNull
+                        yield vmEndStatement (ref statement)
                     ]
                     ""
 
             | _ -> interpret tail endTag result ""
-        | [] -> result @ [{ Tag = endTag; Content = null }]
+        | [] -> result @ [{ Tag = endTag; Content = Content.No }]
                     
     (interpret statements (Tag.EndOfDocument) [] "").ToList()

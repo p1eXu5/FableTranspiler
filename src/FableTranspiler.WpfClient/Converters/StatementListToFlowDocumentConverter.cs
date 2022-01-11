@@ -20,27 +20,36 @@ namespace FableTranspiler.WpfClient.Converters
                 var i = 0;
                 while (vm[i].Tag != Tag.EndOfDocument) 
                 {
-                    var paragraph = new Paragraph() {  Margin = new Thickness(0) };
-                    
-                    while (vm[i].Tag != Tag.EndOfLine) 
-                    {
-                        // TODO: if last keyword is import then not insert line break
-                        Style? style = vm[i].Tag switch {
-                            Tag.Modifier => Application.Current.FindResource("st_Modifier") as Style,
-                            Tag.Keyword => Application.Current.FindResource("st_Keyword") as Style,
-                            Tag.Type => Application.Current.FindResource("st_Type") as Style,
-                            Tag.Comment => Application.Current.FindResource("st_Comment") as Style,
-                            Tag.Parentheses => Application.Current.FindResource("st_Parentheses") as Style,
-                            _ => null
-                        };
+                    var section = new Section();
 
-                        paragraph.Inlines.Add(new Run(vm[i].Content) { Style = style });
+                    while (vm[i].Tag != Tag.EndOfStatement) 
+                    {
+                        var paragraph = new Paragraph() {  Margin = new Thickness(0) };
+                    
+                        while (vm[i].Tag != Tag.EndOfLine) 
+                        {
+                            // TODO: if last keyword is import then not insert line break
+                            Style? style = vm[i].Tag switch {
+                                Tag.Modifier => Application.Current.FindResource("st_Modifier") as Style,
+                                Tag.Keyword => Application.Current.FindResource("st_Keyword") as Style,
+                                Tag.Type => Application.Current.FindResource("st_Type") as Style,
+                                Tag.Comment => Application.Current.FindResource("st_Comment") as Style,
+                                Tag.Parentheses => Application.Current.FindResource("st_Parentheses") as Style,
+                                _ => null
+                            };
+
+                            paragraph.Inlines.Add(new Run(vm[i].GetContent()) { Style = style });
+
+                            ++i;
+                        }
+
+                        paragraph.Inlines.Add(new Run(vm[i].GetContent())); // end of line
+                        section.Blocks.Add(paragraph);
 
                         ++i;
                     }
 
-                    paragraph.Inlines.Add(new Run(vm[i].Content));
-                    fd.Blocks.Add(paragraph);
+                    fd.Blocks.Add(section);
 
                     ++i;
                 }
@@ -49,6 +58,11 @@ namespace FableTranspiler.WpfClient.Converters
             }
 
             return DependencyProperty.UnsetValue;
+        }
+
+        private void Paragraph_MouseDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        {
+            ;
         }
 
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
