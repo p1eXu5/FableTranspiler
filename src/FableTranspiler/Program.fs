@@ -58,16 +58,6 @@ let rec tryToggleIsSelected2 (key: string list) modules v =
 
 let update (msg: Msg) (model: Model) =
     match msg with
-    //| SelectFile o ->
-    //    match o with
-    //    | :? FileTreeViewModel as fileTree ->
-    //            { 
-    //                model with 
-    //                    SelectedDocument = fileTree |> Some
-    //                    LastError = None
-    //            }, Cmd.none
-    //    | _ -> failwith "Unknown type SelectFile message"
-
     | ParseFile -> 
         {
             model with
@@ -85,6 +75,14 @@ let update (msg: Msg) (model: Model) =
                 IsBusy = false
         }, Cmd.none
 
+    | Failed e ->
+        {
+            model with 
+                IsBusy = false
+                LastError = e.Message |> Some
+        }
+        , Cmd.none
+
     | SetSelectedModule key -> {model with SelectedModuleKey = key}, Cmd.none
 
     | ChildMsg (key, ToggleModuleSelection v) ->
@@ -99,12 +97,5 @@ let update (msg: Msg) (model: Model) =
         | _ -> model, Cmd.none
 
 
-    | Failed e ->
-        {
-            model with 
-                IsBusy = false
-                LastError = e.Message |> Some
-        }
-        , Cmd.none
 
     | _ -> {model with IsBusy = false}, Cmd.none

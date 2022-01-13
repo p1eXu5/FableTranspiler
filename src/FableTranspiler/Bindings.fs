@@ -64,8 +64,6 @@ let bindings () =
             SetSelectedModule
         )
 
-        "SelectFile" |> Binding.cmdParam (SelectFile)
-
         "SelectedDtsStatements" |> Binding.oneWayOpt (fun m -> 
             match m.FileTree, m.SelectedModuleKey with
             | Some fileTree, Some key ->

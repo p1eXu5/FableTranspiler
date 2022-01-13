@@ -26,18 +26,13 @@ type Model =
             Cmd.none
 
 
-//type ModuleMsg =
-//    | ToggleModuleSelection of bool
-
-
 type Msg =
     | ParseFile
     | FileParsed of Result<ModuleTree, string>
     | Failed of exn
-    | SelectFile of obj
-    | SetShowDtsDocument
-    | SetShowFsDocument
+    | SetSelectedModule of string list option
+
+    // for tree item selection:
     | ToggleModuleSelection of bool
     | ChildMsg of string list * Msg
-    | SetSelectedModule of string list option
     
