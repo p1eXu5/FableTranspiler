@@ -69,7 +69,7 @@ let bindings () =
         "SelectedDtsStatements" |> Binding.oneWayOpt (fun m -> 
             match m.FileTree, m.SelectedModuleKey with
             | Some fileTree, Some key ->
-                Program.tryFindModule 0 key fileTree
+                Program.tryFindModule2 key fileTree
                 |> Option.bind (fun d ->
                     match d.DtsDocmumentVm.Force() with
                     | Choice1Of2 xvm -> xvm |> Some
@@ -81,7 +81,7 @@ let bindings () =
         "SelectedDtsStatementsError" |> Binding.oneWayOpt(fun m -> 
             match m.FileTree, m.SelectedModuleKey with
             | Some fileTree, Some key ->
-                Program.tryFindModule 0 key fileTree
+                Program.tryFindModule2 key fileTree
                 |> Option.bind (fun d ->
                     match d.DtsDocmumentVm.Force() with
                     | Choice1Of2 _ -> None

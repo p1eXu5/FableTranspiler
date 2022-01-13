@@ -6,40 +6,54 @@ open Elmish
 open FableTranspiler.VmAdapters
 
 
-let rec tryFindModule offset (key: string list) modules : FileTreeViewModel option =
+let tryFindModule2 (key: string list) modules : FileTreeViewModel option =
 
-    let level = key.Length - offset
+    let rec tryFindModule (key: string list) modules accum =
 
-    if level = 0 then None
-    elif level = 1 then modules |> List.tryFind (fun it -> it.Key = key)
-    else 
-        modules
-        |> List.map (fun it -> 
-            tryFindModule (offset + 1) key it.SubModules
-        )
-        |> List.choose id
-        |> List.tryHead
+        match key with
+        | head :: [] ->
+            modules |> List.tryFind (fun it -> it.Key[0] = head)
+        | head :: tail ->
+
+            let accum' = head :: accum
+
+            modules
+            |> List.tryFind (fun it -> it.Key = accum')
+            |> Option.bind (fun it ->
+                tryFindModule tail it.SubModules accum'
+            )
+        | [] -> None
+
+    tryFindModule (key |> List.rev) modules []
 
 
-let rec tryToggleIsSelected offset (key: string list) modules v =
 
-    let level = key.Length - offset
-    
-    if level = 0 then []
-    elif level = 1 then 
-        modules
-        |> List.map (fun it -> 
-            if it.Key = key then
-                {it with IsSelected = v}
-            else
-                it
-        )
-    else 
-        modules
-        |> List.map (fun it -> 
-            {it with SubModules = tryToggleIsSelected (offset + 1) key it.SubModules v}
-        )
+let rec tryToggleIsSelected2 (key: string list) modules v =
 
+    let rec tryToggleIsSelected (key: string list) modules accum =
+        match key with
+        | head :: [] ->
+            modules |> List.map (fun it -> 
+                if it.Key[0] = head then
+                    {it with IsSelected = v}
+                else
+                    it
+            )
+        | head :: tail ->
+
+            let accum' = head :: accum
+
+            modules 
+            |> List.map (fun it -> 
+                if it.Key = accum' then
+                    {it with SubModules = tryToggleIsSelected tail it.SubModules accum'}
+                else
+                    it
+            )
+
+        | [] -> []
+
+    tryToggleIsSelected (key |> List.rev) modules []
 
 
 let update (msg: Msg) (model: Model) =
@@ -78,7 +92,7 @@ let update (msg: Msg) (model: Model) =
         | Some fileTree ->
             { 
                 model with 
-                    FileTree = tryToggleIsSelected 0 key fileTree v |> Some 
+                    FileTree = tryToggleIsSelected2 key fileTree v |> Some 
                     SelectedModuleKey = key |> Some
             }
             , Cmd.none
