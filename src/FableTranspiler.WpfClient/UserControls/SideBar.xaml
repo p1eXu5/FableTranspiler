@@ -12,14 +12,19 @@
              MinWidth="250"
              >
     <materialDesign:ColorZone Padding="16">
-        <TreeView x:Name="m_treeView" ItemsSource="{Binding ModuleTree}">
-            <behaviors:Interaction.Triggers>
+        <TreeView x:Name="m_treeView" ItemsSource="{Binding ModuleTree2}">
+            <!--<behaviors:Interaction.Triggers>
                 <behaviors:EventTrigger EventName="SelectedItemChanged" SourceObject="{Binding ElementName=m_treeView}">
                     <behaviors:InvokeCommandAction Command="{Binding SelectFile}" CommandParameter="{Binding SelectedValue, ElementName=m_treeView}" />
                 </behaviors:EventTrigger>
-            </behaviors:Interaction.Triggers>
+            </behaviors:Interaction.Triggers>-->
+            <TreeView.ItemContainerStyle>
+                <Style TargetType="{x:Type TreeViewItem}" BasedOn="{StaticResource MaterialDesignTreeViewItem}">
+                    <Setter Property="IsSelected" Value="{Binding IsSelected, Mode=TwoWay}" />
+                </Style>
+            </TreeView.ItemContainerStyle>
             <TreeView.ItemTemplate>
-                <HierarchicalDataTemplate DataType="{x:Type vm:FileTreeViewModel}" ItemsSource="{Binding Modules}">
+                <HierarchicalDataTemplate DataType="{x:Type vm:FileTreeViewModel}" ItemsSource="{Binding SubModules}">
                     <Label Content="{Binding FileName}"/>
                 </HierarchicalDataTemplate>
             </TreeView.ItemTemplate>

@@ -10,7 +10,6 @@
              mc:Ignorable="d"
              d:DesignHeight="450" d:DesignWidth="1200">
     <UserControl.Resources>
-        <conv:StatementListToFlowDocumentConverter x:Key="conv_StatementListToFlowDocumentConverter" />
         <conv:ParentWidthConverter x:Key="conv_ParentWidthConverter" />
         <materialDesign:BooleanToVisibilityConverter x:Key="conv_BoolToVis"/>
     </UserControl.Resources>
@@ -29,9 +28,9 @@
                              VerticalScrollBarVisibility="Auto"
                              SpellCheck.IsEnabled="True"
                              materialDesign:HintAssist.Hint="TS Content"
-                             prop:RichTextBoxHelper.DtsDocument="{Binding SelectedDtsModule, Mode=OneWay}"
-                             prop:RichTextBoxHelper.DocumentError="{Binding LastError, Mode=OneWay}"
+                             prop:RichTextBoxHelper.DtsDocument="{Binding SelectedDtsStatements, Mode=OneWay}"
                              >
+                             <!--prop:RichTextBoxHelper.DocumentError="{Binding SelectedDtsStatementsError, Mode=OneWay}"-->
                     <RichTextBox.Width>
                         <MultiBinding Converter="{StaticResource conv_ParentWidthConverter}" Mode="OneWay">
                             <Binding ElementName="m_ContentContainer" Path="ActualWidth" />
@@ -43,7 +42,9 @@
                     </RichTextBox.Width>
                 </RichTextBox>
 
-                <RichTextBox Visibility="{Binding ElementName=m_ContentToggler, Path=ShowFelizContent, Converter={StaticResource conv_BoolToVis}, Mode=OneWay}"
+                <RichTextBox x:Name="m_FelizContent"
+                             Visibility="{Binding ElementName=m_ContentToggler, Path=ShowFelizContent, Converter={StaticResource conv_BoolToVis}, Mode=OneWay}"
+                             local:Content.SectionMouseEnter="RichTextBox_MouseEnter"
                              d:Visibility="Visible"
                              d:Width="400"
                              Margin="5"
@@ -53,32 +54,6 @@
                              VerticalScrollBarVisibility="Auto"
                              SpellCheck.IsEnabled="True"
                              materialDesign:HintAssist.Hint="Feliz Content"
-                            prop:RichTextBoxHelper.DtsDocument="{Binding SelectedFsModule, Mode=OneWay}"
-                            prop:RichTextBoxHelper.DocumentError="{Binding LastError, Mode=OneWay}"
-                            >
-                    <RichTextBox.Width>
-                        <MultiBinding Converter="{StaticResource conv_ParentWidthConverter}" Mode="OneWay">
-                            <Binding ElementName="m_ContentContainer" Path="ActualWidth" />
-                            <Binding ElementName="m_ContentToggler" Path="ShowTsContent" />
-                            <Binding ElementName="m_ContentToggler" Path="ShowFelizContent" />
-                            <Binding ElementName="m_ContentToggler" Path="ShowFableContent" />
-                            <Binding Path="Margin" RelativeSource="{RelativeSource Mode=Self}" />
-                        </MultiBinding>
-                    </RichTextBox.Width>
-                </RichTextBox>
-
-                <RichTextBox Visibility="{Binding ElementName=m_ContentToggler, Path=ShowFableContent, Converter={StaticResource conv_BoolToVis}, FallbackValue=Visible, Mode=OneWay}"
-                             d:Visibility="Collapsed"
-                             d:Width="400"
-                             Margin="5"
-                             AcceptsReturn="True"
-                             IsDocumentEnabled="True"
-                             IsReadOnly="true"
-                             VerticalScrollBarVisibility="Auto"
-                             SpellCheck.IsEnabled="True"
-                             materialDesign:HintAssist.Hint="Fable Content"
-                            prop:RichTextBoxHelper.DtsDocument="{Binding SelectedFableModule, Mode=OneWay}"
-                            prop:RichTextBoxHelper.DocumentError="{Binding LastError, Mode=OneWay}"
                              >
                     <RichTextBox.Width>
                         <MultiBinding Converter="{StaticResource conv_ParentWidthConverter}" Mode="OneWay">

@@ -7,75 +7,83 @@ open System.IO
 open System.Collections.Generic
 open FableTranspiler.VmAdapters.DocumentSegmentViewModel
 
-type FileTreeViewModel
-    (
-        FileName: string,
-        StatementsResult: StatementsResult,
-        Modules: FileTreeViewModel list
-    ) =
 
-        static let dict = Dictionary<string, Dictionary<string, FsDocumentSegmentListViewModel>>()
+type FileTreeViewModel =
+    {
+        /// fileName :: parent
+        Key: string list
+        IsSelected: bool
+        FileName: string
+        SubModules: FileTreeViewModel list
+        DtsDocmumentVm: Lazy< Choice< DtsStatementViewModel list, CodeItemViewModel list>>
+        FsDocumentVm: Lazy< Choice< FsStatementViewModel list, CodeItemViewModel list>>
+    }
 
-        let interpretError (err: string) =
-            (err.Split(Environment.NewLine)
-            |> Array.toList
-            |> List.map (fun s ->
-                [
-                    vmText s
-                    vmEndLineNull
-                ]
-            )
-            |> List.concat
-            |> List.append 
-            <| [
-                DocumentSegmentViewModel.vmEndDocument
-            ]).ToList()
-            
-
-        let dtsDocumentSegmentVmCollection =
-            lazy (
-                match StatementsResult.Statements with
-                | Ok l -> DtsDocumentInterpreter.toDocumentSegmentVmList l
-                | Error err -> interpretError err
-            )
-
-        let fsDocumentSegmentVmCollection =
-            lazy (
-                match StatementsResult.Statements with
-                | Ok l -> FsDocumentInterpreter.toDocumentSegmentVmList None FileName dict l
-                | Error err -> interpretError err
-            )
-
-        do
-            if dict.ContainsKey(FileName) |> not then
-                dict[FileName] <- Dictionary<string, FsDocumentSegmentListViewModel>()
-                
-
-        member val DtsDocumentSegmentVmCollection = dtsDocumentSegmentVmCollection.Value
-        member val FsDocumentSegmentVmCollection = fsDocumentSegmentVmCollection.Value
-        member val FileName = FileName
-        member val Modules = Modules
 
 
 module internal FileTree =
+
+    let dict = Dictionary<string, Dictionary<string, FsDocumentSection>>()
+
+
+    let interpretError (err: string) =
+        (err.Split(Environment.NewLine)
+        |> Array.toList
+        |> List.map (fun s ->
+            [
+                vmText s
+                vmEndLineNull
+            ]
+        )
+        |> List.concat)
+
+
+    let create(key, fileName, isSelected, parsingResult, subModules) =
+        {
+            Key = key
+            IsSelected = isSelected
+            FileName = fileName
+            SubModules = subModules
+            DtsDocmumentVm =
+                lazy (
+                    match parsingResult.Statements with
+                    | Ok l -> DtsDocumentInterpreter.toDocumentSegmentVmList l |> Choice1Of2
+                    | Error err -> interpretError err |> Choice2Of2
+                )
+            FsDocumentVm =
+                lazy (
+                    match parsingResult.Statements with
+                    | Ok l -> FsDocumentInterpreter.toDocumentSegmentVmList None fileName dict l |> Choice1Of2
+                    | Error err -> interpretError err |> Choice2Of2
+                )
+        }
+
     
-    let rec toFileTreeVm (moduleTree: ModuleTree) =
+    let rec toFileTreeVm parentKey isSelected (moduleTree: ModuleTree) =
 
         match moduleTree with
         | Leaf leaf ->
-            FileTreeViewModel (
-                FileName = Path.GetFileName(leaf.Path),
-                StatementsResult = leaf,
-                Modules = []
+            let fileName = Path.GetFileName(leaf.Path)
+            create (
+                fileName :: parentKey,
+                fileName,
+                isSelected,
+                leaf,
+                []
             )
         | Branch (root, branch) ->
+            let fileName = Path.GetFileName(root.Path)
+            let key = fileName :: parentKey
+
             let modules =
                 branch
-                |> List.map toFileTreeVm
+                |> List.map (toFileTreeVm key false)
 
-            FileTreeViewModel (
-                FileName = Path.GetFileName(root.Path),
-                StatementsResult = root,
-                Modules = modules
+            create (
+                key,
+                fileName,
+                isSelected,
+                root,
+                modules
             )
                     

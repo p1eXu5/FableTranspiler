@@ -23,7 +23,7 @@
     <Compile Include="VmAdapters\DtsDocumentInterpreter.fs" />
     <Compile Include="VmAdapters\FsDocumentInterpreter.fs" />
     <Compile Include="VmAdapters\FileTreeViewModel.fs" />
-    <Compile Include="Types.fs" />
+    <Compile Include="App.Types.fs" />
     <Compile Include="Program.fs" />
     <Compile Include="Bindings.fs" />
     <Compile Include="App.fs" />

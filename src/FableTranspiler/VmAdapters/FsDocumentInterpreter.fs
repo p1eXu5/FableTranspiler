@@ -8,7 +8,7 @@ open System.Collections.Generic
 open System
 
 
-let private interpretType l : DocumentSegmentViewModel list =
+let private interpretType l : CodeItemViewModel list =
     l
     |> List.map (fun t -> [ Identifier.Value(t) |> vmType ])
     |> List.reduce (fun t1 t2 -> 
@@ -21,9 +21,9 @@ let private interpretType l : DocumentSegmentViewModel list =
 
 
 let rec private interpretSingleType 
-    (dict: Dictionary<string, FsDocumentSegmentListViewModel>) 
+    (dict: Dictionary<string, FsDocumentSection>) 
     (type': DTsType) 
-        : Choice<DocumentSegmentViewModel list, FsDocumentSegmentListViewModel> =
+        : Choice<CodeItemViewModel list, FsDocumentSection> =
 
     match type' with
     | DTsType.Plain p -> 
@@ -45,9 +45,9 @@ let rec private interpretSingleType
 
 
 let private interpretTypeDefinition 
-    (dict: Dictionary<string, FsDocumentSegmentListViewModel>) 
+    (dict: Dictionary<string, FsDocumentSection>) 
     (tdef: TypeDefinition) 
-        : Choice<DocumentSegmentViewModel list, FsDocumentSegmentListViewModel> =
+        : Choice<CodeItemViewModel list, FsDocumentSection> =
     match tdef with
     | TypeDefinition.Single tn -> 
         interpretSingleType dict tn
@@ -61,7 +61,7 @@ let private interpretTypeDefinition
 
 
 
-let private interpretFnParameters (dict: Dictionary<string, FsDocumentSegmentListViewModel>) (fields: FieldList) : DocumentSegmentViewModel list =
+let private interpretFnParameters (dict: Dictionary<string, FsDocumentSection>) (fields: FieldList) : CodeItemViewModel list =
     let rec interpret (fields: FieldList) result =
         match fields with
         | head :: tail ->
@@ -89,7 +89,7 @@ let private interpretFnParameters (dict: Dictionary<string, FsDocumentSegmentLis
     | _ -> interpret fields []
 
 
-let private interpretFnParameterTypes (dict: Dictionary<string, FsDocumentSegmentListViewModel>) (fields: FieldList) : DocumentSegmentViewModel list =
+let private interpretFnParameterTypes (dict: Dictionary<string, FsDocumentSection>) (fields: FieldList) : CodeItemViewModel list =
     let rec interpret (fields: FieldList) result =
         match fields with
         | head :: [] ->
@@ -129,7 +129,7 @@ let private interpretFnParameterTypes (dict: Dictionary<string, FsDocumentSegmen
     | _ -> interpret fields []
 
 
-let private interpretField (dict: Dictionary<string, FsDocumentSegmentListViewModel>) (field: Field * TypeDefinition) : DocumentSegmentViewModel list =
+let private interpretField (dict: Dictionary<string, FsDocumentSection>) (field: Field * TypeDefinition) : CodeItemViewModel list =
     match field with
     | ((Field.Required (Identifier name)), td) -> 
         [
@@ -171,7 +171,7 @@ let import name source =
     ]
 
 
-let private interpretFn (dict: Dictionary<string, FsDocumentSegmentListViewModel>) keyword name parameters returnType =
+let private interpretFn (dict: Dictionary<string, FsDocumentSection>) keyword name parameters returnType =
     [
         yield vmKeywordS keyword
         yield vmTextS name
@@ -189,7 +189,7 @@ let private interpretFn (dict: Dictionary<string, FsDocumentSegmentListViewModel
     ]
 
 
-let private interpretFnType (dict: Dictionary<string, FsDocumentSegmentListViewModel>) parameters returnType =
+let private interpretFnType (dict: Dictionary<string, FsDocumentSection>) parameters returnType =
     [
         match parameters with
         | [] -> 
@@ -204,7 +204,7 @@ let private interpretFnType (dict: Dictionary<string, FsDocumentSegmentListViewM
     ]
 
 
-let private interpretStructure tabLevel fileName (dict: Dictionary<string, FsDocumentSegmentListViewModel>) (structure: StructureStatement) : FsDocumentSegmentListViewModel =
+let private interpretStructure tabLevel fileName (dict: Dictionary<string, FsDocumentSection>) (structure: StructureStatement) : FsDocumentSection =
 
     let import name =
         [
@@ -250,54 +250,56 @@ let private interpretStructure tabLevel fileName (dict: Dictionary<string, FsDoc
 
     | ConstDefinition (DeclareConst ((Identifier name), tdef)) ->
         match interpretTypeDefinition dict tdef with
-        | Choice1Of2 l -> FsDocumentSegmentListViewModel.Named (name, l)
-        | Choice2Of2 vm -> FsDocumentSegmentListViewModel.Link (name, vm)
+        | Choice1Of2 l -> FsDocumentSection.Named (name, l)
+        | Choice2Of2 vm -> FsDocumentSection.Link (name, vm)
 
     | _ -> failwith "Not implemented"
 
 
 
-let toDocumentSegmentViewModelList (fsList: FsDocumentSegmentListViewModel list) : DocumentSegmentViewModel list =
+let toDocumentSegmentViewModelList (fsList: FsDocumentSection list) : CodeItemViewModel list =
     fsList
     |> List.map segments
     |> List.concat
 
 
-let toDocumentSegmentVmList ns fileName (dict: Dictionary<string, Dictionary<string, FsDocumentSegmentListViewModel>>) statements =
+let toDocumentSegmentVmList ns fileName (dict: Dictionary<string, Dictionary<string, FsDocumentSection>>) statements =
 
     let jsModuleName = String( fileName |> Seq.takeWhile ((=) '.' >> not) |> Seq.toArray )
 
-    let rec interpret tabLevel statements (result: FsDocumentSegmentListViewModel list) : FsDocumentSegmentListViewModel list =
+    let rec interpret tabLevel statements (result: FsStatementViewModel list) : FsStatementViewModel list =
 
         /// append generated view models to the result and invokes interpret
-        let continueInterpret tail xvm =
-            interpret tabLevel tail (List.append result xvm)
+        let continueInterpret tail vm =
+            interpret tabLevel tail (vm :: result)
 
         match statements with
-        | head :: tail ->
-            match head with
+        | statement :: tail ->
+
+            let createVm = createFsVm (statement |> Some) FsCodeStyle.Fable
+
+            match statement with
             | Statement.Export (ExportStatement.Structure structure) ->
                 let vm = 
                     interpretStructure tabLevel jsModuleName (dict[fileName]) structure
-                    |> insertAtEnd (vmEndStatement (ref head))
+                    
 
                 dict[fileName][vm |> name] <- vm
-                continueInterpret tail [vm]
+                continueInterpret tail (vm |> createVm)
 
             | Statement.Structure structure ->
                 let vm = 
                     interpretStructure tabLevel jsModuleName (dict[fileName]) structure
-                    |> insertAtEnd (vmEndStatement (ref head))
 
                 dict[fileName][vm |> name] <- vm
-                continueInterpret tail []
+                interpret tabLevel tail result
 
             | Statement.Export (ExportStatement.OutDefault (Identifier name)) ->
-                continueInterpret tail ([dict[fileName][name]])
+                continueInterpret tail (dict[fileName][name] |> createVm)
 
-            | _ -> continueInterpret tail []
+            | _ -> interpret tabLevel tail result
 
-        | [] -> result
+        | [] -> result |> List.rev
 
 
     let fsModuleName =
@@ -320,7 +322,7 @@ let toDocumentSegmentVmList ns fileName (dict: Dictionary<string, Dictionary<str
             vmEndLine null
         ] 
         |> Nameless
+        |> createFsVm None FsCodeStyle.Universal
         |> List.singleton
 
-
-    ((interpret 0 statements initialResult  |> toDocumentSegmentViewModelList)  @ [ vmEndDocument ]).ToList()
+    (interpret 0 statements initialResult)

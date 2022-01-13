@@ -96,7 +96,7 @@ let rec private buildImportExportEntities builder l res =
     | _ -> []
                 
 
-let private constructType l : DocumentSegmentViewModel list =
+let private constructType l : CodeItemViewModel list =
     l
     |> List.map (fun t -> [vmType (Identifier.Value(t))])
     |> List.reduce (fun t1 t2 -> 
@@ -275,7 +275,7 @@ let constructTypeParams typeParams =
     |> List.concat
 
 
-let rec private interpretStructure structure : DocumentSegmentViewModel list =
+let rec private interpretStructure structure : CodeItemViewModel list =
     match structure with
     | TypeAlias (TypeAlias.Plain (Identifier identifier, combination)) ->
         [
@@ -422,14 +422,17 @@ let rec private interpretStructure structure : DocumentSegmentViewModel list =
 
 let toDocumentSegmentVmList statements =
 
-    let rec interpret statements endTag result lastTag : DocumentSegmentViewModel list =
+    let rec interpret statements result lastTag : DtsStatementViewModel list =
 
         /// append generated view models to the result and invokes interpret
         let continueInterpret tail xvm =
-            interpret tail endTag (List.append result xvm)
+            interpret tail (xvm :: result)
 
         match statements with
         | statement :: tail ->
+
+            let createVm = createDtsVm statement
+
             match statement with
             | Statement.Import (entities, ``module``) ->
                 let s =
@@ -441,16 +444,17 @@ let toDocumentSegmentVmList statements =
                     else
                         [ vmKeyword "import " ]
 
-                continueInterpret tail
+                let vm =
                     [
                         yield! s
                         yield! (buildImportExportEntities (importEntity " ") entities [])
                         yield vmKeyword "from "
                         yield ``module`` |> modulePath
                         yield vmEndLine ";"
-                        yield vmEndStatement (ref statement)
                     ]
-                    "import"
+                    |> createVm
+
+                continueInterpret tail vm "import"
 
             | Statement.Export (Transit (entities, ``module``)) ->
                 let s =
@@ -462,16 +466,17 @@ let toDocumentSegmentVmList statements =
                     else
                         [ vmModifier "export " ]
 
-                continueInterpret tail
+                let vm =
                     [
                         yield! s
                         yield! (buildImportExportEntities (exportEntity " ") entities [])
                         yield vmKeyword "from "
                         yield ``module`` |> modulePath
                         yield vmEndLine ";"
-                        yield vmEndStatement (ref statement)
                     ]
-                    "export"
+                    |> createVm
+
+                continueInterpret tail vm "export"
 
 
             | Statement.Export (OutList entities) ->
@@ -484,14 +489,15 @@ let toDocumentSegmentVmList statements =
                     else
                         [ vmModifier "export " ]
 
-                continueInterpret tail
+                let vm =
                     [
                         yield! s
                         yield! (buildImportExportEntities (exportEntity "") (entities |> List.map (Named)) [])
                         yield vmEndLine ";"
-                        yield vmEndStatement (ref statement)
                     ]
-                    "export"
+                    |> createVm
+
+                continueInterpret tail vm "export"
 
 
             | Statement.Export (OutDefault (Identifier i)) ->
@@ -504,15 +510,16 @@ let toDocumentSegmentVmList statements =
                     else
                         [ vmModifier "export " ]
 
-                continueInterpret tail
+                let vm =
                     [
                         yield! s
                         yield vmModifier "default "
                         yield vmText i
                         yield vmEndLine ";"
-                        yield vmEndStatement (ref statement)
                     ]
-                    "export"
+                    |> createVm
+
+                continueInterpret tail vm "export"
 
 
             | Statement.Export (OutAssignment (Identifier identifier)) ->
@@ -527,15 +534,16 @@ let toDocumentSegmentVmList statements =
                             vmModifier "export"
                         ]
 
-                continueInterpret tail
+                let vm =
                     [
                         yield! s
                         yield vmText " = "
                         yield vmType identifier
                         yield vmEndLine ";"
-                        yield vmEndStatement (ref statement)
                     ]
-                    "export"
+                    |> createVm
+
+                continueInterpret tail vm "export"
 
 
             | Statement.Export (ExportStatement.Structure structure) ->
@@ -546,8 +554,7 @@ let toDocumentSegmentVmList statements =
                     | _ -> (true, "")
 
                 let xvm = interpretStructure structure
-
-                continueInterpret tail
+                let vm =
                     [
                         // each time insert break line
                         if breakeLine then
@@ -556,9 +563,10 @@ let toDocumentSegmentVmList statements =
                         yield vmModifier "export "
                             
                         yield! xvm
-                        yield vmEndStatement (ref statement)
                     ]
-                    lastTag'
+                    |> createVm
+
+                continueInterpret tail vm lastTag'
 
             | Statement.Export (ExportStatement.StructureDefault structure) ->
                 
@@ -568,8 +576,7 @@ let toDocumentSegmentVmList statements =
                         | _ -> (true, "")
                 
                     let xvm = interpretStructure structure
-                
-                    continueInterpret tail
+                    let vm =
                         [
                             // each time insert break line
                             if breakeLine then
@@ -579,12 +586,13 @@ let toDocumentSegmentVmList statements =
                             yield vmKeyword "default "
                                             
                             yield! xvm
-                            yield vmEndStatement (ref statement)
                         ]
-                        lastTag'
+                        |> createVm
+
+                    continueInterpret tail vm lastTag'
 
             | Statement.Export (ExportStatement.Namespace ((Identifier i), statements')) ->
-                continueInterpret tail
+                let vm =
                     [
                         yield vmEndLineNull
                         yield vmModifier "export "
@@ -592,23 +600,26 @@ let toDocumentSegmentVmList statements =
                         yield vmType i
                         yield vmPrn " {"
                         yield vmEndLineNull
-                        yield! interpret statements' (Tag.EndOfLine) [] ""
+                        yield! (interpret statements' [] "" |> List.map (fun vm -> vm.DtsDocumentSection) |> List.concat)
+                        yield vmEndLineNull
                         yield vmPrn "}"
                         yield vmEndLineNull
-                        yield vmEndStatement (ref statement)
                     ]
-                    ""
+                    |> createVm
+
+                continueInterpret tail vm ""
 
 
             | Statement.Structure structure ->
                 let xvm = interpretStructure structure
-                continueInterpret tail
+                let vm =
                     [
                         yield vmEndLineNull
                         yield! xvm
-                        yield vmEndStatement (ref statement)
                     ]
-                    ""
+                    |> createVm
+
+                continueInterpret tail vm ""
 
             | Statement.Comment comment ->
                 let s =
@@ -617,33 +628,36 @@ let toDocumentSegmentVmList statements =
                             yield vmEndLineNull
                             yield vmComment comment
                             yield vmEndLineNull
-                            yield vmEndStatement (ref statement)
                         ]
                     else
                         [
                             yield vmComment comment
                             yield vmEndLineNull
-                            yield vmEndStatement (ref statement)
                         ]
 
-                continueInterpret tail s "comment"
+                continueInterpret tail (createVm s) "comment"
 
             | Statement.NamespaceDeclaration ((Identifier i), statements') ->
-                continueInterpret tail
+                let vm =
                     [
                         yield vmEndLineNull
                         yield vmKeyword "declare namespace "
                         yield vmType i
                         yield vmPrn " {"
                         yield vmEndLineNull
-                        yield! interpret statements' (Tag.EndOfLine) [] ""
+                        yield! (interpret statements' [] "" |> List.map (fun vm -> vm.DtsDocumentSection) |> List.concat)
+                        yield vmEndLineNull
                         yield vmPrn "}"
                         yield vmEndLineNull
-                        yield vmEndStatement (ref statement)
                     ]
-                    ""
+                    |> createVm
 
-            | _ -> interpret tail endTag result ""
-        | [] -> result @ [{ Tag = endTag; Content = Content.No }]
-                    
-    (interpret statements (Tag.EndOfDocument) [] "").ToList()
+                continueInterpret tail vm ""
+
+            | _ -> interpret tail result ""
+
+        | [] -> 
+            result 
+            |> List.rev
+
+    (interpret statements [] "")

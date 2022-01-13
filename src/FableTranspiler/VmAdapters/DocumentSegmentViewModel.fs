@@ -2,17 +2,14 @@
 
 
 [<ReferenceEqualityAttribute>]
-type DocumentSegmentViewModel =
+type CodeItemViewModel =
     {
         Tag: Tag
-        Content: Content
+        Content: string
     }
     with
         member this.GetContent() =
-            match this.Content with
-            | No -> null
-            | Text t -> t
-            | Statement s -> null
+            this.Content
 and
     Tag =
         | NoContent = 0
@@ -23,21 +20,39 @@ and
         | Modifier = 5
         | Parentheses = 6
         | EndOfLine = 7
-        | EndOfStatement = 8
-        | EndOfDocument = 9
+
+
+
+type FsDocumentSection =
+    | Nameless of CodeItemViewModel list
+    | Named of Name: string * CodeItemViewModel list
+    | Link of Name: string * FsDocumentSection
+    | Let of Name: string * CodeItemViewModel list * TypeConstructor: (unit -> CodeItemViewModel list)
+    | Typed of Name: string * CodeItemViewModel list * TypeConstructor: CodeItemViewModel list
+
+
+[<ReferenceEquality>]
+type DtsStatementViewModel =
+    {
+        DtsStatement: FableTranspiler.Parsers.Types.Statement
+        DtsDocumentSection: CodeItemViewModel list
+    }
+
+
+
+[<ReferenceEquality>]
+type FsStatementViewModel =
+    {
+        DtsStatement: FableTranspiler.Parsers.Types.Statement option
+        FsDocumentSection: FsDocumentSection
+        FsCodeStyle: FsCodeStyle
+    }
 and
-    Content =
-        | No
-        | Text of string
-        | Statement of ref<FableTranspiler.Parsers.Types.Statement>
+    FsCodeStyle =
+        | Universal
+        | Feliz
+        | Fable
 
-
-type FsDocumentSegmentListViewModel =
-    | Nameless of DocumentSegmentViewModel list
-    | Named of Name: string * DocumentSegmentViewModel list
-    | Link of Name: string * FsDocumentSegmentListViewModel
-    | Let of Name: string * DocumentSegmentViewModel list * TypeConstructor: (unit -> DocumentSegmentViewModel list)
-    | Typed of Name: string * DocumentSegmentViewModel list * TypeConstructor: DocumentSegmentViewModel list
 
 
 
@@ -74,56 +89,61 @@ module internal FsDocumentSegmentListViewModel =
 
 module internal DocumentSegmentViewModel =
     
+    let createDtsVm dtsStatement dtsDocumentSection =
+        {
+            DtsStatement = dtsStatement
+            DtsDocumentSection = dtsDocumentSection
+        }
 
+    let createFsVm dtsStatement codeStyle fsDocumentSection =
+        {
+            DtsStatement = dtsStatement
+            FsDocumentSection = fsDocumentSection
+            FsCodeStyle = codeStyle
+        }
 
 
     let vm tag content =
-        { Tag = tag; Content = content |> Content.Text }
+        { Tag = tag; Content = content }
 
     let vmKeyword content =
-        { Tag = Tag.Keyword; Content = content |> Content.Text }
+        { Tag = Tag.Keyword; Content = content }
 
     let vmModifier content =
-        { Tag = Tag.Modifier; Content = content |> Content.Text }
+        { Tag = Tag.Modifier; Content = content }
 
     let vmComment content =
-        { Tag = Tag.Comment; Content = content |> Content.Text }
+        { Tag = Tag.Comment; Content = content }
 
     let vmType content =
-        { Tag = Tag.Type; Content = content |> Content.Text }
+        { Tag = Tag.Type; Content = content }
 
     let vmTypeS content =
-        { Tag = Tag.Type; Content = $"{content} " |> Content.Text }
+        { Tag = Tag.Type; Content = $"{content} " }
 
     /// adds space to the end
     let vmKeywordS content =
-        { Tag = Tag.Keyword; Content = $"{content} " |> Content.Text }
+        { Tag = Tag.Keyword; Content = $"{content} " }
 
     let vmText content =
-        { Tag = Tag.Text; Content = content |> Content.Text }
+        { Tag = Tag.Text; Content = content }
 
     /// adds space to the end
     let vmTextS content =
-        { Tag = Tag.Text; Content = $"{content} " |> Content.Text }
+        { Tag = Tag.Text; Content = $"{content} " }
 
     let vmEndLine content =
-        { Tag = Tag.EndOfLine; Content = content |> Content.Text }
+        { Tag = Tag.EndOfLine; Content = content }
 
     let vmEndLineNull =
-        { Tag = Tag.EndOfLine; Content = Content.No }
-
-    let vmEndDocument =
-        { Tag = Tag.EndOfDocument; Content = Content.No }
-
-    let vmEndStatement s =
-        { Tag = Tag.EndOfStatement; Content = s |> Content.Statement }
+        { Tag = Tag.EndOfLine; Content = null }
 
     /// Tag.Parentheses
     let vmPrn content =
-        { Tag = Tag.Parentheses; Content = content  |> Content.Text}
+        { Tag = Tag.Parentheses; Content = content }
 
     let tab level =
-        { Tag = Tag.Text; Content = String.replicate (4 * level) " " |> Content.Text }
+        { Tag = Tag.Text; Content = String.replicate (4 * level) " " }
 
     let vmNo =
-        { Tag = Tag.NoContent; Content = Content.No }
+        { Tag = Tag.NoContent; Content = null }

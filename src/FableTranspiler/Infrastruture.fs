@@ -7,15 +7,15 @@ open FableTranspiler.Parsers.Types
 open System.Threading.Tasks
 
 
-type StatementsResult =
+type ParsingResult =
     {
         Path: string
         Statements: Result<StatementList, string>
     }
 
 type ModuleTree =
-    | Leaf of StatementsResult
-    | Branch of StatementsResult * ModuleTree list
+    | Leaf of ParsingResult
+    | Branch of ParsingResult * ModuleTree list
 
 
 let readFile file =

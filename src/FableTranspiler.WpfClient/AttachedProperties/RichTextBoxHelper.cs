@@ -9,20 +9,16 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Documents;
+using Microsoft.FSharp.Collections;
 
 namespace FableTranspiler.WpfClient.AttachedProperties
 {
     public class RichTextBoxHelper
     {
-        public static List<DocumentSegmentViewModel> GetDtsDocument(DependencyObject obj)
-        {
-            return (List<DocumentSegmentViewModel>)obj.GetValue(DtsDocumentProperty);
-        }
+        private static FlowDocument EmptyDocument = new FlowDocument();
 
-        public static void SetDtsDocument(DependencyObject obj, List<DocumentSegmentViewModel> value)
-        {
-            obj.SetValue(DtsDocumentProperty, value);
-        }
+
+        #region DtsDocumentProperty
 
         /// <summary>
         /// See <see href="https://stackoverflow.com/questions/343468/richtextbox-wpf-binding"/>
@@ -30,31 +26,58 @@ namespace FableTranspiler.WpfClient.AttachedProperties
         public static readonly DependencyProperty DtsDocumentProperty =
             DependencyProperty.RegisterAttached(
                 "DtsDocument",
-                typeof(List<DocumentSegmentViewModel>),
+                typeof(FSharpList<DtsStatementViewModel>),
                 typeof(RichTextBoxHelper),
                 new FrameworkPropertyMetadata {
                     BindsTwoWayByDefault = false,
                     PropertyChangedCallback = DtsDocumentChangedCallback
                 });
 
-        private static FlowDocument EmptyDocument = new FlowDocument();
 
         private static void DtsDocumentChangedCallback(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
             var richTextBox = (RichTextBox)d;
 
-            var statements = GetDtsDocument(richTextBox);
+            FSharpList<DtsStatementViewModel>? statements = GetDtsDocument(richTextBox);
 
             if (statements is null) {
                 // TODO: set error to Document
                 return;
             }
 
-            var conv = new StatementListToFlowDocumentConverter();
+            var conv = new DtsStatementListToFlowDocumentConverter();
             
             richTextBox.Document =
                 conv.Convert(statements, typeof(FlowDocument), null!, CultureInfo.CurrentUICulture) as FlowDocument;
         }
+
+
+        public static FSharpList<DtsStatementViewModel> GetDtsDocument(DependencyObject obj)
+        {
+            return (FSharpList<DtsStatementViewModel>)obj.GetValue(DtsDocumentProperty);
+        }
+
+        public static void SetDtsDocument(DependencyObject obj, FSharpList<DtsStatementViewModel> value)
+        {
+            obj.SetValue(DtsDocumentProperty, value);
+        }
+
+        #endregion ───────────────────────────────────────────────────── DtsDocumentProperty ─┘
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

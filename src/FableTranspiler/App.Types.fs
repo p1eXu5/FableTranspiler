@@ -11,6 +11,7 @@ type Model =
         SelectedDocument: FileTreeViewModel option
         IsBusy: bool
         LastError: string option
+        SelectedModuleKey: string list option
     }
     with 
         static member Init () =
@@ -20,8 +21,13 @@ type Model =
                 File = null
                 IsBusy = false
                 LastError = None
+                SelectedModuleKey = None
             },
             Cmd.none
+
+
+//type ModuleMsg =
+//    | ToggleModuleSelection of bool
 
 
 type Msg =
@@ -31,4 +37,7 @@ type Msg =
     | SelectFile of obj
     | SetShowDtsDocument
     | SetShowFsDocument
+    | ToggleModuleSelection of bool
+    | ChildMsg of string list * Msg
+    | SetSelectedModule of string list option
     
