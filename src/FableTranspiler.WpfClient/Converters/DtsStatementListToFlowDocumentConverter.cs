@@ -57,10 +57,15 @@ namespace FableTranspiler.WpfClient.Converters
         {
             var fd = new FlowDocument();
 
-            foreach (var vm in vmList) {
+            foreach (FsStatementViewModel vm in vmList) {
                 Section section = BuildSection(vm.FsDocumentSection.Content());
-                section.MouseEnter += Section_MouseEnter;
-                section.MouseLeave += Section_MouseLeave;
+                if (vm.FsCodeStyle != FsCodeStyle.Universal) {
+                    section.MouseEnter += SectionEnter;
+                }
+                else {
+                    section.MouseEnter += SectionLeave;
+                }
+
                 fd.Blocks.Add(section);
             }
 
@@ -115,7 +120,7 @@ namespace FableTranspiler.WpfClient.Converters
         }
 
 
-        private void Section_MouseEnter(object sender, System.Windows.Input.MouseEventArgs e)
+        private void SectionEnter(object sender, System.Windows.Input.MouseEventArgs e)
         {
             var section = sender as Section;
             if (section != null) {
@@ -124,7 +129,7 @@ namespace FableTranspiler.WpfClient.Converters
             }
         }
 
-        private void Section_MouseLeave(object sender, System.Windows.Input.MouseEventArgs e)
+        private void SectionLeave(object sender, System.Windows.Input.MouseEventArgs e)
         {
             var section = sender as Section;
             if (section != null) {

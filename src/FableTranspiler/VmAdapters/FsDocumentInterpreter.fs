@@ -276,7 +276,12 @@ let toDocumentSegmentVmList ns fileName (dict: Dictionary<string, Dictionary<str
         match statements with
         | statement :: tail ->
 
-            let createVm = createFsVm (statement |> Some) FsCodeStyle.Fable
+            let createVm vm = 
+                let fsCodeStyle =
+                    match vm with
+                    | Typed _ -> FsCodeStyle.Fable
+                    | _ -> FsCodeStyle.Universal
+                createFsVm (statement |> Some) fsCodeStyle vm
 
             match statement with
             | Statement.Export (ExportStatement.Structure structure) ->

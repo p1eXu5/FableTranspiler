@@ -61,6 +61,7 @@
                              prop:FsFlowDocument.FsDocumentError="{Binding SelectedFsStatementsError, Mode=OneWay}"
                              materialDesign:HintAssist.Hint="Feliz Content"
                              prop:FsFlowDocument.SectionMouseEnter="RichTextBox_MouseEnter"
+                             prop:FsFlowDocument.SectionMouseLeave="RichTextBox_MouseLeave"
                              d:Visibility="Visible"
                              d:Width="500"
                              >

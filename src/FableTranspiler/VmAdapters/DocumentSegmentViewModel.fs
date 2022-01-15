@@ -1,5 +1,7 @@
 ﻿namespace FableTranspiler.VmAdapters
 
+open FableTranspiler.Parsers.Types
+
 
 [<ReferenceEqualityAttribute>]
 type CodeItemViewModel =
@@ -89,7 +91,6 @@ module internal FsDocumentSegmentListViewModel =
 
 type FsDocumentSection with
     member this.Content() = FsDocumentSegmentListViewModel.segments this
-
 
 module internal DocumentSegmentViewModel =
     
