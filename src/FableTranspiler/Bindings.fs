@@ -88,16 +88,18 @@ let bindings () =
             | _ -> None
         )
 
-        "SelectedFsStatements" |> Binding.oneWayOpt (fun m -> 
-            match m.FileTree, m.SelectedModuleKey with
-            | Some fileTree, Some key ->
-                Program.tryFindModule2 key fileTree
-                |> Option.bind (fun d ->
-                    match d.FsDocumentVm.Force() with
-                    | Choice1Of2 xvm -> xvm |> Some
-                    | Choice2Of2 _ -> None
-                )
-            | _ -> None            
+        "SelectedFsStatements" |> Binding.oneWayOpt (fun (m: Model) ->
+            let res = 
+                match m.FileTree, m.SelectedModuleKey with
+                | Some fileTree, Some key ->
+                    Program.tryFindModule2 key fileTree
+                    |> Option.bind (fun d ->
+                        match d.FsDocumentVm.Force() with
+                        | Choice1Of2 xvm -> xvm |> Some
+                        | Choice2Of2 _ -> None
+                    )
+                | _ -> None
+            res
         )
 
         "SelectedFsStatementsError" |> Binding.oneWayOpt(fun m -> 

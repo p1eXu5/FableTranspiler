@@ -23,7 +23,9 @@ type FileTreeViewModel =
 
 module internal FileTree =
 
-    let dict = Dictionary<string, Dictionary<string, FsDocumentSection>>()
+    open FableTranspiler.VmAdapters.FsInterpreter
+
+    let store = FsStatementInMemoryStore.store
 
 
     let interpretError (err: string) =
@@ -39,9 +41,6 @@ module internal FileTree =
 
 
     let create(key, fileName, isSelected, parsingResult, subModules) =
-        if dict.ContainsKey(fileName) = false then
-            dict[fileName] <- Dictionary<string, FsDocumentSection>()
-
         {
             Key = key
             IsSelected = isSelected
@@ -56,7 +55,7 @@ module internal FileTree =
             FsDocumentVm =
                 lazy (
                     match parsingResult.Statements with
-                    | Ok l -> FsDocumentInterpreter.toDocumentSegmentVmList None fileName dict l |> Choice1Of2
+                    | Ok l -> FsInterpreter.interpret None fileName store l |> Choice1Of2
                     | Error err -> interpretError err |> Choice2Of2
                 )
         }

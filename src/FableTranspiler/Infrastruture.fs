@@ -2,7 +2,7 @@
 
 open System.IO
 open Microsoft.Win32
-open Parsers.Identifier
+open FableTranspiler.Parsers
 open FableTranspiler.Parsers.Types
 open System.Threading.Tasks
 
@@ -36,7 +36,7 @@ let rec parseFile fileName (accum: Map<string, ModuleTree>) : Task<(ModuleTree *
         | false, _ ->
             let! content = readFile fileName
 
-            match document content with
+            match Parser.document content with
             | Ok statements ->
 
                 let! results =

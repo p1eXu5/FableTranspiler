@@ -19,7 +19,7 @@ module MiscTests =
         let typeDef = Dsl.DTsTypes.plainType ["ScrollSpy"] |> TypeDefinition.Single
         let expected = ConstDefinition.DeclareConst (i, typeDef) |> StructureStatement.ConstDefinition |> Statement.Structure
 
-        let result = run Identifier.statement input
+        let result = run Parser.statement input
         result |> shouldSuccess expected
 
 
@@ -40,6 +40,6 @@ module MiscTests =
 
         let expected = [declareConst; export]
 
-        let result = Identifier.document input
+        let result = Parser.document input
         result  |> beOk expected
 

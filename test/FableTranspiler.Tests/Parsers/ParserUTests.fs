@@ -12,7 +12,6 @@ module Statements =
 
     open FableTranspiler.Parsers
     open FableTranspiler.Parsers.Types
-    open FableTranspiler.Parsers.Identifier
     open FParsec
     open System
     open FableTranspiler
@@ -70,7 +69,7 @@ module Statements =
     let ``test react-scroll index_d_ts parsing`` () : Task =
         task {
             let! input = readFile ``types/reac-scroll/index.d.ts``
-            let doc = document input
+            let doc = Parser.document input
             let expected : StatementList =
                 [
                     Dsl.Comment.create "// Type definitions for react-scroll 1.8"
@@ -91,7 +90,7 @@ module Statements =
     let ``test react-scroll modules index_d_ts parsing`` () : Task =
         task {
             let! input = readFile ``types/reac-scroll/modules/index.d.ts``
-            let doc = document input
+            let doc = Parser.document input
             let expeced : StatementList =
                 [
                     Dsl.Export.defaultAliasedS "Button" "./components/Button"
@@ -114,7 +113,7 @@ module Statements =
 
     [<Property>]
     let ``identifier tests`` (IdentifierInput i) =
-        let d = run Identifier.identifier i
+        let d = run Parser.identifier i
         d
         |> function
             | ParserResult.Success (_,_,_) -> true
@@ -162,7 +161,7 @@ module Statements =
         let a = StringLiteral "sdf"
         let b = StringLiteral "sdf"
 
-        document input |> shouldL equal (Result<StatementList, string>.Ok output)
+        Parser.document input |> shouldL equal (Result<StatementList, string>.Ok output)
 
 
     [<Test>]
@@ -189,7 +188,7 @@ module Statements =
 
 
         let actual = 
-            document input
+            Parser.document input
 
         Assert.That( actual, Is.EqualTo(expected), $"Actual: %A{actual}")
 
@@ -218,7 +217,7 @@ module Statements =
 
 
         let actual = 
-            document input
+            Parser.document input
 
         Assert.That( actual, Is.EqualTo(expected), $"Actual: %A{actual}")
 

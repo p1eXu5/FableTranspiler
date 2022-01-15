@@ -187,7 +187,7 @@ let ``identifier or method test`` () =
     
 
     let p1 = 
-        FableTranspiler.Parsers.Identifier.preIdentifier
+        FableTranspiler.Parsers.Parser.preIdentifier
         .>> ws1
         .>> notFollowedBy (str "(")
         |>> Identifier
@@ -200,12 +200,12 @@ let ``identifier or method test`` () =
 
 
     let p2 = 
-        FableTranspiler.Parsers.Identifier.preIdentifier
+        FableTranspiler.Parsers.Parser.preIdentifier
         .>> str "()"
         |>> (fun (i) -> Foo.Function (i, Foo.Empty))
 
     let p3 = 
-        FableTranspiler.Parsers.Identifier.preIdentifier 
+        FableTranspiler.Parsers.Parser.preIdentifier 
         .>> str "(" 
         .>> ws 
         .>>. elements 

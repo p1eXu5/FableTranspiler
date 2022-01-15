@@ -58,7 +58,7 @@ namespace FableTranspiler.WpfClient.Converters
             var fd = new FlowDocument();
 
             foreach (FsStatementViewModel vm in vmList) {
-                Section section = BuildSection(vm.FsDocumentSection.Content());
+                Section section = BuildSection(vm.FsStatement.Content());
                 if (vm.FsCodeStyle != FsCodeStyle.Universal) {
                     section.MouseEnter += SectionEnter;
                 }

@@ -1,4 +1,4 @@
-﻿module FableTranspiler.Parsers.Identifier
+﻿module FableTranspiler.Parsers.Parser
 
 open FParsec
 open Types

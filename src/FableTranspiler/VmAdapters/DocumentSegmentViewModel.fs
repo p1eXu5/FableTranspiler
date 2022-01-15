@@ -2,8 +2,7 @@
 
 open FableTranspiler.Parsers.Types
 
-
-[<ReferenceEqualityAttribute>]
+[<StructuralEquality; StructuralComparison>]
 type CodeItemViewModel =
     {
         Tag: Tag
@@ -24,11 +23,10 @@ and
         | EndOfLine = 7
 
 
-
-type FsDocumentSection =
+type FsStatement =
     | Nameless of CodeItemViewModel list
     | Named of Name: string * CodeItemViewModel list
-    | Link of Name: string * FsDocumentSection
+    | Link of Name: string * FsStatement
     | Let of Name: string * CodeItemViewModel list * TypeConstructor: (unit -> CodeItemViewModel list)
     | Typed of Name: string * CodeItemViewModel list * TypeConstructor: CodeItemViewModel list
 
@@ -41,19 +39,19 @@ type DtsStatementViewModel =
     }
 
 
-
 [<ReferenceEquality>]
 type FsStatementViewModel =
     {
         DtsStatement: FableTranspiler.Parsers.Types.Statement option
-        FsDocumentSection: FsDocumentSection
+        FsStatement: FsStatement
         FsCodeStyle: FsCodeStyle
     }
 and
     FsCodeStyle =
         | Universal
-        | Feliz
         | Fable
+        | React
+        | Feliz
 
 
 
@@ -89,7 +87,7 @@ module internal FsDocumentSegmentListViewModel =
         | Typed (name, l, constructor) -> (name, l @ [segment], constructor) |> Typed
 
 
-type FsDocumentSection with
+type FsStatement with
     member this.Content() = FsDocumentSegmentListViewModel.segments this
 
 module internal DocumentSegmentViewModel =
@@ -103,7 +101,7 @@ module internal DocumentSegmentViewModel =
     let createFsVm dtsStatement codeStyle fsDocumentSection =
         {
             DtsStatement = dtsStatement
-            FsDocumentSection = fsDocumentSection
+            FsStatement = fsDocumentSection
             FsCodeStyle = codeStyle
         }
 

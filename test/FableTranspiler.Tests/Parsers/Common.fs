@@ -8,7 +8,6 @@ open FsCheck.NUnit
 
 open FableTranspiler.Parsers
 open FableTranspiler.Parsers.Types
-open FableTranspiler.Parsers.Identifier
 open FParsec
 open System
 open FableTranspiler

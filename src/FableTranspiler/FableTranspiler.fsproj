@@ -17,11 +17,12 @@
     <Compile Include="Parsers\Module.fs" />
     <Compile Include="Parsers\Import.fs" />
     <Compile Include="Parsers\Export.fs" />
-    <Compile Include="Parsers\Parsers.fs" />
+    <Compile Include="Parsers\Parser.fs" />
     <Compile Include="Infrastruture.fs" />
     <Compile Include="VmAdapters\DocumentSegmentViewModel.fs" />
     <Compile Include="VmAdapters\DtsDocumentInterpreter.fs" />
-    <Compile Include="VmAdapters\FsDocumentInterpreter.fs" />
+    <Compile Include="VmAdapters\FsFableInterpreter.fs" />
+    <Compile Include="VmAdapters\FsInterpreter.fs" />
     <Compile Include="VmAdapters\FileTreeViewModel.fs" />
     <Compile Include="App.Types.fs" />
     <Compile Include="Program.fs" />
@@ -40,4 +41,10 @@
     <PackageReference Update="FSharp.Core" Version="6.0.1" />
   </ItemGroup>
 
+	<ItemGroup>
+		<AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
+			<_Parameter1>FableTranspiler.Tests</_Parameter1>
+		</AssemblyAttribute>
+	</ItemGroup>
+	
 </Project>

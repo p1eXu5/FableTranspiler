@@ -1,4 +1,4 @@
-﻿module internal rec FableTranspiler.VmAdapters.FsDocumentInterpreter
+﻿module rec FableTranspiler.VmAdapters.FsInterpreter
 
 open FableTranspiler.VmAdapters.DocumentSegmentViewModel
 open FableTranspiler.VmAdapters.FsDocumentSegmentListViewModel
@@ -6,6 +6,36 @@ open FableTranspiler.Parsers.Types
 open System.Linq
 open System.Collections.Generic
 open System
+
+type FsStatementStore =
+    {
+        Get: string -> string -> FsStatement option
+        Add: string -> string -> FsStatement -> unit
+    }
+
+
+module FsStatementInMemoryStore =
+
+    let private dict = Dictionary<string, Dictionary<string, FsStatement>>()
+
+    let store =
+        {
+            Get =
+                fun fileName typeName ->
+                    match dict.TryGetValue(fileName) with
+                    | true, v ->
+                        match v.TryGetValue(typeName) with
+                        | true, s -> s |> Some
+                        | false, _ -> None
+                    | false, _ -> None
+
+            Add =
+                fun fileName typeName statement ->
+                    if not (dict.ContainsKey(fileName)) then
+                        dict[fileName] <- Dictionary<string, FsStatement>()
+
+                    dict[fileName][typeName] <- statement
+        }
 
 
 let private interpretType l : CodeItemViewModel list =
@@ -21,36 +51,41 @@ let private interpretType l : CodeItemViewModel list =
 
 
 let rec private interpretSingleType 
-    (dict: Dictionary<string, FsDocumentSection>) 
+    (statements: string -> FsStatement option) 
     (type': DTsType) 
-        : Choice<CodeItemViewModel list, FsDocumentSection> =
+        : Choice<CodeItemViewModel list, FsStatement> =
 
     match type' with
     | DTsType.Plain p -> 
         let typeNameVms = interpretType p
         let typeName = String.Join("", typeNameVms |> List.map (fun t -> t.Content))
-        match dict.TryGetValue(typeName) with
-        | true, v -> v |> Choice2Of2
-        | false, _ -> typeNameVms |> Choice1Of2
+        match statements typeName with
+        | Some v -> v |> Choice2Of2
+        | None -> typeNameVms |> Choice1Of2
 
     | DTsType.Any -> [vmType "obj"] |> Choice1Of2
     | DTsType.Void -> [vmKeyword "unit"] |> Choice1Of2
     | DTsType.Typeof (Identifier typeName) ->
-        dict[typeName] |> Choice2Of2
+        statements typeName |> Option.get |> Choice2Of2
     | DTsType.Array t ->
-        match interpretSingleType dict t with
+        match interpretSingleType statements t with
         | Choice1Of2 l -> (l @ [vmPrn "[]"]) |> Choice1Of2
         | _ -> failwith "Not implemented"
     | _ -> failwith "Not implemented"
 
 
+
+
+
+
 let private interpretTypeDefinition 
-    (dict: Dictionary<string, FsDocumentSection>) 
+    (statements: string -> FsStatement option) 
     (tdef: TypeDefinition) 
-        : Choice<CodeItemViewModel list, FsDocumentSection> =
+        : Choice<CodeItemViewModel list, FsStatement> =
+
     match tdef with
     | TypeDefinition.Single tn -> 
-        interpretSingleType dict tn
+        interpretSingleType statements tn
     | TypeDefinition.Combination comb ->
         failwith "Not implemented"
         //match comb with
@@ -61,7 +96,7 @@ let private interpretTypeDefinition
 
 
 
-let private interpretFnParameters (dict: Dictionary<string, FsDocumentSection>) (fields: FieldList) : CodeItemViewModel list =
+let private interpretFnParameters (statements: string -> FsStatement option) (fields: FieldList) : CodeItemViewModel list =
     let rec interpret (fields: FieldList) result =
         match fields with
         | head :: tail ->
@@ -72,13 +107,12 @@ let private interpretFnParameters (dict: Dictionary<string, FsDocumentSection>) 
                         vmPrn "("
                         vmText field
                         vmPrn ": "
-                        match interpretTypeDefinition dict td with
+                        match interpretTypeDefinition statements td with
                         | Choice1Of2 l -> yield! l
                         | Choice2Of2 vm -> yield! (vm |> construct)
                         vmPrn ") "
                     ]
                 interpret tail (List.append result xvm)
-
 
             | _ -> failwith "Not implemented"
 
@@ -89,7 +123,7 @@ let private interpretFnParameters (dict: Dictionary<string, FsDocumentSection>) 
     | _ -> interpret fields []
 
 
-let private interpretFnParameterTypes (dict: Dictionary<string, FsDocumentSection>) (fields: FieldList) : CodeItemViewModel list =
+let private interpretFnParameterTypes (statements: string -> FsStatement option) (fields: FieldList) : CodeItemViewModel list =
     let rec interpret (fields: FieldList) result =
         match fields with
         | head :: [] ->
@@ -97,7 +131,7 @@ let private interpretFnParameterTypes (dict: Dictionary<string, FsDocumentSectio
             | ((Field.Required (Identifier field)), td) -> 
                 let xvm = 
                     [
-                        match interpretTypeDefinition dict td with
+                        match interpretTypeDefinition statements td with
                         | Choice1Of2 l -> yield! l
                         | Choice2Of2 vm -> yield! (vm |> construct)
                     ]
@@ -111,7 +145,7 @@ let private interpretFnParameterTypes (dict: Dictionary<string, FsDocumentSectio
             | ((Field.Required (Identifier field)), td) -> 
                 let xvm = 
                     [
-                        match interpretTypeDefinition dict td with
+                        match interpretTypeDefinition statements td with
                         | Choice1Of2 l -> yield! l
                         | Choice2Of2 vm -> yield! (vm |> construct)
 
@@ -129,14 +163,14 @@ let private interpretFnParameterTypes (dict: Dictionary<string, FsDocumentSectio
     | _ -> interpret fields []
 
 
-let private interpretField (dict: Dictionary<string, FsDocumentSection>) (field: Field * TypeDefinition) : CodeItemViewModel list =
+let private interpretField (statements: string -> FsStatement option) (field: Field * TypeDefinition) : CodeItemViewModel list =
     match field with
     | ((Field.Required (Identifier name)), td) -> 
         [
             vmKeyword "abstract "
             vmText name
             vmPrn " : "
-            match interpretTypeDefinition dict td with
+            match interpretTypeDefinition statements td with
             | Choice1Of2 l -> yield! l
             | Choice2Of2 vm -> yield! (vm |> construct)
             vmEndLineNull
@@ -146,9 +180,9 @@ let private interpretField (dict: Dictionary<string, FsDocumentSection>) (field:
         [
             vmKeyword "abstract "
             vmTextS name
-            yield! interpretFnParameters dict fl
+            yield! interpretFnParameters statements fl
             vmPrn " : "
-            match interpretTypeDefinition dict td with
+            match interpretTypeDefinition statements td with
             | Choice1Of2 l -> yield! l
             | Choice2Of2 vm -> yield! (vm |> construct)
             vmEndLineNull
@@ -171,7 +205,7 @@ let import name source =
     ]
 
 
-let private interpretFn (dict: Dictionary<string, FsDocumentSection>) keyword name parameters returnType =
+let private interpretFn (statements: string -> FsStatement option) keyword name parameters returnType =
     [
         yield vmKeywordS keyword
         yield vmTextS name
@@ -181,30 +215,30 @@ let private interpretFn (dict: Dictionary<string, FsDocumentSection>) keyword na
             yield vmKeyword "unit"
             yield vmPrn " -> "
         | _ -> 
-            yield! interpretFnParameters dict parameters
+            yield! interpretFnParameters statements parameters
             yield vmPrn ": "
-        match interpretTypeDefinition dict returnType with
+        match interpretTypeDefinition statements returnType with
         | Choice1Of2 l -> yield! l
         | Choice2Of2 vm -> yield! (vm |> construct)
     ]
 
 
-let private interpretFnType (dict: Dictionary<string, FsDocumentSection>) parameters returnType =
+let private interpretFnType (statements: string -> FsStatement option) parameters returnType =
     [
         match parameters with
         | [] -> 
             yield vmKeyword "unit"
             yield vmPrn " -> "
         | _ -> 
-            yield! interpretFnParameterTypes dict parameters
+            yield! interpretFnParameterTypes statements parameters
             yield vmPrn " -> "
-        match interpretTypeDefinition dict returnType with
+        match interpretTypeDefinition statements returnType with
         | Choice1Of2 l -> yield! l
         | Choice2Of2 vm -> yield! (vm |> construct)
     ]
 
 
-let private interpretStructure tabLevel fileName (dict: Dictionary<string, FsDocumentSection>) (structure: StructureStatement) : FsDocumentSection =
+let private interpretStructure tabLevel fileName (statements: string -> FsStatement option) (structure: StructureStatement) : FsStatement =
 
     let import name =
         [
@@ -220,11 +254,11 @@ let private interpretStructure tabLevel fileName (dict: Dictionary<string, FsDoc
             [
                 yield! import name
                 tab tabLevel
-                yield! interpretFn dict "let" name parameters returnType
+                yield! interpretFn statements "let" name parameters returnType
                 vmEndLineNull
                 vmEndLineNull
             ],
-            (fun () -> interpretFnType dict parameters returnType )
+            (fun () -> interpretFnType statements parameters returnType )
         )
         |> Let
 
@@ -240,7 +274,7 @@ let private interpretStructure tabLevel fileName (dict: Dictionary<string, FsDoc
                 vmEndLineNull
                 yield!
                     fl 
-                    |> List.map (fun t -> (tab (tabLevel + 1)) :: interpretField dict t)
+                    |> List.map (fun t -> (tab (tabLevel + 1)) :: interpretField statements t)
                     |> List.concat
                 vmEndLineNull
             ],
@@ -249,21 +283,21 @@ let private interpretStructure tabLevel fileName (dict: Dictionary<string, FsDoc
         |> Typed
 
     | ConstDefinition (DeclareConst ((Identifier name), tdef)) ->
-        match interpretTypeDefinition dict tdef with
-        | Choice1Of2 l -> FsDocumentSection.Named (name, l)
-        | Choice2Of2 vm -> FsDocumentSection.Link (name, vm)
+        match interpretTypeDefinition statements tdef with
+        | Choice1Of2 l -> FsStatement.Named (name, l)
+        | Choice2Of2 vm -> FsStatement.Link (name, vm)
 
     | _ -> failwith "Not implemented"
 
 
 
-let toDocumentSegmentViewModelList (fsList: FsDocumentSection list) : CodeItemViewModel list =
+let toDocumentSegmentViewModelList (fsList: FsStatement list) : CodeItemViewModel list =
     fsList
     |> List.map segments
     |> List.concat
 
 
-let toDocumentSegmentVmList ns fileName (dict: Dictionary<string, Dictionary<string, FsDocumentSection>>) statements =
+let interpret ns fileName store statements =
 
     let jsModuleName = String( fileName |> Seq.takeWhile ((=) '.' >> not) |> Seq.toArray )
 
@@ -286,21 +320,21 @@ let toDocumentSegmentVmList ns fileName (dict: Dictionary<string, Dictionary<str
             match statement with
             | Statement.Export (ExportStatement.Structure structure) ->
                 let vm = 
-                    interpretStructure tabLevel jsModuleName (dict[fileName]) structure
+                    interpretStructure tabLevel jsModuleName (store.Get fileName) structure
                     
 
-                dict[fileName][vm |> name] <- vm
+                store.Add fileName (vm |> name) vm
                 continueInterpret tail (vm |> createVm)
 
             | Statement.Structure structure ->
                 let vm = 
-                    interpretStructure tabLevel jsModuleName (dict[fileName]) structure
+                    interpretStructure tabLevel jsModuleName (store.Get fileName) structure
 
-                dict[fileName][vm |> name] <- vm
+                store.Add fileName (vm |> name) vm
                 interpret tabLevel tail result
 
             | Statement.Export (ExportStatement.OutDefault (Identifier name)) ->
-                continueInterpret tail (dict[fileName][name] |> createVm)
+                continueInterpret tail (store.Get fileName name |> Option.get |> createVm)
 
             | _ -> interpret tabLevel tail result
 
