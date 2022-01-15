@@ -69,7 +69,7 @@ let bindings () =
             | Some fileTree, Some key ->
                 Program.tryFindModule2 key fileTree
                 |> Option.bind (fun d ->
-                    match d.DtsDocmumentVm.Force() with
+                    match d.DtsDocumentVm.Force() with
                     | Choice1Of2 xvm -> xvm |> Some
                     | Choice2Of2 _ -> None
                 )
@@ -81,18 +81,35 @@ let bindings () =
             | Some fileTree, Some key ->
                 Program.tryFindModule2 key fileTree
                 |> Option.bind (fun d ->
-                    match d.DtsDocmumentVm.Force() with
+                    match d.DtsDocumentVm.Force() with
                     | Choice1Of2 _ -> None
                     | Choice2Of2 err -> err |> Some
                 )
             | _ -> None
         )
 
-        "SelectedFsModule" |> Binding.oneWayOpt(fun m -> 
-            m.SelectedDocument
-            |> Option.map (fun d ->
-                d.FsDocumentVm
-            )
+        "SelectedFsStatements" |> Binding.oneWayOpt (fun m -> 
+            match m.FileTree, m.SelectedModuleKey with
+            | Some fileTree, Some key ->
+                Program.tryFindModule2 key fileTree
+                |> Option.bind (fun d ->
+                    match d.FsDocumentVm.Force() with
+                    | Choice1Of2 xvm -> xvm |> Some
+                    | Choice2Of2 _ -> None
+                )
+            | _ -> None            
+        )
+
+        "SelectedFsStatementsError" |> Binding.oneWayOpt(fun m -> 
+            match m.FileTree, m.SelectedModuleKey with
+            | Some fileTree, Some key ->
+                Program.tryFindModule2 key fileTree
+                |> Option.bind (fun d ->
+                    match d.FsDocumentVm.Force() with
+                    | Choice1Of2 _ -> None
+                    | Choice2Of2 err -> err |> Some
+                )
+            | _ -> None
         )
         
         "LastError" |> Binding.oneWayOpt (fun m -> m.LastError)

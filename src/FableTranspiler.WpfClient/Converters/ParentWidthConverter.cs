@@ -13,13 +13,11 @@ namespace FableTranspiler.WpfClient.Converters
                 values[0] is double width
                 && values[1] is bool showTsContent
                 && values[2] is bool showFelizContent
-                && values[3] is bool showFableContent
-                && values[4] is Thickness margin) 
+                && values[3] is Thickness margin) 
             { 
                 var factor =
                     (showTsContent ? 1 : 0)
-                    + (showFelizContent ? 1 : 0)
-                    + (showFableContent ? 1 : 0);
+                    + (showFelizContent ? 1 : 0);
 
                 object rv =
                     width / (factor == 0 ? 1 : factor) - (margin.Left + margin.Right);
@@ -32,7 +30,7 @@ namespace FableTranspiler.WpfClient.Converters
 
         public object[] ConvertBack(object value, Type[] targetTypes, object parameter, CultureInfo culture)
         {
-            return new object[] { 0, false, false, false, new Thickness() };
+            return new object[] { 0, false, false, new Thickness() };
         }
     }
 }

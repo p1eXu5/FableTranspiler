@@ -45,54 +45,12 @@ namespace FableTranspiler.WpfClient.UserControls
         }
 
 
-        #region SectionMouseEnterEvent
-
-        public static readonly RoutedEvent SectionMouseEnterEvent =
-            EventManager.RegisterRoutedEvent("SectionMouseEnter", RoutingStrategy.Bubble, typeof(RoutedEventHandler), typeof(Content));
-
-        public static void AddSectionMouseEnterHandler(DependencyObject d, RoutedEventHandler handler)
-        {
-            UIElement? uie = d as UIElement;
-            if (uie != null) {
-                uie.AddHandler(SectionMouseEnterEvent, handler);
-            }
-        }
-        public static void RemoveSectionMouseEnterHandler(DependencyObject d, RoutedEventHandler handler)
-        {
-            UIElement? uie = d as UIElement;
-            if (uie != null) {
-                uie.RemoveHandler(SectionMouseEnterEvent, handler);
-            }
-        }
-
-        #endregion ───────────────────────────────────────────────────── SectionMouseEnterEvent ─┘
-
-
-        #region SectionMouseLeaveEvent
-
-        public static readonly RoutedEvent SectionMouseLeaveEvent =
-            EventManager.RegisterRoutedEvent("SectionMouseLeave", RoutingStrategy.Bubble, typeof(RoutedEventHandler), typeof(Content));
-
-        public static void AddSectionMouseLeaveHandler(DependencyObject d, RoutedEventHandler handler)
-        {
-            UIElement? uie = d as UIElement;
-            if (uie != null) {
-                uie.AddHandler(SectionMouseLeaveEvent, handler);
-            }
-        }
-        public static void RemoveSectionMouseLeaveHandler(DependencyObject d, RoutedEventHandler handler)
-        {
-            UIElement? uie = d as UIElement;
-            if (uie != null) {
-                uie.RemoveHandler(SectionMouseLeaveEvent, handler);
-            }
-        }
-
-        #endregion ───────────────────────────────────────────────────── SectionMouseLeaveEvent ─┘
+        
 
 
         private void RichTextBox_MouseEnter(object sender, RoutedEventArgs e)
         {
+
             var adorner = FsCodeStyleAdorner;
             adorner.SetPosition((Block)e.Source);
 
@@ -106,6 +64,14 @@ namespace FableTranspiler.WpfClient.UserControls
             var adorner = FsCodeStyleAdorner;
             adorner.Hide();
             Debug.WriteLine("Mouse leave");
+        }
+
+        private void _MouseEnter(object sender, MouseEventArgs e)
+        {
+            var adorner = FsCodeStyleAdorner;
+            adorner.Hide();
+            e.Handled= true;
+            Debug.WriteLine("Mouse enter {0}", sender);
         }
     }
 }

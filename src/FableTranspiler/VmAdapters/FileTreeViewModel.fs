@@ -15,7 +15,7 @@ type FileTreeViewModel =
         IsSelected: bool
         FileName: string
         SubModules: FileTreeViewModel list
-        DtsDocmumentVm: Lazy< Choice< DtsStatementViewModel list, CodeItemViewModel list>>
+        DtsDocumentVm: Lazy< Choice< DtsStatementViewModel list, CodeItemViewModel list>>
         FsDocumentVm: Lazy< Choice< FsStatementViewModel list, CodeItemViewModel list>>
     }
 
@@ -39,12 +39,15 @@ module internal FileTree =
 
 
     let create(key, fileName, isSelected, parsingResult, subModules) =
+        if dict.ContainsKey(fileName) = false then
+            dict[fileName] <- Dictionary<string, FsDocumentSection>()
+
         {
             Key = key
             IsSelected = isSelected
             FileName = fileName
             SubModules = subModules
-            DtsDocmumentVm =
+            DtsDocumentVm =
                 lazy (
                     match parsingResult.Statements with
                     | Ok l -> DtsDocumentInterpreter.toDocumentSegmentVmList l |> Choice1Of2

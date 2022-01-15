@@ -87,6 +87,10 @@ module internal FsDocumentSegmentListViewModel =
         | Typed (name, l, constructor) -> (name, l @ [segment], constructor) |> Typed
 
 
+type FsDocumentSection with
+    member this.Content() = FsDocumentSegmentListViewModel.segments this
+
+
 module internal DocumentSegmentViewModel =
     
     let createDtsVm dtsStatement dtsDocumentSection =

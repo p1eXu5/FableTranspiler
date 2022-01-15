@@ -8,62 +8,62 @@
              xmlns:prop="clr-namespace:FableTranspiler.WpfClient.AttachedProperties"
              xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
              mc:Ignorable="d"
-             d:DesignHeight="450" d:DesignWidth="1200">
+             d:DesignHeight="450" d:DesignWidth="1030"
+             >
     <UserControl.Resources>
         <conv:ParentWidthConverter x:Key="conv_ParentWidthConverter" />
         <materialDesign:BooleanToVisibilityConverter x:Key="conv_BoolToVis"/>
     </UserControl.Resources>
     <materialDesign:ColorZone Padding="16" VerticalAlignment="Stretch">
         <DockPanel LastChildFill="True">
-            <local:ToolBar x:Name="m_ContentToggler" DockPanel.Dock="Top"/>
+            <DockPanel.Resources>
+                <Style TargetType="RichTextBox" BasedOn="{StaticResource MaterialDesignRichTextBox}">
+                    <Setter Property="Margin" Value="0" />
+                    <Setter Property="AcceptsReturn" Value="True" />
+                    <Setter Property="IsDocumentEnabled" Value="True" />
+                    <Setter Property="IsReadOnly" Value="True" />
+                    <Setter Property="VerticalScrollBarVisibility" Value="Visible" />
+                    <Setter Property="SpellCheck.IsEnabled" Value="True" />
+                    <Setter Property="VerticalContentAlignment" Value="Stretch" />
+                    <Setter Property="Width">
+                        <Setter.Value>
+                            <MultiBinding Converter="{StaticResource conv_ParentWidthConverter}" Mode="OneWay">
+                                <Binding ElementName="m_ContentContainer" Path="ActualWidth" />
+                                <Binding ElementName="m_ContentToggler" Path="ShowTsContent" />
+                                <Binding ElementName="m_ContentToggler" Path="ShowFelizContent" />
+                                <Binding Path="Margin" RelativeSource="{RelativeSource Mode=Self}" />
+                            </MultiBinding>
+                        </Setter.Value>
+                    </Setter>
+                </Style>
+                <Style TargetType="{x:Type materialDesign:SmartHint}">
+                    <Setter Property="HorizontalAlignment" Value="Center"/>
+                </Style>
+            </DockPanel.Resources>
+            
+            <local:ToolBar x:Name="m_ContentToggler" DockPanel.Dock="Top" MouseEnter="_MouseEnter"/>
 
             <StackPanel x:Name="m_ContentContainer" HorizontalAlignment="Stretch" Orientation="Horizontal">
                 <RichTextBox Visibility="{Binding ElementName=m_ContentToggler, Path=ShowTsContent, Converter={StaticResource conv_BoolToVis}, Mode=OneWay}"
-                             d:Visibility="Visible"
-                             d:Width="400"
-                             Margin="5"
-                             AcceptsReturn="True"
-                             IsDocumentEnabled="True"
-                             IsReadOnly="true"
-                             VerticalScrollBarVisibility="Auto"
-                             SpellCheck.IsEnabled="True"
+                             prop:DtsFlowDocument.DtsDocument="{Binding SelectedDtsStatements, Mode=OneWay}"
+                             prop:DtsFlowDocument.DtsDocumentError="{Binding SelectedDtsStatementsError, Mode=OneWay}"
                              materialDesign:HintAssist.Hint="TS Content"
-                             prop:RichTextBoxHelper.DtsDocument="{Binding SelectedDtsStatements, Mode=OneWay}"
+                             d:Visibility="Visible"
+                             MouseEnter="_MouseEnter"
+                             d:Width="500"
                              >
                              <!--prop:RichTextBoxHelper.DocumentError="{Binding SelectedDtsStatementsError, Mode=OneWay}"-->
-                    <RichTextBox.Width>
-                        <MultiBinding Converter="{StaticResource conv_ParentWidthConverter}" Mode="OneWay">
-                            <Binding ElementName="m_ContentContainer" Path="ActualWidth" />
-                            <Binding ElementName="m_ContentToggler" Path="ShowTsContent" />
-                            <Binding ElementName="m_ContentToggler" Path="ShowFelizContent" />
-                            <Binding ElementName="m_ContentToggler" Path="ShowFableContent" />
-                            <Binding Path="Margin" RelativeSource="{RelativeSource Mode=Self}" />
-                        </MultiBinding>
-                    </RichTextBox.Width>
                 </RichTextBox>
 
                 <RichTextBox x:Name="m_FelizContent"
                              Visibility="{Binding ElementName=m_ContentToggler, Path=ShowFelizContent, Converter={StaticResource conv_BoolToVis}, Mode=OneWay}"
-                             local:Content.SectionMouseEnter="RichTextBox_MouseEnter"
-                             d:Visibility="Visible"
-                             d:Width="400"
-                             Margin="5"
-                             AcceptsReturn="True"
-                             IsDocumentEnabled="True"
-                             IsReadOnly="true"
-                             VerticalScrollBarVisibility="Auto"
-                             SpellCheck.IsEnabled="True"
+                             prop:FsFlowDocument.FsDocument="{Binding SelectedFsStatements, Mode=OneWay}"
+                             prop:FsFlowDocument.FsDocumentError="{Binding SelectedFsStatementsError, Mode=OneWay}"
                              materialDesign:HintAssist.Hint="Feliz Content"
+                             prop:FsFlowDocument.SectionMouseEnter="RichTextBox_MouseEnter"
+                             d:Visibility="Visible"
+                             d:Width="500"
                              >
-                    <RichTextBox.Width>
-                        <MultiBinding Converter="{StaticResource conv_ParentWidthConverter}" Mode="OneWay">
-                            <Binding ElementName="m_ContentContainer" Path="ActualWidth" />
-                            <Binding ElementName="m_ContentToggler" Path="ShowTsContent" />
-                            <Binding ElementName="m_ContentToggler" Path="ShowFelizContent" />
-                            <Binding ElementName="m_ContentToggler" Path="ShowFableContent" />
-                            <Binding Path="Margin" RelativeSource="{RelativeSource Mode=Self}" />
-                        </MultiBinding>
-                    </RichTextBox.Width>
                 </RichTextBox>
             </StackPanel>
         </DockPanel>

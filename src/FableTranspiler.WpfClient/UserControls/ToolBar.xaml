@@ -26,13 +26,6 @@
                         <TextBlock VerticalAlignment="Center">Feliz</TextBlock>
                     </StackPanel>
                 </ListBoxItem>
-                <ListBoxItem x:Name="m_FableContent"
-                                IsSelected="{Binding RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=local:ToolBar}, Path=ShowFableContent, Mode=TwoWay}">
-                    <StackPanel Orientation="Horizontal">
-                        <materialDesign:PackIcon Kind="React" Margin="0,0,5,0" />
-                        <TextBlock VerticalAlignment="Center">Fable</TextBlock>
-                    </StackPanel>
-                </ListBoxItem>
             </ListBox>
         </ToolBar>
     </ToolBarTray>
