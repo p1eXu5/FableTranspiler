@@ -1,11 +1,9 @@
 ﻿namespace FableTranspiler.VmAdapters
 
-open FableTranspiler.Infrastruture
 open System
-open System.Linq
 open System.IO
-open System.Collections.Generic
-open FableTranspiler.VmAdapters.DocumentSegmentViewModel
+open FableTranspiler.AppTypes
+open FableTranspiler.VmAdapters.CodeItemViewModel
 
 
 type FileTreeViewModel =
@@ -23,11 +21,6 @@ type FileTreeViewModel =
 
 module internal FileTree =
 
-    open FableTranspiler.VmAdapters.FsInterpreter
-
-    let store = FsStatementInMemoryStore.store
-
-
     let interpretError (err: string) =
         (err.Split(Environment.NewLine)
         |> Array.toList
@@ -40,7 +33,13 @@ module internal FileTree =
         |> List.concat)
 
 
-    let create(key, fileName, isSelected, parsingResult, subModules) =
+    let initialInterpreters =
+        {
+            InterpretPlainFableInterface = FableTranspiler.VmAdapters.FsInterpreter.Fable.interpretPlainFableInterface
+        }
+
+
+    let create (key, fileName, isSelected, parsingResult, subModules, store) =
         {
             Key = key
             IsSelected = isSelected
@@ -55,13 +54,13 @@ module internal FileTree =
             FsDocumentVm =
                 lazy (
                     match parsingResult.Statements with
-                    | Ok l -> FsInterpreter.interpret None fileName store l |> Choice1Of2
+                    | Ok l -> FsInterpreter.Facade.interpret None fileName store initialInterpreters l |> Choice1Of2
                     | Error err -> interpretError err |> Choice2Of2
                 )
         }
 
     
-    let rec toFileTreeVm parentKey isSelected (moduleTree: ModuleTree) =
+    let rec toFileTreeVm store parentKey isSelected (moduleTree: ModuleTree) =
 
         match moduleTree with
         | Leaf leaf ->
@@ -71,7 +70,8 @@ module internal FileTree =
                 fileName,
                 isSelected,
                 leaf,
-                []
+                [],
+                store
             )
         | Branch (root, branch) ->
             let fileName = Path.GetFileName(root.Path)
@@ -79,13 +79,14 @@ module internal FileTree =
 
             let modules =
                 branch
-                |> List.map (toFileTreeVm key false)
+                |> List.map (toFileTreeVm store key false)
 
             create (
                 key,
                 fileName,
                 isSelected,
                 root,
-                modules
+                modules,
+                store
             )
                     

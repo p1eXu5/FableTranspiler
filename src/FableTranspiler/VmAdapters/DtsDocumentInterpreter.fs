@@ -2,7 +2,7 @@
 
 open FableTranspiler.Parsers.Types
 open System.Linq
-open FableTranspiler.VmAdapters.DocumentSegmentViewModel
+open FableTranspiler.VmAdapters.CodeItemViewModel
 
 type EntityOrder =
     | Single

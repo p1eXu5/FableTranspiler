@@ -1,6 +1,5 @@
 ﻿module FableTranspiler.Program
 
-open Types
 open Infrastruture
 open Elmish
 open FableTranspiler.VmAdapters
@@ -56,7 +55,7 @@ let rec tryToggleIsSelected2 (key: string list) modules v =
     tryToggleIsSelected (key |> List.rev) modules []
 
 
-let update (msg: Msg) (model: Model) =
+let update store (msg: Msg) (model: Model) =
     match msg with
     | ParseFile -> 
         {
@@ -67,7 +66,7 @@ let update (msg: Msg) (model: Model) =
         Cmd.OfTask.either openFile () FileParsed Failed
 
     | FileParsed (Ok moduleTree) ->
-        let fileTree =  moduleTree |> FileTree.toFileTreeVm [] true |> List.singleton |> Some
+        let fileTree =  moduleTree |> FileTree.toFileTreeVm store [] true |> List.singleton |> Some
         {
             model with 
                 FileTree = fileTree

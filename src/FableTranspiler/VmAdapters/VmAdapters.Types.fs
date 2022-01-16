@@ -2,6 +2,9 @@
 
 open FableTranspiler.Parsers.Types
 
+
+
+
 [<StructuralEquality; StructuralComparison>]
 type CodeItemViewModel =
     {
@@ -31,6 +34,16 @@ type FsStatement =
     | Typed of Name: string * CodeItemViewModel list * TypeConstructor: CodeItemViewModel list
 
 
+type GetFsStatement = string -> FsStatement option
+
+type FsStatementStore =
+    {
+        Get: string -> GetFsStatement
+        Add: string -> string -> FsStatement -> unit
+    }
+
+
+
 [<ReferenceEquality>]
 type DtsStatementViewModel =
     {
@@ -55,8 +68,14 @@ and
 
 
 
+type Interpreters =
+    {
+        InterpretPlainFableInterface: GetFsStatement -> int -> string -> FieldList -> (CodeItemViewModel list * CodeItemViewModel list)
+    }
 
-module internal FsDocumentSegmentListViewModel =
+
+[<RequireQualifiedAccess>]
+module internal FsStatement =
 
     let name = function
         | Nameless _ -> failwith "No name"
@@ -88,9 +107,11 @@ module internal FsDocumentSegmentListViewModel =
 
 
 type FsStatement with
-    member this.Content() = FsDocumentSegmentListViewModel.segments this
+    member this.Content() = FsStatement.segments this
 
-module internal DocumentSegmentViewModel =
+
+[<AutoOpen>]
+module internal CodeItemViewModel =
     
     let createDtsVm dtsStatement dtsDocumentSection =
         {

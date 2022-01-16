@@ -8,7 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Include="Parsers\Types.fs" />
+    <Compile Include="Parsers\Parsers.Types.fs" />
     <Compile Include="Parsers\Dsl.fs" />
     <Compile Include="Parsers\Common.fs" />
     <Compile Include="Parsers\Structures.fs" />
@@ -18,13 +18,15 @@
     <Compile Include="Parsers\Import.fs" />
     <Compile Include="Parsers\Export.fs" />
     <Compile Include="Parsers\Parser.fs" />
-    <Compile Include="Infrastruture.fs" />
-    <Compile Include="VmAdapters\DocumentSegmentViewModel.fs" />
+    <Compile Include="AppTypes.fs" />
+    <Compile Include="VmAdapters\VmAdapters.Types.fs" />
     <Compile Include="VmAdapters\DtsDocumentInterpreter.fs" />
-    <Compile Include="VmAdapters\FsFableInterpreter.fs" />
-    <Compile Include="VmAdapters\FsInterpreter.fs" />
+    <Compile Include="VmAdapters\FsInterpreter\Common.fs" />
+    <Compile Include="VmAdapters\FsInterpreter\FsFableInterpreter.fs" />
+    <Compile Include="VmAdapters\FsInterpreter\FsInterpreter.fs" />
     <Compile Include="VmAdapters\FileTreeViewModel.fs" />
-    <Compile Include="App.Types.fs" />
+    <Compile Include="Infrastruture.fs" />
+    <Compile Include="Model.fs" />
     <Compile Include="Program.fs" />
     <Compile Include="Bindings.fs" />
     <Compile Include="App.fs" />

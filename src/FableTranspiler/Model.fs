@@ -1,7 +1,7 @@
-﻿module FableTranspiler.Types
+﻿namespace FableTranspiler
 
 open Elmish
-open Infrastruture
+open AppTypes
 open FableTranspiler.VmAdapters
 
 type Model =

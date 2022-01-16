@@ -1,7 +1,6 @@
 ﻿module FableTranspiler.Bindings
 
 open Elmish.WPF
-open Types
 open FableTranspiler.VmAdapters
 
 

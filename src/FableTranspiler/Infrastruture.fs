@@ -4,18 +4,11 @@ open System.IO
 open Microsoft.Win32
 open FableTranspiler.Parsers
 open FableTranspiler.Parsers.Types
+open FableTranspiler.AppTypes
 open System.Threading.Tasks
 
 
-type ParsingResult =
-    {
-        Path: string
-        Statements: Result<StatementList, string>
-    }
 
-type ModuleTree =
-    | Leaf of ParsingResult
-    | Branch of ParsingResult * ModuleTree list
 
 
 let readFile file =
@@ -89,6 +82,7 @@ let rec parseFile fileName (accum: Map<string, ModuleTree>) : Task<(ModuleTree *
 
     }
 
+
 let openFile () =
     task {
         let fd = OpenFileDialog()
@@ -99,3 +93,30 @@ let openFile () =
             return fst tree |> Ok
         | None -> return Error "open file canceled"
     }
+
+
+module FsStatementInMemoryStore =
+
+    open System.Collections.Generic
+    open FableTranspiler.VmAdapters
+
+    let private dict = Dictionary<string, Dictionary<string, FsStatement>>()
+
+    let store =
+        {
+            Get =
+                fun fileName typeName ->
+                    match dict.TryGetValue(fileName) with
+                    | true, v ->
+                        match v.TryGetValue(typeName) with
+                        | true, s -> s |> Some
+                        | false, _ -> None
+                    | false, _ -> None
+
+            Add =
+                fun fileName typeName statement ->
+                    if not (dict.ContainsKey(fileName)) then
+                        dict[fileName] <- Dictionary<string, FsStatement>()
+
+                    dict[fileName][typeName] <- statement
+        }
