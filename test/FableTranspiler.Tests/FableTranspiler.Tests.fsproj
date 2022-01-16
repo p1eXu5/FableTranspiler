@@ -8,6 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Include="VmAdapters\FsInterpreter\TestCaseSources\InterfaceTestCaseSources.fs" />
     <Compile Include="VmAdapters\FsInterpreter\FsInterpreter.FacadeTests.fs" />
     <Compile Include="Parsers\TestCaseSources\StructuresFactory.fs" />
     <Compile Include="Parsers\TestCaseSources\ImportTestCaseSource.fs" />
