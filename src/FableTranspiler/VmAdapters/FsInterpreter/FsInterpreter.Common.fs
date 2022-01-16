@@ -22,8 +22,8 @@ let interpretType l : CodeItemViewModel list =
 
 
 let rec interpretSingleType (statements: string -> FsStatement option) 
-                                    (type': DTsType) 
-                                    : Choice<CodeItemViewModel list, FsStatement> =
+                            (type': DTsType) 
+                            : Choice<CodeItemViewModel list, FsStatement> =
 
     match type' with
     | DTsType.Plain p -> 
@@ -31,16 +31,24 @@ let rec interpretSingleType (statements: string -> FsStatement option)
         let typeName = String.Join("", typeNameVms |> List.map (fun t -> t.Content))
         match statements typeName with
         | Some v -> v |> Choice2Of2
-        | None -> typeNameVms |> Choice1Of2
+        | None ->
+            match typeNameVms[0].Content with
+            | "boolean" -> [vmType "bool"] |> Choice1Of2
+            | _ -> typeNameVms |> Choice1Of2
 
     | DTsType.Any -> [vmType "obj"] |> Choice1Of2
     | DTsType.Void -> [vmKeyword "unit"] |> Choice1Of2
+
     | DTsType.Typeof (Identifier typeName) ->
         statements typeName |> Option.get |> Choice2Of2
+
     | DTsType.Array t ->
         match interpretSingleType statements t with
         | Choice1Of2 l -> (l @ [vmPrn "[]"]) |> Choice1Of2
         | _ -> failwith "Not implemented"
+
+    | DTsType.Undefined -> [] |> Choice1Of2
+
     | _ -> failwith "Not implemented"
 
 
@@ -51,17 +59,39 @@ let rec interpretSingleType (statements: string -> FsStatement option)
 let interpretTypeDefinition (statements: string -> FsStatement option) 
                                     (tdef: TypeDefinition) 
                                     : Choice<CodeItemViewModel list, FsStatement> =
-
     match tdef with
-    | TypeDefinition.Single tn -> 
-        interpretSingleType statements tn
-    | TypeDefinition.Combination comb ->
-        failwith "Not implemented"
-        //match comb with
-        //| Union l ->
-        //    yield! constructCombination " | " l []
-        //| Composition l ->
-        //    yield!  constructCombination " & " l [] 
+    | TypeDefinition.Single tn -> interpretSingleType statements tn
+    | TypeDefinition.Combination (TypeCombination.Union comp) ->
+        let l = 
+            comp 
+            |> List.filter (function DTsType.Undefined -> false | _ -> true)
+            |> List.map (interpretSingleType statements)
+            |> List.map (fun t ->
+                match t with
+                | Choice1Of2 l -> l
+                | _ -> []
+            )
+            |> (fun l ->
+                [
+                    vmType $"U{l.Length}"
+                    vmPrn "<"
+                    yield! 
+                        List.reduce (fun l1 l2 -> 
+                            [
+                                yield! l1
+                                vmPrn ", "
+                                yield! l2
+                            ]
+                        ) l 
+                    vmPrn ">"
+                ]
+            )
+
+        l |> Choice1Of2
+
+    | TypeDefinition.Combination (TypeCombination.Composition union) ->
+            failwith "Not implemented"
+            // yield!  constructCombination " & " l [] 
 
 
 

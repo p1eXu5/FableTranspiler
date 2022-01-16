@@ -21,9 +21,10 @@
     <Compile Include="AppTypes.fs" />
     <Compile Include="VmAdapters\VmAdapters.Types.fs" />
     <Compile Include="VmAdapters\DtsDocumentInterpreter.fs" />
-    <Compile Include="VmAdapters\FsInterpreter\Common.fs" />
-    <Compile Include="VmAdapters\FsInterpreter\FsFableInterpreter.fs" />
-    <Compile Include="VmAdapters\FsInterpreter\FsInterpreter.fs" />
+    <Compile Include="VmAdapters\FsInterpreter\FsInterpreter.Common.fs" />
+    <Compile Include="VmAdapters\FsInterpreter\FsInterpreter.React.fs" />
+    <Compile Include="VmAdapters\FsInterpreter\FsInterpreter.Fable.fs" />
+    <Compile Include="VmAdapters\FsInterpreter\FsInterpreter.Facade.fs" />
     <Compile Include="VmAdapters\FileTreeViewModel.fs" />
     <Compile Include="Infrastruture.fs" />
     <Compile Include="Model.fs" />

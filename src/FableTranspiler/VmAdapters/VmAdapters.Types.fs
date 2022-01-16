@@ -1,6 +1,7 @@
 ﻿namespace FableTranspiler.VmAdapters
 
 open FableTranspiler.Parsers.Types
+open System
 
 
 
@@ -108,6 +109,16 @@ module internal FsStatement =
 
 type FsStatement with
     member this.Content() = FsStatement.segments this
+    member this.Name() = FsStatement.name this
+    member this.StringContent() =
+        this.Content()
+        |> List.map (fun ci ->
+            match ci.Tag with
+            | Tag.NoContent -> ""
+            | Tag.EndOfLine -> "\n"
+            | _ -> ci.Content
+        )
+        |> fun l -> String.Join("", l)
 
 
 [<AutoOpen>]
