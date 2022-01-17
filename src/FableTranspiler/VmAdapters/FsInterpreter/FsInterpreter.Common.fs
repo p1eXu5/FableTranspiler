@@ -1,4 +1,4 @@
-﻿module internal FableTranspiler.VmAdapters.FsInterpreter.Common
+﻿module internal rec FableTranspiler.VmAdapters.FsInterpreter.Common
 
 
 open FableTranspiler.Parsers.Types
@@ -34,6 +34,7 @@ let rec interpretSingleType (statements: string -> FsStatement option)
         | None ->
             match typeNameVms[0].Content with
             | "boolean" -> [vmType "bool"] |> Choice1Of2
+            | "number" -> [vmType "float"] |> Choice1Of2
             | _ -> typeNameVms |> Choice1Of2
 
     | DTsType.Any -> [vmType "obj"] |> Choice1Of2
@@ -47,7 +48,17 @@ let rec interpretSingleType (statements: string -> FsStatement option)
         | Choice1Of2 l -> (l @ [vmPrn "[]"]) |> Choice1Of2
         | _ -> failwith "Not implemented"
 
+    | DTsType.Func (fl, td) -> 
+        [
+            vmPrn "("
+            yield! interpretFnType statements fl td
+            vmPrn ")"
+        ] 
+        |> Choice1Of2
+
     | DTsType.Undefined -> [] |> Choice1Of2
+
+
 
     | _ -> failwith "Not implemented"
 
@@ -157,6 +168,31 @@ let interpretFnType (statements: string -> FsStatement option) parameters return
     ]
 
 
+let interpretFieldFnParameters (statements: string -> FsStatement option) (fields: FieldList) : CodeItemViewModel list =
+    let rec interpret (fields: FieldList) result =
+        let buildType head tail separator =
+            match head with
+            | ((Field.Required (Identifier field)), td) -> 
+                let xvm = 
+                    [
+                        match interpretTypeDefinition statements td with
+                        | Choice1Of2 l -> yield! l
+                        | Choice2Of2 vm -> yield! (vm |> FsStatement.construct)
+                        if separator |> Option.isSome then
+                            vmPrn " -> "
+                    ]
+                interpret tail (List.append result xvm)
+
+            | _ -> failwith "Not implemented"
+
+        match fields with
+        | head :: [] -> buildType head [] None
+        | head :: tail -> buildType head tail (Some ())
+        | [] -> result
+    
+    match fields with
+    | [] -> [vmPrn "unit"]
+    | _ -> interpret fields []
 
 
 let interpretFnParameters (statements: string -> FsStatement option) (fields: FieldList) : CodeItemViewModel list =

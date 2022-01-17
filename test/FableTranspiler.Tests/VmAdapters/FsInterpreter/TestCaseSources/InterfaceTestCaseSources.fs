@@ -33,4 +33,14 @@ type TestCases () =
                 exportedInterface "onClick?(): void;" |> box,
                 "abstract onClick : (unit -> unit) option"
             ).SetName("Field: 'onClick?(): void;'")
+
+            TestCaseData(
+                exportedInterface "onSetActive?(to: string): void;" |> box,
+                "abstract onSetActive : (string -> unit) option"
+            ).SetName("Field: 'onSetActive?(to: string): void;'")
+
+            TestCaseData(
+                exportedInterface "duration?: number | string | ((distance: number) => number) | undefined;" |> box,
+                "abstract duration : U3<float, string, (float -> float)> option"
+            ).SetName("Field: 'duration?: number | string | ((distance: number) => number) | undefined;'")
         }

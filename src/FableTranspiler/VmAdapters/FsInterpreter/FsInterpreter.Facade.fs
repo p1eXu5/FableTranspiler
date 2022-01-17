@@ -51,10 +51,7 @@ let private interpretStructure interpreters tabLevel fileName (statements: GetFs
         let present, construct = interpreters.InterpretPlainFableInterface statements tabLevel name fl
         (
             name,
-            [
-                yield! tabbedImport tabLevel name fileName
-                yield! present
-            ],
+            present,
             construct
         )
         |> Typed

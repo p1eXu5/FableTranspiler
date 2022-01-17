@@ -17,17 +17,6 @@ let private interpretField (statements: string -> FsStatement option) (field: Fi
             vmEndLineNull
         ]
 
-    | (Field.FuncReq ((Identifier name), fl), td) ->
-        [
-            vmKeyword "abstract "; vmTextS name
-            yield! interpretFnParameters statements fl
-            vmPrn " : "
-            match interpretTypeDefinition statements td with
-            | Choice1Of2 l -> yield! l
-            | Choice2Of2 vm -> yield! (vm |> FsStatement.construct)
-            vmEndLineNull
-        ]
-
     | (Field.Optional (Identifier name), td) ->
         [
             vmKeyword "abstract "; vmText name; vmPrn " : "
@@ -37,9 +26,30 @@ let private interpretField (statements: string -> FsStatement option) (field: Fi
             vmType " option"
             vmEndLineNull
         ]
-        
 
-    | _ -> failwith "Not implemented"
+    | (Field.FuncReq ((Identifier name), fl), td) ->
+        [
+            vmKeyword "abstract "; vmTextS name
+            yield! interpretFieldFnParameters statements fl
+            vmPrn " : "
+            match interpretTypeDefinition statements td with
+            | Choice1Of2 l -> yield! l
+            | Choice2Of2 vm -> yield! (vm |> FsStatement.construct)
+            vmEndLineNull
+        ]
+
+    | (Field.FuncOpt ((Identifier name), fl), td) ->
+        [
+            vmKeyword "abstract "; vmText name; 
+            vmPrn " : ("
+            yield! interpretFieldFnParameters statements fl
+            vmPrn " -> "
+            match interpretTypeDefinition statements td with
+            | Choice1Of2 l -> yield! l
+            | Choice2Of2 vm -> yield! (vm |> FsStatement.construct)
+            vmType ") option"
+            vmEndLineNull
+        ]
 
 
 let interpretPlainFableInterface statements tabLevel name fieldList =
