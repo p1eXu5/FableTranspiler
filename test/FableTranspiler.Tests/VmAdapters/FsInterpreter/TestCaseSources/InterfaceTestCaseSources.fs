@@ -25,6 +25,11 @@ type TestCases () =
             ).SetName("Field: 'to: string;'")
 
             TestCaseData(
+                exportedInterface "spy?: boolean | undefined;" |> box,
+                "abstract spy : bool option"
+            ).SetName("Field: 'spy?: boolean | undefined;'")
+
+            TestCaseData(
                 exportedInterface "smooth?: boolean | string | undefined;" |> box,
                 "abstract smooth : U2<bool, string> option"
             ).SetName("Field: 'smooth?: boolean | string | undefined;'")

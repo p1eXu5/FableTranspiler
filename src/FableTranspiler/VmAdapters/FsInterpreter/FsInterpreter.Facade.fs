@@ -61,7 +61,12 @@ let private interpretStructure interpreters tabLevel fileName (statements: GetFs
         | Choice1Of2 l -> FsStatement.Named (name, l)
         | Choice2Of2 vm -> FsStatement.Link (name, vm)
 
-    | _ -> failwith "Not implemented"
+    | _ -> 
+        [ 
+            vmText ($"{structure} interpretation is not implemented")
+            vmEndLineNull
+        ]
+        |> Nameless
 
 
 
@@ -96,15 +101,19 @@ let interpret ns fileName store interpreters statements =
                 let vm = 
                     interpretStructure interpreters tabLevel jsModuleName (store.Get fileName) structure
                     
+                match vm |> FsStatement.name with
+                | Some n -> store.Add fileName n vm
+                | None -> ()
 
-                store.Add fileName (vm |> FsStatement.name) vm
                 continueInterpret tail (vm |> createVm)
 
             | Statement.Structure structure ->
                 let vm = 
                     interpretStructure interpreters tabLevel jsModuleName (store.Get fileName) structure
 
-                store.Add fileName (vm |> FsStatement.name) vm
+                match vm |> FsStatement.name with
+                | Some n -> store.Add fileName n vm
+                | None -> ()
                 interpret tabLevel tail result
 
             | Statement.Export (ExportStatement.OutDefault (Identifier name)) ->

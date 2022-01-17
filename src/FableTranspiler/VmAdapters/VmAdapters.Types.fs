@@ -79,11 +79,11 @@ type Interpreters =
 module internal FsStatement =
 
     let name = function
-        | Nameless _ -> failwith "No name"
-        | Named (n, _) -> n
-        | Link (n, _) -> n
-        | Let (n, _, _) -> n
-        | Typed (n, _, _) -> n
+        | Nameless _ -> None
+        | Named (n, _) -> n |> Some
+        | Link (n, _) -> n |> Some
+        | Let (n, _, _) -> n |> Some
+        | Typed (n, _, _) -> n |> Some
 
     let rec segments = function
         | Nameless l -> l
@@ -93,11 +93,11 @@ module internal FsStatement =
         | Typed (_, l, _) -> l
 
     let rec construct = function
-        | Nameless _ -> failwith "No type constructor"
-        | Named (_, l) -> l
+        | Nameless _ -> None
+        | Named (_, l) -> l |> Some
         | Link (_, l) -> l |> construct
-        | Let (_, _, f) -> f()
-        | Typed (_, _, l) -> l
+        | Let (_, _, f) -> f() |> Some
+        | Typed (_, _, l) -> l |> Some
 
     let rec insertAtEnd segment = function
         | Nameless l -> l @ [segment] |> Nameless
@@ -119,6 +119,10 @@ type FsStatement with
             | _ -> ci.Content
         )
         |> fun l -> String.Join("", l)
+    member this.Construct() =
+        match FsStatement.construct this with
+        | Some l -> l
+        | None -> []
 
 
 [<AutoOpen>]

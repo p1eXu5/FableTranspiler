@@ -13,7 +13,7 @@ let private interpretField (statements: string -> FsStatement option) (field: Fi
             vmKeyword "abstract "; vmText name; vmPrn " : "
             match interpretTypeDefinition statements td with
             | Choice1Of2 l -> yield! l
-            | Choice2Of2 vm -> yield! (vm |> FsStatement.construct)
+            | Choice2Of2 vm -> yield! (vm.Construct())
             vmEndLineNull
         ]
 
@@ -22,7 +22,7 @@ let private interpretField (statements: string -> FsStatement option) (field: Fi
             vmKeyword "abstract "; vmText name; vmPrn " : "
             match interpretTypeDefinition statements td with
             | Choice1Of2 l -> yield! l
-            | Choice2Of2 vm -> yield! (vm |> FsStatement.construct)
+            | Choice2Of2 vm -> yield! (vm.Construct())
             vmType " option"
             vmEndLineNull
         ]
@@ -34,7 +34,7 @@ let private interpretField (statements: string -> FsStatement option) (field: Fi
             vmPrn " : "
             match interpretTypeDefinition statements td with
             | Choice1Of2 l -> yield! l
-            | Choice2Of2 vm -> yield! (vm |> FsStatement.construct)
+            | Choice2Of2 vm -> yield! (vm.Construct())
             vmEndLineNull
         ]
 
@@ -46,8 +46,9 @@ let private interpretField (statements: string -> FsStatement option) (field: Fi
             vmPrn " -> "
             match interpretTypeDefinition statements td with
             | Choice1Of2 l -> yield! l
-            | Choice2Of2 vm -> yield! (vm |> FsStatement.construct)
-            vmType ") option"
+            | Choice2Of2 vm -> yield! (vm.Construct())
+            vmPrn ") "
+            vmType "option"
             vmEndLineNull
         ]
 

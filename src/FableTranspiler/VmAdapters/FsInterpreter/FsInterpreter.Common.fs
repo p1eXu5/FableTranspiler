@@ -8,7 +8,7 @@ open System
 
 
 
-let interpretType l : CodeItemViewModel list =
+let interpretQualifiers l : CodeItemViewModel list =
     l
     |> List.map (fun t -> [ Identifier.Value(t) |> vmType ])
     |> List.reduce (fun t1 t2 -> 
@@ -27,7 +27,7 @@ let rec interpretSingleType (statements: string -> FsStatement option)
 
     match type' with
     | DTsType.Plain p -> 
-        let typeNameVms = interpretType p
+        let typeNameVms = interpretQualifiers p
         let typeName = String.Join("", typeNameVms |> List.map (fun t -> t.Content))
         match statements typeName with
         | Some v -> v |> Choice2Of2
@@ -37,8 +37,11 @@ let rec interpretSingleType (statements: string -> FsStatement option)
             | "number" -> [vmType "float"] |> Choice1Of2
             | _ -> typeNameVms |> Choice1Of2
 
+    | DTsType.Generic (qualifiers, types) ->
+        [] |> Choice1Of2
+
     | DTsType.Any -> [vmType "obj"] |> Choice1Of2
-    | DTsType.Void -> [vmKeyword "unit"] |> Choice1Of2
+    | DTsType.Void -> [vmType "unit"] |> Choice1Of2
 
     | DTsType.Typeof (Identifier typeName) ->
         statements typeName |> Option.get |> Choice2Of2
@@ -72,37 +75,48 @@ let interpretTypeDefinition (statements: string -> FsStatement option)
                                     : Choice<CodeItemViewModel list, FsStatement> =
     match tdef with
     | TypeDefinition.Single tn -> interpretSingleType statements tn
-    | TypeDefinition.Combination (TypeCombination.Union comp) ->
+    | TypeDefinition.Combination (TypeCombination.Union union) ->
         let l = 
-            comp 
+            union 
             |> List.filter (function DTsType.Undefined -> false | _ -> true)
             |> List.map (interpretSingleType statements)
             |> List.map (fun t ->
                 match t with
                 | Choice1Of2 l -> l
-                | _ -> []
+                | Choice2Of2 vm -> vm.Construct()
             )
             |> (fun l ->
-                [
-                    vmType $"U{l.Length}"
-                    vmPrn "<"
-                    yield! 
-                        List.reduce (fun l1 l2 -> 
-                            [
-                                yield! l1
-                                vmPrn ", "
-                                yield! l2
-                            ]
-                        ) l 
-                    vmPrn ">"
-                ]
+                if l.Length > 1 then
+                    [
+                        vmType $"U{l.Length}"
+                        vmPrn "<"
+                        yield! 
+                            List.reduce (fun l1 l2 -> 
+                                [
+                                    yield! l1
+                                    vmPrn ", "
+                                    yield! l2
+                                ]
+                            ) l 
+                        vmPrn ">"
+                    ]
+                else l.Head
             )
 
         l |> Choice1Of2
 
-    | TypeDefinition.Combination (TypeCombination.Composition union) ->
-            failwith "Not implemented"
-            // yield!  constructCombination " & " l [] 
+    | TypeDefinition.Combination (TypeCombination.Composition comp) ->
+        let l = 
+            comp 
+            |> List.map (interpretSingleType statements)
+            |> List.map (fun t ->
+                match t with
+                | Choice1Of2 l -> l @ [vmEndLineNull]
+                | Choice2Of2 vm -> vm.Construct() @ [vmEndLineNull]
+            )
+            |> List.concat
+
+        l |> Choice1Of2 
 
 
 
@@ -119,7 +133,7 @@ let interpretFnParameterTypes (statements: string -> FsStatement option) (fields
                     [
                         match interpretTypeDefinition statements td with
                         | Choice1Of2 l -> yield! l
-                        | Choice2Of2 vm -> yield! (vm |> FsStatement.construct)
+                        | Choice2Of2 vm -> yield! (vm.Construct())
                     ]
                 interpret [] (List.append result xvm)
 
@@ -133,7 +147,7 @@ let interpretFnParameterTypes (statements: string -> FsStatement option) (fields
                     [
                         match interpretTypeDefinition statements td with
                         | Choice1Of2 l -> yield! l
-                        | Choice2Of2 vm -> yield! (vm |> FsStatement.construct)
+                        | Choice2Of2 vm -> yield! (vm.Construct())
 
                         vmPrn " -> "
                     ]
@@ -157,14 +171,14 @@ let interpretFnType (statements: string -> FsStatement option) parameters return
     [
         match parameters with
         | [] -> 
-            yield vmKeyword "unit"
+            yield vmType "unit"
             yield vmPrn " -> "
         | _ -> 
             yield! interpretFnParameterTypes statements parameters
             yield vmPrn " -> "
         match interpretTypeDefinition statements returnType with
         | Choice1Of2 l -> yield! l
-        | Choice2Of2 vm -> yield! (vm |> FsStatement.construct)
+        | Choice2Of2 vm -> yield! (vm.Construct())
     ]
 
 
@@ -177,7 +191,7 @@ let interpretFieldFnParameters (statements: string -> FsStatement option) (field
                     [
                         match interpretTypeDefinition statements td with
                         | Choice1Of2 l -> yield! l
-                        | Choice2Of2 vm -> yield! (vm |> FsStatement.construct)
+                        | Choice2Of2 vm -> yield! (vm.Construct())
                         if separator |> Option.isSome then
                             vmPrn " -> "
                     ]
@@ -191,7 +205,7 @@ let interpretFieldFnParameters (statements: string -> FsStatement option) (field
         | [] -> result
     
     match fields with
-    | [] -> [vmPrn "unit"]
+    | [] -> [vmType "unit"]
     | _ -> interpret fields []
 
 
@@ -208,7 +222,7 @@ let interpretFnParameters (statements: string -> FsStatement option) (fields: Fi
                         vmPrn ": "
                         match interpretTypeDefinition statements td with
                         | Choice1Of2 l -> yield! l
-                        | Choice2Of2 vm -> yield! (vm |> FsStatement.construct)
+                        | Choice2Of2 vm -> yield! (vm.Construct())
                         vmPrn ") "
                     ]
                 interpret tail (List.append result xvm)
@@ -229,12 +243,12 @@ let interpretFn (statements: string -> FsStatement option) keyword name paramete
         match parameters with
         | [] -> 
             yield vmPrn ": "
-            yield vmKeyword "unit"
+            yield vmType "unit"
             yield vmPrn " -> "
         | _ -> 
             yield! interpretFnParameters statements parameters
             yield vmPrn ": "
         match interpretTypeDefinition statements returnType with
         | Choice1Of2 l -> yield! l
-        | Choice2Of2 vm -> yield! (vm |> FsStatement.construct)
+        | Choice2Of2 vm -> yield! (vm.Construct())
     ]
