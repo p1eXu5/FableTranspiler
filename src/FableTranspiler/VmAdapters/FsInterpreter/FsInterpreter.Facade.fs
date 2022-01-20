@@ -49,12 +49,12 @@ let private interpretStructure interpreters tabLevel fileName (statements: GetFs
 
     | InterfaceDefinition (InterfaceDefinition.Plain ((Identifier name), fl)) ->
         let present, construct = interpreters.InterpretPlainFableInterface statements tabLevel name fl
-        (
-            name,
-            present,
-            construct
-        )
-        |> Typed
+        {
+            Name = name
+            Content = present
+            Construct = construct
+        }
+        |> FsStatement.Interface
 
     | ConstDefinition (DeclareConst ((Identifier name), tdef)) ->
         match interpretTypeDefinition statements tdef with

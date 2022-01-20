@@ -27,12 +27,21 @@ and
         | EndOfLine = 7
 
 
+type InterfaceFsStatement =
+    {
+        Name: string
+        Content: CodeItemViewModel list
+        Construct: CodeItemViewModel list
+    }
+
+
 type FsStatement =
     | Nameless of CodeItemViewModel list
     | Named of Name: string * CodeItemViewModel list
     | Link of Name: string * FsStatement
     | Let of Name: string * CodeItemViewModel list * TypeConstructor: (unit -> CodeItemViewModel list)
     | Typed of Name: string * CodeItemViewModel list * TypeConstructor: CodeItemViewModel list
+    | Interface of InterfaceFsStatement
 
 
 type GetFsStatement = string -> FsStatement option
@@ -53,19 +62,21 @@ type DtsStatementViewModel =
     }
 
 
+
+type FsCodeStyle =
+    | Universal
+    | Fable
+    | React
+    | Feliz
+
+
 [<ReferenceEquality>]
 type FsStatementViewModel =
     {
         DtsStatement: FableTranspiler.Parsers.Types.Statement option
-        FsStatement: FsStatement
-        FsCodeStyle: FsCodeStyle
+        FsStatement: (FsCodeStyle * FsStatement) list
+        IsMuted: bool
     }
-and
-    FsCodeStyle =
-        | Universal
-        | Fable
-        | React
-        | Feliz
 
 
 
@@ -84,6 +95,7 @@ module internal FsStatement =
         | Link (n, _) -> n |> Some
         | Let (n, _, _) -> n |> Some
         | Typed (n, _, _) -> n |> Some
+        | Interface v -> v.Name |> Some
 
     let rec segments = function
         | Nameless l -> l
@@ -91,6 +103,7 @@ module internal FsStatement =
         | Link (_, l) -> l |> segments
         | Let (_, l, _) -> l
         | Typed (_, l, _) -> l
+        | Interface v -> v.Content
 
     let rec construct = function
         | Nameless _ -> None
@@ -98,6 +111,7 @@ module internal FsStatement =
         | Link (_, l) -> l |> construct
         | Let (_, _, f) -> f() |> Some
         | Typed (_, _, l) -> l |> Some
+        | Interface v -> v.Construct |> Some
 
     let rec insertAtEnd segment = function
         | Nameless l -> l @ [segment] |> Nameless
@@ -105,6 +119,12 @@ module internal FsStatement =
         | Link (name, l) -> (name, insertAtEnd segment l) |> Link
         | Let (name, l, constructor) -> (name, l @ [segment], constructor) |> Let
         | Typed (name, l, constructor) -> (name, l @ [segment], constructor) |> Typed
+        | Interface v ->
+            {
+                v with
+                    Content = v.Content @ [segment]
+            }
+            |> FsStatement.Interface
 
 
 type FsStatement with
@@ -134,11 +154,11 @@ module internal CodeItemViewModel =
             DtsDocumentSection = dtsDocumentSection
         }
 
-    let createFsVm dtsStatement codeStyle fsDocumentSection =
+    let createFsVm dtsStatement codeStyle fsStatement =
         {
             DtsStatement = dtsStatement
-            FsStatement = fsDocumentSection
-            FsCodeStyle = codeStyle
+            FsStatement = [(codeStyle, fsStatement)]
+            IsMuted = false
         }
 
 
