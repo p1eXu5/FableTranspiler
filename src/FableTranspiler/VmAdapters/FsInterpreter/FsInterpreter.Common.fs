@@ -2,13 +2,13 @@
 
 
 open FableTranspiler.Parsers.Types
-open FableTranspiler.VmAdapters
+open FableTranspiler.VmAdapters.Types
 open System
 
 
 
 
-let interpretQualifiers l : CodeItemViewModel list =
+let interpretQualifiers l : CodeItem list =
     l
     |> List.map (fun t -> [ Identifier.Value(t) |> vmType ])
     |> List.reduce (fun t1 t2 -> 
@@ -23,7 +23,7 @@ let interpretQualifiers l : CodeItemViewModel list =
 
 let rec interpretSingleType (statements: string -> FsStatement option) 
                             (type': DTsType) 
-                            : Choice<CodeItemViewModel list, FsStatement> =
+                            : Choice<CodeItem list, FsStatement> =
 
     match type' with
     | DTsType.Plain p -> 
@@ -72,7 +72,7 @@ let rec interpretSingleType (statements: string -> FsStatement option)
 
 let interpretTypeDefinition (statements: string -> FsStatement option) 
                                     (tdef: TypeDefinition) 
-                                    : Choice<CodeItemViewModel list, FsStatement> =
+                                    : Choice<CodeItem list, FsStatement> =
     match tdef with
     | TypeDefinition.Single tn -> interpretSingleType statements tn
     | TypeDefinition.Combination (TypeCombination.Union union) ->
@@ -123,7 +123,7 @@ let interpretTypeDefinition (statements: string -> FsStatement option)
 
 
 
-let interpretFnParameterTypes (statements: string -> FsStatement option) (fields: FieldList) : CodeItemViewModel list =
+let interpretFnParameterTypes (statements: string -> FsStatement option) (fields: FieldList) : CodeItem list =
     let rec interpret (fields: FieldList) result =
         match fields with
         | head :: [] ->
@@ -182,7 +182,7 @@ let interpretFnType (statements: string -> FsStatement option) parameters return
     ]
 
 
-let interpretFieldFnParameters (statements: string -> FsStatement option) (fields: FieldList) : CodeItemViewModel list =
+let interpretFieldFnParameters (statements: string -> FsStatement option) (fields: FieldList) : CodeItem list =
     let rec interpret (fields: FieldList) result =
         let buildType head tail separator =
             match head with
@@ -209,7 +209,7 @@ let interpretFieldFnParameters (statements: string -> FsStatement option) (field
     | _ -> interpret fields []
 
 
-let interpretFnParameters (statements: string -> FsStatement option) (fields: FieldList) : CodeItemViewModel list =
+let interpretFnParameters (statements: string -> FsStatement option) (fields: FieldList) : CodeItem list =
     let rec interpret (fields: FieldList) result =
         match fields with
         | head :: tail ->

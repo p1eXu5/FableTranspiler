@@ -5,6 +5,8 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Documents;
 using Microsoft.FSharp.Collections;
+using FableTranspiler.VmAdapters.Types;
+using FableTranspiler.Components;
 
 namespace FableTranspiler.WpfClient.AttachedProperties
 {
@@ -49,20 +51,20 @@ namespace FableTranspiler.WpfClient.AttachedProperties
         public static readonly DependencyProperty DtsDocumentErrorProperty =
             DependencyProperty.RegisterAttached(
                 "DtsDocumentError",
-                typeof(FSharpList<CodeItemViewModel>),
+                typeof(FSharpList<CodeItem>),
                 typeof(DtsFlowDocument),
                 new FrameworkPropertyMetadata {
                     BindsTwoWayByDefault = false,
-                    PropertyChangedCallback = DtsDocumentChangedCallback<CodeItemViewModel>
+                    PropertyChangedCallback = DtsDocumentChangedCallback<CodeItem>
                 });
 
 
-        public static FSharpList<CodeItemViewModel> GetDtsDocumentError(DependencyObject obj)
+        public static FSharpList<CodeItem> GetDtsDocumentError(DependencyObject obj)
         {
-            return (FSharpList<CodeItemViewModel>)obj.GetValue(DtsDocumentErrorProperty);
+            return (FSharpList<CodeItem>)obj.GetValue(DtsDocumentErrorProperty);
         }
 
-        public static void SetDtsDocumentError(DependencyObject obj, FSharpList<CodeItemViewModel> value)
+        public static void SetDtsDocumentError(DependencyObject obj, FSharpList<CodeItem> value)
         {
             obj.SetValue(DtsDocumentErrorProperty, value);
         }
@@ -82,7 +84,7 @@ namespace FableTranspiler.WpfClient.AttachedProperties
 
             object? statements = typeof(TViewModel).Name switch {
                 nameof(DtsStatementViewModel) => GetDtsDocument(richTextBox),
-                nameof(CodeItemViewModel) => GetDtsDocumentError(richTextBox),
+                nameof(CodeItem) => GetDtsDocumentError(richTextBox),
                 _ => null
             };
 

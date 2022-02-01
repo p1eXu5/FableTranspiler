@@ -4,7 +4,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:local="clr-namespace:FableTranspiler.WpfClient.UserControls"
-             xmlns:vm="clr-namespace:FableTranspiler.VmAdapters;assembly=FableTranspiler"
+             xmlns:vm="clr-namespace:FableTranspiler.Components;assembly=FableTranspiler"
              xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
              xmlns:behaviors="http://schemas.microsoft.com/xaml/behaviors"
              mc:Ignorable="d" 
@@ -12,7 +12,7 @@
              MinWidth="250"
              >
     <materialDesign:ColorZone Padding="16">
-        <TreeView x:Name="m_treeView" ItemsSource="{Binding ModuleTree2}">
+        <TreeView x:Name="m_treeView" ItemsSource="{Binding ModuleTreeList}">
             <!--<behaviors:Interaction.Triggers>
                 <behaviors:EventTrigger EventName="SelectedItemChanged" SourceObject="{Binding ElementName=m_treeView}">
                     <behaviors:InvokeCommandAction Command="{Binding SelectFile}" CommandParameter="{Binding SelectedValue, ElementName=m_treeView}" />
@@ -24,7 +24,7 @@
                 </Style>
             </TreeView.ItemContainerStyle>
             <TreeView.ItemTemplate>
-                <HierarchicalDataTemplate DataType="{x:Type vm:FileTreeViewModel}" ItemsSource="{Binding SubModules}">
+                <HierarchicalDataTemplate DataType="{x:Type vm:ModuleTreeViewModel}" ItemsSource="{Binding SubModules}">
                     <Label Content="{Binding FileName}"/>
                 </HierarchicalDataTemplate>
             </TreeView.ItemTemplate>

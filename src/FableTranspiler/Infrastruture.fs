@@ -8,9 +8,6 @@ open FableTranspiler.AppTypes
 open System.Threading.Tasks
 
 
-
-
-
 let readFile file =
     task {
         use stream = File.OpenText(file)
@@ -22,7 +19,7 @@ let join (p:Map<'a,'b>) (q:Map<'a,'b>) =
     Map(Seq.concat [ (Map.toSeq p) ; (Map.toSeq q) ])
 
 
-let rec parseFile fileName (accum: Map<string, ModuleTree>) : Task<(ModuleTree * Map<string, ModuleTree>)> =
+let rec parseFile fileName (accum: Map<string, ModuleTreeParsingResult>) : Task<(ModuleTreeParsingResult * Map<string, ModuleTreeParsingResult>)> =
     task {
         match accum.TryGetValue fileName with
         | true, tree -> return tree, accum
@@ -98,11 +95,11 @@ let openFile () =
 module FsStatementInMemoryStore =
 
     open System.Collections.Generic
-    open FableTranspiler.VmAdapters
+    open FableTranspiler.VmAdapters.Types
 
     let private dict = Dictionary<string, Dictionary<string, FsStatement>>()
 
-    let store =
+    let internal store =
         {
             Get =
                 fun fileName typeName ->

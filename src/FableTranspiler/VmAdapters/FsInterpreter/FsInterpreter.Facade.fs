@@ -1,7 +1,7 @@
 ﻿module rec FableTranspiler.VmAdapters.FsInterpreter.Facade
 
 open FableTranspiler.Parsers.Types
-open FableTranspiler.VmAdapters
+open FableTranspiler.VmAdapters.Types
 open FableTranspiler.VmAdapters.FsInterpreter.Common
 open System.Linq
 open System.Collections.Generic
@@ -45,7 +45,7 @@ let private interpretStructure interpreters tabLevel fileName (statements: GetFs
             ],
             (fun () -> interpretFnType statements parameters returnType )
         )
-        |> Let
+        |> FsStatement.Let
 
     | InterfaceDefinition (InterfaceDefinition.Plain ((Identifier name), fl)) ->
         let present, construct = interpreters.InterpretPlainFableInterface statements tabLevel name fl
@@ -66,25 +66,25 @@ let private interpretStructure interpreters tabLevel fileName (statements: GetFs
             vmText ($"{structure} interpretation is not implemented")
             vmEndLineNull
         ]
-        |> Nameless
+        |> FsStatement.Nameless
 
 
 
-let toDocumentSegmentViewModelList (fsList: FsStatement list) : CodeItemViewModel list =
+let internal toDocumentSegmentViewModelList (fsList: FsStatement list) : CodeItem list =
     fsList
     |> List.map FsStatement.segments
     |> List.concat
 
 
-let interpret ns fileName store interpreters statements =
+let internal interpret ns fileName store interpreters statements =
 
     let jsModuleName = String( fileName |> Seq.takeWhile ((=) '.' >> not) |> Seq.toArray )
 
-    let rec interpret tabLevel statements (result: FsStatementViewModel list) : FsStatementViewModel list =
+    let rec interpret tabLevel statements ind (result: FsStatementDto list) : FsStatementDto list =
 
         /// append generated view models to the result and invokes interpret
         let continueInterpret tail vm =
-            interpret tabLevel tail (vm :: result)
+            interpret tabLevel tail (ind + 1) (vm :: result)
 
         match statements with
         | statement :: tail ->
@@ -92,9 +92,9 @@ let interpret ns fileName store interpreters statements =
             let createVm vm = 
                 let fsCodeStyle =
                     match vm with
-                    | Typed _ -> FsCodeStyle.Fable
+                    | FsStatement.Typed _ -> FsCodeStyle.Fable
                     | _ -> FsCodeStyle.Universal
-                createFsVm (statement |> Some) fsCodeStyle vm
+                createFsVm (statement |> Some) ind fsCodeStyle vm
 
             match statement with
             | Statement.Export (ExportStatement.Structure structure) ->
@@ -114,12 +114,12 @@ let interpret ns fileName store interpreters statements =
                 match vm |> FsStatement.name with
                 | Some n -> store.Add fileName n vm
                 | None -> ()
-                interpret tabLevel tail result
+                interpret tabLevel tail (ind + 1) result
 
             | Statement.Export (ExportStatement.OutDefault (Identifier name)) ->
                 continueInterpret tail (store.Get fileName name |> Option.get |> createVm)
 
-            | _ -> interpret tabLevel tail result
+            | _ -> interpret tabLevel tail (ind + 1) result
 
         | [] -> result |> List.rev
 
@@ -143,8 +143,8 @@ let interpret ns fileName store interpreters statements =
             vmEndLine null
             vmEndLine null
         ] 
-        |> Nameless
-        |> createFsVm None FsCodeStyle.Universal
+        |> FsStatement.Nameless
+        |> createFsVm None -1 FsCodeStyle.Universal
         |> List.singleton
 
-    (interpret 0 statements initialResult)
+    (interpret 0 statements 0 initialResult)

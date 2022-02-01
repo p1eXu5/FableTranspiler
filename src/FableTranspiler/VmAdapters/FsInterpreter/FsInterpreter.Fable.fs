@@ -2,11 +2,11 @@
 module internal FableTranspiler.VmAdapters.FsInterpreter.Fable
 
 open FableTranspiler.Parsers.Types
-open FableTranspiler.VmAdapters
+open FableTranspiler.VmAdapters.Types
 open FableTranspiler.VmAdapters.FsInterpreter.Common
 
 
-let private interpretField (statements: string -> FsStatement option) (field: Field * TypeDefinition) : CodeItemViewModel list =
+let private interpretField (statements: string -> FsStatement option) (field: Field * TypeDefinition) : CodeItem list =
     match field with
     | ((Field.Required (Identifier name)), td) -> 
         [

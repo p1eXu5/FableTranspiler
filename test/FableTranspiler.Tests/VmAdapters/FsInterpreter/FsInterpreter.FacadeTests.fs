@@ -3,7 +3,7 @@
 open NUnit.Framework
 open FsUnit
 open FableTranspiler.Parsers
-open FableTranspiler.VmAdapters
+open FableTranspiler.VmAdapters.Types
 open FableTranspiler.VmAdapters.FsInterpreter
 open FableTranspiler.Tests.VmAdapters.TestCaseSources.InterfaceTestCaseSources
 
@@ -32,7 +32,7 @@ module FsDocumentInterpreterTests =
             }
 
         let vm = Facade.interpret None "test" store fableInterpreters statement
-        vm[1].FsStatement.Name() |> should equal "Foo" // [0] - is "module ..."
+        vm[1].StyledFsStatements.Name() |> should equal "Foo" // [0] - is "module ..."
 
 
     [<TestCaseSource(typeof<TestCases>, nameof TestCases.ExportCases)>]
@@ -50,6 +50,6 @@ module FsDocumentInterpreterTests =
 
         let vm = Facade.interpret None "test" store fableInterpreters statement
 
-        vm[1].FsStatement.StringContent() |> should haveSubstring expectedField
+        vm[1].StyledFsStatements.StringContent() |> should haveSubstring expectedField
 
 

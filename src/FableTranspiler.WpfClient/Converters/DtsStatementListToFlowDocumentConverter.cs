@@ -7,7 +7,9 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Data;
 using System.Windows.Documents;
+using FableTranspiler.Components;
 using FableTranspiler.VmAdapters;
+using FableTranspiler.VmAdapters.Types;
 using FableTranspiler.WpfClient.Adorners;
 using FableTranspiler.WpfClient.AttachedProperties;
 using Microsoft.FSharp.Collections;
@@ -45,7 +47,7 @@ namespace FableTranspiler.WpfClient.Converters
 
             foreach (var vm in vmList) 
             {
-                var section = BuildSection(vm.DtsDocumentSection);
+                var section = BuildSection(vm.DtsStatement.DtsDocumentSection);
                 fd.Blocks.Add(section);
             }
 
@@ -58,8 +60,8 @@ namespace FableTranspiler.WpfClient.Converters
             var fd = new FlowDocument();
 
             foreach (FsStatementViewModel vm in vmList) {
-                Section section = BuildSection(vm.FsStatement.Content());
-                if (vm.FsCodeStyle != FsCodeStyle.Universal) {
+                Section section = BuildSection(vm.Content());
+                if (vm.FsCodeStyle() != FsCodeStyle.Universal) {
                     section.MouseEnter += SectionEnter;
                 }
                 else {
@@ -73,7 +75,7 @@ namespace FableTranspiler.WpfClient.Converters
         }
 
 
-        internal object Convert(FSharpList<CodeItemViewModel> vmList)
+        internal object Convert(FSharpList<CodeItem> vmList)
         {
             var fd = new FlowDocument();
             Section section = BuildSection(vmList);
@@ -83,7 +85,7 @@ namespace FableTranspiler.WpfClient.Converters
         }
 
 
-        private Section BuildSection(FSharpList<CodeItemViewModel> vmList)
+        private Section BuildSection(FSharpList<CodeItem> vmList)
         {
             var section = new Section();
             var paragraph = new Paragraph() { Margin = new Thickness(0) };

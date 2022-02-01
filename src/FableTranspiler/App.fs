@@ -18,6 +18,6 @@ let main window =
 
     let store = Infrastruture.FsStatementInMemoryStore.store
 
-    WpfProgram.mkProgram Model.Init (update store) bindings
+    WpfProgram.mkProgram MainModel.init (update store) bindings
     |> WpfProgram.withLogger (new SerilogLoggerFactory(logger))
     |> WpfProgram.startElmishLoop window

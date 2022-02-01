@@ -1,11 +1,13 @@
-﻿module FableTranspiler.Program
+﻿module internal FableTranspiler.Program
 
 open Infrastruture
 open Elmish
+open FableTranspiler.MainModel
 open FableTranspiler.VmAdapters
+open FableTranspiler.Components
 
 
-let tryFindModule2 (key: string list) modules : FileTreeViewModel option =
+let tryFindModule2 (key: string list) modules : ModuleTreeViewModel option =
 
     let rec tryFindModule (key: string list) modules accum =
 
@@ -55,7 +57,7 @@ let rec tryToggleIsSelected2 (key: string list) modules v =
     tryToggleIsSelected (key |> List.rev) modules []
 
 
-let update store (msg: Msg) (model: Model) =
+let update store (msg: Msg) (model: MainModel) =
     match msg with
     | ParseFile -> 
         {
@@ -66,11 +68,15 @@ let update store (msg: Msg) (model: Model) =
         Cmd.OfTask.either openFile () FileParsed Failed
 
     | FileParsed (Ok moduleTree) ->
-        let fileTree =  moduleTree |> FileTree.toFileTreeVm store [] true |> List.singleton |> Some
+        let fileTree =  moduleTree |> ModuleTreeViewModel.toFileTreeVm store [] true
         {
             model with 
-                FileTree = fileTree
-                SelectedModuleKey = fileTree |> Option.map (fun l -> (l |> List.head).Key)
+                ModuleTreeList = 
+                    {
+                        model.ModuleTreeList with
+                            ModuleTreeList = fileTree :: model.ModuleTreeList.ModuleTreeList
+                            SelectedModuleKey = fileTree.Key
+                    }
                 IsBusy = false
         }, Cmd.none
 
@@ -82,18 +88,26 @@ let update store (msg: Msg) (model: Model) =
         }
         , Cmd.none
 
-    | SetSelectedModule key -> {model with SelectedModuleKey = key}, Cmd.none
+    | ModuleTreeMsg m ->
+        let (model', msg') = ModuleTreeListViewModel.update store m model.ModuleTreeList
+        {
+            model with
+                ModuleTreeList = model'
+        }
+        , Cmd.map ModuleTreeMsg msg'
 
-    | ChildMsg (key, ToggleModuleSelection v) ->
-        match model.FileTree with
-        | Some fileTree ->
-            { 
-                model with 
-                    FileTree = tryToggleIsSelected2 key fileTree v |> Some 
-                    SelectedModuleKey = key |> Some
-            }
-            , Cmd.none
-        | _ -> model, Cmd.none
+    //| SetSelectedModule key -> {model with SelectedModuleKey = key}, Cmd.none
+
+    //| ChildMsg (key, ToggleModuleSelection v) ->
+    //    match model.FileTree with
+    //    | Some fileTree ->
+    //        { 
+    //            model with 
+    //                FileTree = tryToggleIsSelected2 key fileTree v |> Some 
+    //                SelectedModuleKey = key |> Some
+    //        }
+    //        , Cmd.none
+    //    | _ -> model, Cmd.none
 
 
 

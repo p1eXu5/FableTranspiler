@@ -1,4 +1,6 @@
-﻿using FableTranspiler.VmAdapters;
+﻿using FableTranspiler.Components;
+using FableTranspiler.VmAdapters;
+using FableTranspiler.VmAdapters.Types;
 using FableTranspiler.WpfClient.Converters;
 using Microsoft.FSharp.Collections;
 using System.Globalization;
@@ -25,7 +27,7 @@ namespace FableTranspiler.WpfClient.AttachedProperties
                 typeof(FsFlowDocument),
                 new FrameworkPropertyMetadata {
                     BindsTwoWayByDefault = false,
-                    PropertyChangedCallback = FsDocumentChangedCallback<FsStatementViewModel>
+                    PropertyChangedCallback = FsDocumentChangedCallback<DtsStatementViewModel>
                 });
 
 
@@ -42,6 +44,10 @@ namespace FableTranspiler.WpfClient.AttachedProperties
         #endregion ───────────────────────────────────────────────────── FsDocumentProperty ─┘
 
 
+
+
+
+
         #region FsDocumentErrorProperty
 
         /// <summary>
@@ -50,20 +56,20 @@ namespace FableTranspiler.WpfClient.AttachedProperties
         public static readonly DependencyProperty FsDocumentErrorProperty =
             DependencyProperty.RegisterAttached(
                 "FsDocumentError",
-                typeof(FSharpList<CodeItemViewModel>),
+                typeof(FSharpList<CodeItem>),
                 typeof(FsFlowDocument),
                 new FrameworkPropertyMetadata {
                     BindsTwoWayByDefault = false,
-                    PropertyChangedCallback = FsDocumentChangedCallback<CodeItemViewModel>
+                    PropertyChangedCallback = FsDocumentChangedCallback<CodeItem>
                 });
 
 
-        public static FSharpList<CodeItemViewModel> GetFsDocumentError(DependencyObject obj)
+        public static FSharpList<CodeItem> GetFsDocumentError(DependencyObject obj)
         {
-            return (FSharpList<CodeItemViewModel>)obj.GetValue(FsDocumentErrorProperty);
+            return (FSharpList<CodeItem>)obj.GetValue(FsDocumentErrorProperty);
         }
 
-        public static void SetFsDocumentError(DependencyObject obj, FSharpList<CodeItemViewModel> value)
+        public static void SetFsDocumentError(DependencyObject obj, FSharpList<CodeItem> value)
         {
             obj.SetValue(FsDocumentErrorProperty, value);
         }
@@ -128,8 +134,8 @@ namespace FableTranspiler.WpfClient.AttachedProperties
             var richTextBox = (RichTextBox)d;
 
             object? statements = typeof(TViewModel).Name switch {
-                nameof(FsStatementViewModel) => GetFsDocument(richTextBox),
-                nameof(CodeItemViewModel) => GetFsDocumentError(richTextBox),
+                nameof(FsStatement) => GetFsDocument(richTextBox),
+                nameof(CodeItem) => GetFsDocumentError(richTextBox),
                 _ => null
             };
 
@@ -143,5 +149,8 @@ namespace FableTranspiler.WpfClient.AttachedProperties
             richTextBox.Document =
                 conv.Convert(statements, typeof(FlowDocument), null!, CultureInfo.CurrentUICulture) as FlowDocument;
         }
+
+
+
     }
 }

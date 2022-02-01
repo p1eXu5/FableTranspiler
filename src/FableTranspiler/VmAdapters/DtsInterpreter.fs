@@ -1,8 +1,9 @@
-﻿module internal rec FableTranspiler.VmAdapters.DtsDocumentInterpreter
+﻿module internal rec FableTranspiler.VmAdapters.DtsInterpreter
 
 open FableTranspiler.Parsers.Types
 open System.Linq
-open FableTranspiler.VmAdapters.CodeItemViewModel
+open FableTranspiler.VmAdapters.Types
+open FableTranspiler.VmAdapters.Types.CodeItem
 
 type EntityOrder =
     | Single
@@ -96,7 +97,7 @@ let rec private buildImportExportEntities builder l res =
     | _ -> []
                 
 
-let private constructType l : CodeItemViewModel list =
+let private constructType l : CodeItem list =
     l
     |> List.map (fun t -> [vmType (Identifier.Value(t))])
     |> List.reduce (fun t1 t2 -> 
@@ -275,7 +276,7 @@ let constructTypeParams typeParams =
     |> List.concat
 
 
-let rec private interpretStructure structure : CodeItemViewModel list =
+let rec private interpretStructure structure : CodeItem list =
     match structure with
     | TypeAlias (TypeAlias.Plain (Identifier identifier, combination)) ->
         [
@@ -420,18 +421,18 @@ let rec private interpretStructure structure : CodeItemViewModel list =
         ]
 
 
-let toDocumentSegmentVmList statements =
+let interpret statements =
 
-    let rec interpret statements result lastTag : DtsStatementViewModel list =
+    let rec interpret statements ind result lastTag : DtsStatementDto list =
 
         /// append generated view models to the result and invokes interpret
         let continueInterpret tail xvm =
-            interpret tail (xvm :: result)
+            interpret tail (ind + 1) (xvm :: result)
 
         match statements with
         | statement :: tail ->
 
-            let createVm = createDtsVm statement
+            let createVm = createDtsVm statement ind
 
             match statement with
             | Statement.Import (entities, ``module``) ->
@@ -600,7 +601,7 @@ let toDocumentSegmentVmList statements =
                         yield vmType i
                         yield vmPrn " {"
                         yield vmEndLineNull
-                        yield! (interpret statements' [] "" |> List.map (fun vm -> vm.DtsDocumentSection) |> List.concat)
+                        yield! (interpret statements' (ind + 1) [] "" |> List.map (fun vm -> vm.DtsDocumentSection) |> List.concat)
                         yield vmEndLineNull
                         yield vmPrn "}"
                         yield vmEndLineNull
@@ -645,7 +646,7 @@ let toDocumentSegmentVmList statements =
                         yield vmType i
                         yield vmPrn " {"
                         yield vmEndLineNull
-                        yield! (interpret statements' [] "" |> List.map (fun vm -> vm.DtsDocumentSection) |> List.concat)
+                        yield! (interpret statements' (ind + 1) [] "" |> List.map (fun vm -> vm.DtsDocumentSection) |> List.concat)
                         yield vmEndLineNull
                         yield vmPrn "}"
                         yield vmEndLineNull
@@ -654,10 +655,10 @@ let toDocumentSegmentVmList statements =
 
                 continueInterpret tail vm ""
 
-            | _ -> interpret tail result ""
+            | _ -> interpret tail (ind + 1) result ""
 
         | [] -> 
             result 
             |> List.rev
 
-    (interpret statements [] "")
+    (interpret statements 0 [] "")
