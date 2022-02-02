@@ -8,6 +8,6 @@ type ParsingResult =
         Statements: Result<StatementList, string>
     }
 
-type ModuleTreeParsingResult =
+type FileParsingResultTree =
     | Leaf of ParsingResult
-    | Branch of ParsingResult * ModuleTreeParsingResult list
+    | Branch of ParsingResult * FileParsingResultTree list

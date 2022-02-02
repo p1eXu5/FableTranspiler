@@ -19,7 +19,7 @@ let join (p:Map<'a,'b>) (q:Map<'a,'b>) =
     Map(Seq.concat [ (Map.toSeq p) ; (Map.toSeq q) ])
 
 
-let rec parseFile fileName (accum: Map<string, ModuleTreeParsingResult>) : Task<(ModuleTreeParsingResult * Map<string, ModuleTreeParsingResult>)> =
+let rec parseFile fileName (accum: Map<string, FileParsingResultTree>) : Task<(FileParsingResultTree * Map<string, FileParsingResultTree>)> =
     task {
         match accum.TryGetValue fileName with
         | true, tree -> return tree, accum
@@ -80,14 +80,17 @@ let rec parseFile fileName (accum: Map<string, ModuleTreeParsingResult>) : Task<
     }
 
 
-let openFile () =
+let openAndProcessFile () =
     task {
         let fd = OpenFileDialog()
         fd.Filter <- "d.ts files (*.d.ts)|*.d.ts|All files (*.*)|*.*"
         match fd.ShowDialog() |> Option.ofNullable with
         | Some _ ->
-            let! tree = parseFile fd.FileName Map.empty
-            return fst tree |> Ok
+            try
+                let! tree = parseFile fd.FileName Map.empty
+                return fst tree |> Ok
+            with
+            | ex -> return Error (ex.ToString())
         | None -> return Error "open file canceled"
     }
 

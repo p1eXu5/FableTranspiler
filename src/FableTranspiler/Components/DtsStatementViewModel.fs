@@ -2,6 +2,7 @@
 
 open FableTranspiler.VmAdapters.Types
 
+[<ReferenceEquality>]
 type DtsStatementViewModel =
     {
         DtsStatement: DtsStatementDto

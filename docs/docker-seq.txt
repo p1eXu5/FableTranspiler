@@ -1,0 +1,1 @@
+docker run   --name seq-fable-transmitter   -d   --restart unless-stopped   -e ACCEPT_EULA=Y   -v d:\docker-volumes\seq:/data -p 5341:80  datalust/seq:latest

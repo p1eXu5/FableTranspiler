@@ -26,13 +26,12 @@
     <Compile Include="VmAdapters\FsInterpreter\FsInterpreter.Fable.fs" />
     <Compile Include="VmAdapters\FsInterpreter\FsInterpreter.Facade.fs" />
     <Compile Include="Infrastruture.fs" />
+    <Compile Include="Elmish.Extensions.fs" />
     <Compile Include="Components\DtsStatementViewModel.fs" />
     <Compile Include="Components\FsStatementViewModel.fs" />
     <Compile Include="Components\ModuleTreeViewModel.fs" />
     <Compile Include="Components\ModuleTreeListViewModel.fs" />
     <Compile Include="MainModel.fs" />
-    <Compile Include="Program.fs" />
-    <Compile Include="Bindings.fs" />
     <Compile Include="App.fs" />
   </ItemGroup>
 
@@ -41,6 +40,7 @@
     <PackageReference Include="FParsec" Version="1.1.1" />
     <PackageReference Include="Serilog.Extensions.Logging" Version="3.1.0" />
     <PackageReference Include="Serilog.Sinks.Console" Version="4.0.1" />
+    <PackageReference Include="Serilog.Sinks.Seq" Version="5.1.1" />
   </ItemGroup>
 
   <ItemGroup>

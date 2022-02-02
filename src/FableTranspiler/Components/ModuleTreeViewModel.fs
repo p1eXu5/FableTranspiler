@@ -7,7 +7,7 @@ open FableTranspiler.VmAdapters.Types
 open FableTranspiler.VmAdapters
 
 
-
+[<ReferenceEquality>]
 type ModuleTreeViewModel =
     {
         ParsingResult: ParsingResult
@@ -30,19 +30,20 @@ module internal ModuleTreeViewModel =
         }
 
 
-    let create (key, fileName, isSelected, parsingResult, subModules) =
-        {
-            ParsingResult = parsingResult
-            Key = key
-            IsSelected = isSelected
-            FileName = fileName
-            SubModules = subModules
-            DtsDocumentVm = None
-            FsDocumentVm = None
-        }
 
     
-    let rec toFileTreeVm store parentKey isSelected (moduleTree: ModuleTreeParsingResult) =
+    let rec toFileTreeVm store parentKey isSelected (moduleTree: FileParsingResultTree) =
+        
+        let create (key, fileName, isSelected, parsingResult, subModules) =
+            {
+                ParsingResult = parsingResult
+                Key = key
+                IsSelected = isSelected
+                FileName = fileName
+                SubModules = subModules
+                DtsDocumentVm = None
+                FsDocumentVm = None
+            }
 
         match moduleTree with
         | Leaf leaf ->

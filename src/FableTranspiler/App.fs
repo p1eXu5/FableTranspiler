@@ -13,7 +13,8 @@ let main window =
           .MinimumLevel.Override("Elmish.WPF.Update", Events.LogEventLevel.Verbose)
           .MinimumLevel.Override("Elmish.WPF.Bindings", Events.LogEventLevel.Verbose)
           .MinimumLevel.Override("Elmish.WPF.Performance", Events.LogEventLevel.Verbose)
-          .WriteTo.Console()
+          //.WriteTo.Console(outputTemplate="[{Timestamp:HH:mm:ss:fff} {Level:u3}] {Message:lj}{NewLine}{Exception}")
+          .WriteTo.Seq("http://localhost:5341")
           .CreateLogger()
 
     let store = Infrastruture.FsStatementInMemoryStore.store

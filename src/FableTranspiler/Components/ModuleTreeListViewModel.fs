@@ -2,14 +2,15 @@
 
 open FableTranspiler.VmAdapters
 
-type ModuleTreeListViewModel =
+[<ReferenceEquality>]
+type ModuleTreeList =
     {
         ModuleTreeList: ModuleTreeViewModel list
         SelectedModuleKey: string list
     }
 
 [<RequireQualifiedAccess>]
-module internal ModuleTreeListViewModel =
+module internal ModuleTreeList =
 
     type Msg =
         | SelectModule of SelectModuleMsg
@@ -32,6 +33,9 @@ module internal ModuleTreeListViewModel =
         }
         , Cmd.none
 
+
+    let add parsingResultTree l : (ModuleTreeList * Cmd<Msg>) =
+        l, Cmd.none
 
 
     let changeIsSelected v model =
@@ -110,6 +114,14 @@ module internal ModuleTreeListViewModel =
                 }
                 , Cmd.none
 
+            | Some module' when module'.DtsDocumentVm |> Option.isSome ->
+                {
+                    model with
+                        ModuleTreeList = tryTransformModule key model.ModuleTreeList (changeIsSelected v)
+                        SelectedModuleKey = key
+                }
+                , Cmd.none
+
             | _ -> model, Cmd.none
 
         | _ -> model, Cmd.none
@@ -167,21 +179,14 @@ module internal ModuleTreeListViewModel =
                 parentBindings
             )
 
-            "SelectedDtsStatements" |> Binding.subModelSeq (
-                (
-                    fun m -> 
-                        selectedDts m
-                        |> Option.bind (fun dvm ->
-                            match dvm with
-                            | Choice1Of2 xvm -> xvm |> Some
-                            | Choice2Of2 _ -> None
-                        )
-                        |> Option.defaultValue []
-                ),
-                (fun (_, sm) -> sm),
-                (fun (vm) -> vm.DtsStatement.Index),
-                DtsStatementMsg,
-                DtsStatementViewModel.bindings
+            "SelectedDtsStatements" |> Binding.oneWayOpt (
+                fun m -> 
+                    selectedDts m
+                    |> Option.bind (fun dvm ->
+                        match dvm with
+                        | Choice1Of2 xvm -> xvm |> Some
+                        | Choice2Of2 _ -> None
+                    )
             )
 
             "SelectedDtsStatementsError" |> Binding.oneWayOpt(fun m -> 
@@ -193,21 +198,14 @@ module internal ModuleTreeListViewModel =
                 )
             )
 
-            "SelectedFsStatements" |> Binding.subModelSeq (
-                (
-                    fun m -> 
-                        selectedFs m
-                        |> Option.bind (fun dvm ->
-                            match dvm with
-                            | Choice1Of2 xvm -> xvm |> Some
-                            | Choice2Of2 _ -> None
-                        )
-                        |> Option.defaultValue []
-                ),
-                (fun (_, sm) -> sm),
-                (fun (vm) -> vm.FsStatement.Index),
-                FsStatementMsg,
-                FsStatementViewModel.bindings
+            "SelectedFsStatements" |> Binding.oneWayOpt (
+                fun m -> 
+                    selectedFs m
+                    |> Option.bind (fun dvm ->
+                        match dvm with
+                        | Choice1Of2 xvm -> xvm |> Some
+                        | Choice2Of2 _ -> None
+                    )
             )
 
             "SelectedFsStatementsError" |> Binding.oneWayOpt(fun m -> 
