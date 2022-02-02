@@ -105,7 +105,7 @@ module internal ModuleTreeListViewModel =
                 let module'' = ModuleTreeViewModel.produceDocuments module' store
                 {
                     model with
-                        ModuleTreeList = tryTransformModule key model.ModuleTreeList (fun _ -> module'' )
+                        ModuleTreeList = tryTransformModule key model.ModuleTreeList (fun _ -> { module'' with IsSelected = v } )
                         SelectedModuleKey = key
                 }
                 , Cmd.none
