@@ -34,9 +34,10 @@ let rec parseFile fileName (accum: Map<string, FileParsingResultTree>) : Task<(F
                     |> List.choose (function 
                         | Statement.Import (_, Relative t) ->  t |> Some 
                         | Statement.Export (Transit (_, (Relative t))) ->  t |> Some 
-                        | _ -> None)
-                    |> List.map (fun (ModulePath m) ->
-                        let relativePath = Path.Combine(Path.GetDirectoryName(fileName), m + ".d.ts")
+                        | _ -> None
+                    )
+                    |> List.map (fun (ModulePath modulePath) ->
+                        let relativePath = Path.Combine(Path.GetDirectoryName(fileName), modulePath + ".d.ts")
                         parseFile relativePath accum
                     )
                     |> Task.WhenAll
@@ -76,8 +77,20 @@ let rec parseFile fileName (accum: Map<string, FileParsingResultTree>) : Task<(F
                     |> Leaf
 
                 return tree, (accum |> Map.add fileName tree)
-
     }
+
+
+open System
+
+let rootModule (path: string) = 
+    let dir = Path.GetDirectoryName(path)
+    let dirName = Path.GetFileName(dir)
+    let dirName = 
+        if String.IsNullOrWhiteSpace(dirName) then dir
+        else dirName
+    dirName |> ModulePath.Create
+    
+
 
 
 let openAndProcessFile () =
@@ -86,11 +99,14 @@ let openAndProcessFile () =
         fd.Filter <- "d.ts files (*.d.ts)|*.d.ts|All files (*.*)|*.*"
         match fd.ShowDialog() |> Option.ofNullable with
         | Some _ ->
-            try
-                let! tree = parseFile fd.FileName Map.empty
-                return fst tree |> Ok
-            with
-            | ex -> return Error (ex.ToString())
+            match rootModule fd.FileName with
+            | Ok rootModulePath ->
+                try
+                    let! tree = parseFile fd.FileName Map.empty
+                    return (rootModulePath, fst tree) |> Ok
+                with
+                | ex -> return Error (ex.ToString())
+            | Error err -> return Error (err)
         | None -> return Error "open file canceled"
     }
 
