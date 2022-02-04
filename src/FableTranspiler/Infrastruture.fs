@@ -81,22 +81,13 @@ let rec parseFile fileName (accum: Map<string, FileParsingResultTree>) : Task<(F
     }
 
 
-let rootModule (path: string) = 
-    let dir = Path.GetDirectoryName(path)
-    let dirName = Path.GetFileName(dir)
-    let dirName = 
-        if String.IsNullOrWhiteSpace(dirName) then dir
-        else dirName
-    dirName |> ModulePath.Create
-
-
 let openAndProcessFile () =
     task {
         let fd = OpenFileDialog()
         fd.Filter <- "d.ts files (*.d.ts)|*.d.ts|All files (*.*)|*.*"
         match fd.ShowDialog() |> Option.ofNullable with
         | Some _ ->
-            match rootModule fd.FileName with
+            match Path.GetDirectoryName(fd.FileName) |> ModulePath.Create with
             | Ok rootModulePath ->
                 try
                     let! tree = parseFile fd.FileName Map.empty

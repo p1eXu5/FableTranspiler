@@ -1,6 +1,6 @@
 ﻿module rec FableTranspiler.Parsers.Types
 
-open Microsoft.FSharp.Quotations
+open ConstrainedTypes
 
 
 type Identifier = Identifier of string with
@@ -14,7 +14,7 @@ type StringLiteral = StringLiteral of string with
     static member Value(StringLiteral v) = v
 
 type ModulePath = ModulePath of string with
-    static member Create(v) = ModulePath v
+    static member Create(v) = ConstrainedString.Create(nameof ModulePath, ModulePath, 3, 1024, v)
     static member Value(ModulePath v) = v
 
 

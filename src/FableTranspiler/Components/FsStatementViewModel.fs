@@ -8,6 +8,7 @@ type FsStatementViewModel =
         FsStatement: FsStatementDto
         IsMuted: bool
         SelectedStyle: int
+        
     }
     with
         member this.Content() = 

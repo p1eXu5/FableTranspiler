@@ -2,9 +2,9 @@
 
 open Elmish.WPF
 open Bindings
-open Program
 open Serilog
 open Serilog.Extensions.Logging
+open MainModel
 
 
 let main window =

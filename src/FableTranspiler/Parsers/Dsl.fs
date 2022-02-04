@@ -4,10 +4,10 @@ open Types
 open System
 
 let ``module`` path =
-    let modulePath = ModulePath.Create path
-    match Char.IsLetter(path.[0]) with
-    | true -> DtsModule.NodeModule modulePath
-    | false -> DtsModule.Relative modulePath
+    match (ModulePath.Create path), (Char.IsLetter(path.[0])) with
+    | (Ok modulePath), true -> DtsModule.NodeModule modulePath
+    | (Ok modulePath), false -> DtsModule.Relative modulePath
+    | Error err, _ -> failwith err
 
 
 [<RequireQualifiedAccess>]

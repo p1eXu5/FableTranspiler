@@ -4,6 +4,7 @@ open Elmish
 open AppTypes
 open FableTranspiler.VmAdapters
 open FableTranspiler.Components
+open FableTranspiler.Parsers.Types
 
 
 
@@ -27,7 +28,7 @@ module internal MainModel =
 
     type Msg =
         | ModuleTreeListMsg of ModuleTreeList.Msg
-        | ParseFile of AsyncOperationMsg<Result<AppTypes.FileParsingResultTree, string>>
+        | ParseFile of AsyncOperationMsg<Result<(ModulePath * AppTypes.FileParsingResultTree), string>>
         | SetSelectedModule of string list option
 
 
@@ -56,10 +57,10 @@ module internal MainModel =
     
         | ParseFile (AsyncOperationMsg.Finish result) ->
             match result with
-            | Ok parsingResultTree ->
+            | Ok (modulePath, parsingResultTree) ->
                 let (moduleTreeList, moduleTreeListMsg) =
                     model.ModuleTreeList
-                    |> ModuleTreeList.add parsingResultTree
+                    |> ModuleTreeList.add store modulePath parsingResultTree
 
 
                 //parsingResultTree |> ModuleTreeViewModel.toFileTreeVm store [] true

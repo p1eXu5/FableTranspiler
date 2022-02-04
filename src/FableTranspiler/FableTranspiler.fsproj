@@ -8,6 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Include="..\..\..\..\_libs\FSharp.Tools\ConstrainedTypes.fs" Link="ConstrainedTypes.fs" />
     <Compile Include="Parsers\Parsers.Types.fs" />
     <Compile Include="Parsers\Dsl.fs" />
     <Compile Include="Parsers\Common.fs" />
@@ -29,8 +30,8 @@
     <Compile Include="Elmish.Extensions.fs" />
     <Compile Include="Components\DtsStatementViewModel.fs" />
     <Compile Include="Components\FsStatementViewModel.fs" />
-    <Compile Include="Components\ModuleTreeViewModel.fs" />
-    <Compile Include="Components\ModuleTreeListViewModel.fs" />
+    <Compile Include="Components\ModuleTree.fs" />
+    <Compile Include="Components\ModuleTreeList.fs" />
     <Compile Include="MainModel.fs" />
     <Compile Include="App.fs" />
   </ItemGroup>

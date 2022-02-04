@@ -1,19 +1,24 @@
 ﻿namespace FableTranspiler.Components
 
 open FableTranspiler.VmAdapters
+open FableTranspiler.Parsers.Types
+open FableTranspiler.VmAdapters.Types
 
 [<ReferenceEquality>]
 type ModuleTreeList =
     {
-        ModuleTreeList: ModuleTreeViewModel list
-        SelectedModuleKey: string list
+        ModuleTreeMap: Map<ModulePath, ModuleTree>
+        DtsStatements: Choice<DtsStatementViewModel list, CodeItem list> option
+        FsStatements: Choice<DtsStatementViewModel list, CodeItem list> option
+        SelectedModuleKey: (ModulePath * string list) option
     }
 
 [<RequireQualifiedAccess>]
 module internal ModuleTreeList =
 
     type Msg =
-        | SelectModule of SelectModuleMsg
+        | SelectModule of ModulePath * SelectModuleMsg
+        | ResetSelection
         | DtsStatementMsg of int * DtsStatementViewModel.Msg
         | FsStatementMsg of int * FsStatementViewModel.Msg
     and
@@ -28,31 +33,50 @@ module internal ModuleTreeList =
 
     let init () =
         {
-            ModuleTreeList = []
-            SelectedModuleKey = []
+            ModuleTreeMap = Map.empty
+            DtsStatements = None
+            FsStatements = None
+            SelectedModuleKey = None
         }
         , Cmd.none
 
 
-    let add parsingResultTree l : (ModuleTreeList * Cmd<Msg>) =
-        l, Cmd.none
+    let add store rootPath parsingResultTree model =
+        let moduleTree = parsingResultTree |> ModuleTree.init store rootPath [] false
+        {
+            model with
+                ModuleTreeMap = 
+                    model.ModuleTreeMap
+                    |> Map.add rootPath moduleTree
+        }
+        , Cmd.batch [
+            Cmd.ofMsg ResetSelection
+            Cmd.ofMsg (SelectModule (rootPath, (ChildMsg (moduleTree.Key, ToggleModuleSelection true))))
+        ]
 
+
+
+    // ==============
+    //    Program
+    // ==============
 
     let changeIsSelected v model =
         { model with IsSelected = v}
 
 
-    let rec tryTransformModule (key: string list) modules transform =
+    let rec tryTransformModule (key: ModulePath * string list) modules transform =
     
         let rec tryToggleIsSelected (key: string list) modules accum =
             match key with
             | head :: [] ->
-                modules |> List.map (fun it -> 
+                modules 
+                |> List.map (fun it -> 
                     if it.Key[0] = head then
                         transform it
                     else
                         it
                 )
+
             | head :: tail ->
     
                 let accum' = head :: accum
@@ -67,10 +91,18 @@ module internal ModuleTreeList =
     
             | [] -> []
     
-        tryToggleIsSelected (key |> List.rev) modules []
+        let (modulePath, moduleKey) = key
+
+        modules
+        |> Map.map (fun key rootModule ->
+            if key = modulePath then
+                tryToggleIsSelected (moduleKey |> List.rev) [rootModule] []
+                |> List.head
+            else rootModule
+        )
 
 
-    let tryFindModule2 (key: string list) modules : ModuleTreeViewModel option =
+    let tryFindModule2 (key: ModulePath * string list) modules : ModuleTree option =
     
         let rec tryFindModule (key: string list) modules accum =
     
@@ -88,37 +120,37 @@ module internal ModuleTreeList =
                 )
             | [] -> None
     
-        tryFindModule (key |> List.rev) modules []
+        let (modulePath, moduleKey) = key
+
+        modules
+        |> Map.tryFind modulePath
+        |> Option.bind (fun m ->
+            tryFindModule (moduleKey |> List.rev) [m] []
+        )
 
 
 
     let update store msg model =
         match msg with
-        | SelectModule (ChildMsg (key, ToggleModuleSelection v)) when not v ->
+        | SelectModule (modulePath, ChildMsg (key, ToggleModuleSelection v)) when not v ->
             {
                 model with
-                    ModuleTreeList = tryTransformModule key model.ModuleTreeList (changeIsSelected v)
-                    SelectedModuleKey = []
+                    ModuleTreeMap = tryTransformModule (modulePath, key) model.ModuleTreeMap (changeIsSelected v)
+                    SelectedModuleKey = None
             }
             , Cmd.none
 
-        | SelectModule (ChildMsg (key, ToggleModuleSelection v)) when v ->
+        | SelectModule (modulePath, ChildMsg (key, ToggleModuleSelection v)) when v ->
+            let selectedModuleKey = (modulePath, key)
 
-            match tryFindModule2 key model.ModuleTreeList with
-            | Some module' when module'.DtsDocumentVm |> Option.isNone ->
-                let module'' = ModuleTreeViewModel.produceDocuments module' store
+            match tryFindModule2 selectedModuleKey model.ModuleTreeMap with
+            | Some selectedModule ->
                 {
                     model with
-                        ModuleTreeList = tryTransformModule key model.ModuleTreeList (fun _ -> { module'' with IsSelected = v } )
-                        SelectedModuleKey = key
-                }
-                , Cmd.none
-
-            | Some module' when module'.DtsDocumentVm |> Option.isSome ->
-                {
-                    model with
-                        ModuleTreeList = tryTransformModule key model.ModuleTreeList (changeIsSelected v)
-                        SelectedModuleKey = key
+                        ModuleTreeMap = tryTransformModule selectedModuleKey model.ModuleTreeMap (changeIsSelected v)
+                        DtsStatements = selectedModule.DtsDocumentVm.Value |> Some
+                        FsStatements = selectedModule.DtsDocumentVm.Value |> Some
+                        SelectedModuleKey = selectedModuleKey |> Some
                 }
                 , Cmd.none
 
@@ -127,9 +159,13 @@ module internal ModuleTreeList =
         | _ -> model, Cmd.none
 
 
+    // ==============
+    //    Bindings
+    // ==============
+
 
     // https://github.com/elmish/Elmish.WPF/blob/master/TUTORIAL.md#level-3-separate-message-type-and-arbitrary-customization-of-model-for-sub-bindings
-    let rec parentBindings () : Binding<ModuleTreeViewModel, SelectModuleMsg> list = [
+    let rec parentBindings () : Binding<ModuleTree, SelectModuleMsg> list = [
         "IsSelected" |> Binding.twoWay (
             (fun (m) -> m.IsSelected),
             (fun v -> ToggleModuleSelection v)
@@ -149,39 +185,23 @@ module internal ModuleTreeList =
     ]
 
 
-    let selectedDts model =
-        match model.SelectedModuleKey with
-        | [] -> None
-        | key ->
-            tryFindModule2 key model.ModuleTreeList
-            |> Option.bind (fun d -> d.DtsDocumentVm)
-
-
-    let selectedFs model =
-        match model.SelectedModuleKey with
-        | [] -> None
-        | key ->
-            tryFindModule2 key model.ModuleTreeList
-            |> Option.bind (fun d -> d.FsDocumentVm)
-
-
     let bindings () =
         [
             "ModuleTreeList" |> Binding.subModelSeq (
-                (fun m -> m.ModuleTreeList),
+                (fun m -> m.ModuleTreeMap |> Map.values),
                 (fun (m, sm) -> sm),
-                (fun (vm: ModuleTreeViewModel) -> vm.Key),
+                (fun (vm: ModuleTree) -> vm.RootKey, vm.Key),
                 (fun (id, msg) -> 
                     match msg with
-                    | ToggleModuleSelection _ -> ChildMsg (id, msg) |> SelectModule
-                    | msg' -> msg' |> SelectModule
+                    | ToggleModuleSelection _ -> (fst id, ChildMsg (snd id, msg)) |> SelectModule
+                    | msg' -> (fst id, msg') |> SelectModule
                 ),
                 parentBindings
             )
 
             "SelectedDtsStatements" |> Binding.oneWayOpt (
                 fun m -> 
-                    selectedDts m
+                    m.DtsStatements
                     |> Option.bind (fun dvm ->
                         match dvm with
                         | Choice1Of2 xvm -> xvm |> Some
@@ -190,7 +210,7 @@ module internal ModuleTreeList =
             )
 
             "SelectedDtsStatementsError" |> Binding.oneWayOpt(fun m -> 
-                selectedDts m
+                m.DtsStatements
                 |> Option.bind (fun dvm ->
                     match dvm with
                     | Choice1Of2 _ -> None
@@ -200,7 +220,7 @@ module internal ModuleTreeList =
 
             "SelectedFsStatements" |> Binding.oneWayOpt (
                 fun m -> 
-                    selectedFs m
+                    m.FsStatements
                     |> Option.bind (fun dvm ->
                         match dvm with
                         | Choice1Of2 xvm -> xvm |> Some
@@ -208,12 +228,13 @@ module internal ModuleTreeList =
                     )
             )
 
-            "SelectedFsStatementsError" |> Binding.oneWayOpt(fun m -> 
-                selectedFs m
-                |> Option.bind (fun dvm ->
-                    match dvm with
-                    | Choice1Of2 _ -> None
-                    | Choice2Of2 err -> err |> Some
-                )
+            "SelectedFsStatementsError" |> Binding.oneWayOpt(
+                fun m -> 
+                    m.FsStatements
+                    |> Option.bind (fun dvm ->
+                        match dvm with
+                        | Choice1Of2 _ -> None
+                        | Choice2Of2 err -> err |> Some
+                    )
             )
         ]

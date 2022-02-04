@@ -24,7 +24,7 @@
                 </Style>
             </TreeView.ItemContainerStyle>
             <TreeView.ItemTemplate>
-                <HierarchicalDataTemplate DataType="{x:Type vm:ModuleTreeViewModel}" ItemsSource="{Binding SubModules}">
+                <HierarchicalDataTemplate DataType="{x:Type vm:ModuleTree}" ItemsSource="{Binding SubModules}">
                     <Label Content="{Binding FileName}"/>
                 </HierarchicalDataTemplate>
             </TreeView.ItemTemplate>
