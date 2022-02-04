@@ -65,10 +65,13 @@ module internal ModuleTree =
                 FsDocumentVm =
                     lazy (
                         match parsingResult.Statements with
-                        | Ok l -> 
-                            FsInterpreter.Facade.interpret None fileName store initialInterpreters l
-                            |> List.map FsStatementViewModel.create
-                            |> Choice1Of2
+                        | Ok l ->
+                            try
+                                FsInterpreter.Facade.interpret None fileName store initialInterpreters l
+                                |> List.map FsStatementViewModel.create
+                                |> Choice1Of2
+                            with
+                            | ex -> interpretError ex.Message |> Choice2Of2
                         | Error err -> interpretError err |> Choice2Of2
                     )
             }

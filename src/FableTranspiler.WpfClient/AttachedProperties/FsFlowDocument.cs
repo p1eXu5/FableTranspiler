@@ -27,10 +27,15 @@ namespace FableTranspiler.WpfClient.AttachedProperties
                 typeof(FsFlowDocument),
                 new FrameworkPropertyMetadata {
                     BindsTwoWayByDefault = false,
-                    PropertyChangedCallback = FsDocumentChangedCallback<DtsStatementViewModel>
+                    PropertyChangedCallback = FsDocumentChangedCallback<FsStatementViewModel>
                 });
 
 
+        /// <summary>
+        /// Obtains <see cref="FsDocumentProperty"/> value.
+        /// </summary>
+        /// <param name="obj"></param>
+        /// <returns></returns>
         public static FSharpList<FsStatementViewModel> GetFsDocument(DependencyObject obj)
         {
             return (FSharpList<FsStatementViewModel>)obj.GetValue(FsDocumentProperty);
@@ -42,10 +47,6 @@ namespace FableTranspiler.WpfClient.AttachedProperties
         }
 
         #endregion ───────────────────────────────────────────────────── FsDocumentProperty ─┘
-
-
-
-
 
 
         #region FsDocumentErrorProperty
@@ -134,7 +135,7 @@ namespace FableTranspiler.WpfClient.AttachedProperties
             var richTextBox = (RichTextBox)d;
 
             object? statements = typeof(TViewModel).Name switch {
-                nameof(FsStatement) => GetFsDocument(richTextBox),
+                nameof(FsStatementViewModel) => GetFsDocument(richTextBox),
                 nameof(CodeItem) => GetFsDocumentError(richTextBox),
                 _ => null
             };

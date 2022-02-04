@@ -9,7 +9,7 @@ type ModuleTreeList =
     {
         ModuleTreeMap: Map<ModulePath, ModuleTree>
         DtsStatements: Choice<DtsStatementViewModel list, CodeItem list> option
-        FsStatements: Choice<DtsStatementViewModel list, CodeItem list> option
+        FsStatements: Choice<FsStatementViewModel list, CodeItem list> option
         SelectedModuleKey: (ModulePath * string list) option
     }
 
@@ -149,7 +149,7 @@ module internal ModuleTreeList =
                     model with
                         ModuleTreeMap = tryTransformModule selectedModuleKey model.ModuleTreeMap (changeIsSelected v)
                         DtsStatements = selectedModule.DtsDocumentVm.Value |> Some
-                        FsStatements = selectedModule.DtsDocumentVm.Value |> Some
+                        FsStatements = selectedModule.FsDocumentVm.Value |> Some
                         SelectedModuleKey = selectedModuleKey |> Some
                 }
                 , Cmd.none

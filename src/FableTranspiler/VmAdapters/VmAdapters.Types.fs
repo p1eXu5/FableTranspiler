@@ -153,10 +153,10 @@ type FsStatement with
 
 
 
-[<AutoOpen>]
+[<RequireQualifiedAccess>]
 module internal FsStatementDto =
 
-    let createFsVm dtsStatement ind codeStyle fsStatement =
+    let create dtsStatement ind codeStyle fsStatement =
         {
             Index = ind
             DtsStatement = dtsStatement

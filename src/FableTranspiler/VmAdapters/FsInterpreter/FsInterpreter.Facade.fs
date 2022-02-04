@@ -89,12 +89,12 @@ let internal interpret ns fileName store interpreters statements =
         match statements with
         | statement :: tail ->
 
-            let createVm vm = 
+            let createDto vm = 
                 let fsCodeStyle =
                     match vm with
                     | FsStatement.Typed _ -> FsCodeStyle.Fable
                     | _ -> FsCodeStyle.Universal
-                createFsVm (statement |> Some) ind fsCodeStyle vm
+                FsStatementDto.create (statement |> Some) ind fsCodeStyle vm
 
             match statement with
             | Statement.Export (ExportStatement.Structure structure) ->
@@ -105,7 +105,7 @@ let internal interpret ns fileName store interpreters statements =
                 | Some n -> store.Add fileName n vm
                 | None -> ()
 
-                continueInterpret tail (vm |> createVm)
+                continueInterpret tail (vm |> createDto)
 
             | Statement.Structure structure ->
                 let vm = 
@@ -117,7 +117,16 @@ let internal interpret ns fileName store interpreters statements =
                 interpret tabLevel tail (ind + 1) result
 
             | Statement.Export (ExportStatement.OutDefault (Identifier name)) ->
-                continueInterpret tail (store.Get fileName name |> Option.get |> createVm)
+                let vm = 
+                    match store.Get fileName name with
+                    | Some fsStatement -> createDto fsStatement
+                    | None -> 
+                        FsStatement.Nameless [
+                            vmText $"%A{statement} is not parsed"
+                            vmEndLineNull
+                        ] |> createDto
+
+                continueInterpret tail vm
 
             | _ -> interpret tabLevel tail (ind + 1) result
 
@@ -144,7 +153,7 @@ let internal interpret ns fileName store interpreters statements =
             vmEndLine null
         ] 
         |> FsStatement.Nameless
-        |> createFsVm None -1 FsCodeStyle.Universal
+        |> FsStatementDto.create None -1 FsCodeStyle.Universal
         |> List.singleton
 
     (interpret 0 statements 0 initialResult)
