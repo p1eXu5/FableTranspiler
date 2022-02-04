@@ -7,6 +7,7 @@ open FableTranspiler.Parsers.Types
 open FableTranspiler.AppTypes
 open System.Threading.Tasks
 
+open System
 
 let readFile file =
     task {
@@ -80,8 +81,6 @@ let rec parseFile fileName (accum: Map<string, FileParsingResultTree>) : Task<(F
     }
 
 
-open System
-
 let rootModule (path: string) = 
     let dir = Path.GetDirectoryName(path)
     let dirName = Path.GetFileName(dir)
@@ -89,8 +88,6 @@ let rootModule (path: string) =
         if String.IsNullOrWhiteSpace(dirName) then dir
         else dirName
     dirName |> ModulePath.Create
-    
-
 
 
 let openAndProcessFile () =
