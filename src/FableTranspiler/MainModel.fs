@@ -5,6 +5,7 @@ open AppTypes
 open FableTranspiler.VmAdapters
 open FableTranspiler.Components
 open FableTranspiler.Parsers.Types
+open SimpleTypes
 
 
 
@@ -13,7 +14,7 @@ type MainModel =
         //FileTree: FileTreeViewModel list option
         //SelectedModuleKey: string list option
         //SelectedDocument: FileTreeViewModel option
-        ModuleTreeList: ModuleTreeList
+        ModuleTreeList: ModuleTreeCollection
         DtsModules: Map<string list, DtsStatementViewModel list>
         FsModules: Map<string list, FsStatementViewModel list>
         SelectedModuleKey: string list
@@ -28,7 +29,7 @@ module internal MainModel =
 
     type Msg =
         | ModuleTreeListMsg of ModuleTreeList.Msg
-        | ParseFile of AsyncOperationMsg<Result<(ModulePath * AppTypes.FileParsingResultTree), string>>
+        | ParseFile of AsyncOperationMsg<Result<(LibLocation * AppTypes.FileParsingResultTree), string>>
         | SetSelectedModule of string list option
 
 

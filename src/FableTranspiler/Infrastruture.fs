@@ -2,12 +2,14 @@
 
 open System.IO
 open Microsoft.Win32
+open FableTranspiler.SimpleTypes
 open FableTranspiler.Parsers
 open FableTranspiler.Parsers.Types
 open FableTranspiler.AppTypes
 open System.Threading.Tasks
 
 open System
+open FableTranspiler.VmAdapters.FsInterpreter.Types
 
 let readFile file =
     task {
@@ -27,8 +29,8 @@ let rec parseFile fileName (accum: Map<string, FileParsingResultTree>) : Task<(F
         | false, _ ->
             let! content = readFile fileName
 
-            match Parser.document content with
-            | Ok statements ->
+            match ModulePath.Create(fileName), Parser.document content with
+            | Ok modulePath, Ok statements ->
 
                 let! results =
                     statements
@@ -46,7 +48,7 @@ let rec parseFile fileName (accum: Map<string, FileParsingResultTree>) : Task<(F
 
                 let statementResult =
                     {
-                        Path = fileName
+                        Path = modulePath
                         Statements = (statements |> Ok)
                     }
 
@@ -69,15 +71,17 @@ let rec parseFile fileName (accum: Map<string, FileParsingResultTree>) : Task<(F
                         statementResult |> Leaf
                         , accum
 
-            | Error err -> 
+            | Ok modulePath, Error err -> 
                 let tree =
                     {
-                        Path = fileName
+                        Path = modulePath
                         Statements = Error err
                     }
                     |> Leaf
 
                 return tree, (accum |> Map.add fileName tree)
+
+            | Error err, _ -> return failwith err
     }
 
 
@@ -87,7 +91,7 @@ let openAndProcessFile () =
         fd.Filter <- "d.ts files (*.d.ts)|*.d.ts|All files (*.*)|*.*"
         match fd.ShowDialog() |> Option.ofNullable with
         | Some _ ->
-            match Path.GetDirectoryName(fd.FileName) |> ModulePath.Create with
+            match Path.GetDirectoryName(fd.FileName) |> LibLocation.Create with
             | Ok rootModulePath ->
                 try
                     let! tree = parseFile fd.FileName Map.empty
@@ -104,9 +108,9 @@ module FsStatementInMemoryStore =
     open System.Collections.Generic
     open FableTranspiler.VmAdapters.Types
 
-    let private dict = Dictionary<string, Dictionary<string, FsStatement>>()
+    let private dict = Dictionary<ModulePath, Dictionary<Identifier, FsStatement>>()
 
-    let internal store =
+    let internal store : FsStatementStore =
         {
             Get =
                 fun fileName typeName ->
@@ -120,7 +124,7 @@ module FsStatementInMemoryStore =
             Add =
                 fun fileName typeName statement ->
                     if not (dict.ContainsKey(fileName)) then
-                        dict[fileName] <- Dictionary<string, FsStatement>()
+                        dict[fileName] <- Dictionary<Identifier, FsStatement>()
 
                     dict[fileName][typeName] <- statement
         }

@@ -2,16 +2,17 @@
 
 open System
 open System.IO
+open FableTranspiler.SimpleTypes
 open FableTranspiler.AppTypes
 open FableTranspiler.VmAdapters.Types
 open FableTranspiler.VmAdapters
-open FableTranspiler.Parsers.Types
+open FableTranspiler.VmAdapters.FsInterpreter.Types
 
 
 [<ReferenceEquality>]
 type ModuleTree =
     {
-        RootKey: ModulePath
+        RootKey: LibLocation
         /// fileName :: parent
         Key: string list
         IsSelected: bool
@@ -46,11 +47,12 @@ module internal ModuleTree =
             )
             |> List.concat)
 
-        let create (key, fileName, isSelected, parsingResult, subModules) =
+        let create (parentKey, parsingResult, subModules) =
+            let fileName = Path.GetFileName(parsingResult.Path |> ModulePath.Value)
             {
                 RootKey = modulePath
-                Key = key
-                IsSelected = isSelected
+                Key = fileName :: parentKey
+                IsSelected = false
                 FileName = fileName
                 SubModules = subModules
                 DtsDocumentVm =
@@ -67,9 +69,10 @@ module internal ModuleTree =
                         match parsingResult.Statements with
                         | Ok l ->
                             try
-                                FsInterpreter.Facade.interpret None fileName store initialInterpreters l
-                                |> List.map FsStatementViewModel.create
-                                |> Choice1Of2
+                                interpretError "need to fix (ModuleTree.fs)" |> Choice2Of2
+                                //FsInterpreter.Facade.interpret None modulePath store initialInterpreters l
+                                //|> List.map FsStatementViewModel.create
+                                //|> Choice1Of2
                             with
                             | ex -> interpretError ex.Message |> Choice2Of2
                         | Error err -> interpretError err |> Choice2Of2
@@ -78,29 +81,24 @@ module internal ModuleTree =
 
         match moduleTree with
         | Leaf leaf ->
-            let fileName = Path.GetFileName(leaf.Path)
             create (
-                fileName :: parentKey,
-                fileName,
-                isSelected,
+                parentKey,
                 leaf,
                 []
             )
         | Branch (root, branch) ->
-            let fileName = Path.GetFileName(root.Path)
-            let key = fileName :: parentKey
+            let vm = 
+                create (
+                    parentKey,
+                    root,
+                    []
+                )
 
-            let modules =
+            let subModules =
                 branch
-                |> List.map (init store modulePath key false)
+                |> List.map (init store modulePath vm.Key false)
 
-            create (
-                key,
-                fileName,
-                isSelected,
-                root,
-                modules
-            )
+            {vm with SubModules = subModules}
 
 
     //let produceDocuments moduleTree store =

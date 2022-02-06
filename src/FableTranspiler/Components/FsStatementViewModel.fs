@@ -1,6 +1,7 @@
 ﻿namespace FableTranspiler.Components
 
 open FableTranspiler.VmAdapters.Types
+open FableTranspiler.VmAdapters.FsInterpreter.Types
 
 [<ReferenceEquality>]
 type FsStatementViewModel =
@@ -14,7 +15,7 @@ type FsStatementViewModel =
         member this.Content() = 
             this.FsStatement.StyledFsStatements[this.SelectedStyle]
                 .FsStatement
-                |> FsStatement.segments
+                |> FsStatement.codeItems
 
         member this.FsCodeStyle() =
             this.FsStatement.StyledFsStatements[this.SelectedStyle]

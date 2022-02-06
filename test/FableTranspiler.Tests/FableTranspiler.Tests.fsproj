@@ -8,6 +8,8 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Include="BDD\FileProcessing.feature" />
+    <None Include="BDD\StyleChange.features" />
     <Compile Include="VmAdapters\FsInterpreter\TestCaseSources\InterfaceTestCaseSources.fs" />
     <Compile Include="VmAdapters\FsInterpreter\FsInterpreter.FacadeTests.fs" />
     <Compile Include="Parsers\TestCaseSources\StructuresFactory.fs" />
@@ -34,6 +36,7 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
+    <PackageReference Include="TickSpec" Version="2.0.2" />
   </ItemGroup>
 
   <ItemGroup>
@@ -43,5 +46,7 @@
   <ItemGroup>
     <PackageReference Update="FSharp.Core" Version="6.0.1" />
   </ItemGroup>
+
+  <ItemGroup />
 
 </Project>

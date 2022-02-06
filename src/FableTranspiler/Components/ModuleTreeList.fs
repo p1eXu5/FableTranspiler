@@ -1,23 +1,22 @@
 ﻿namespace FableTranspiler.Components
 
-open FableTranspiler.VmAdapters
-open FableTranspiler.Parsers.Types
+open FableTranspiler.SimpleTypes
 open FableTranspiler.VmAdapters.Types
 
 [<ReferenceEquality>]
-type ModuleTreeList =
+type ModuleTreeCollection =
     {
-        ModuleTreeMap: Map<ModulePath, ModuleTree>
+        ModuleTreeMap: Map<LibLocation, ModuleTree>
         DtsStatements: Choice<DtsStatementViewModel list, CodeItem list> option
         FsStatements: Choice<FsStatementViewModel list, CodeItem list> option
-        SelectedModuleKey: (ModulePath * string list) option
+        SelectedModuleKey: (LibLocation * string list) option
     }
 
 [<RequireQualifiedAccess>]
 module internal ModuleTreeList =
 
     type Msg =
-        | SelectModule of ModulePath * SelectModuleMsg
+        | SelectModule of LibLocation * SelectModuleMsg
         | ResetSelection
         | DtsStatementMsg of int * DtsStatementViewModel.Msg
         | FsStatementMsg of int * FsStatementViewModel.Msg
@@ -64,7 +63,7 @@ module internal ModuleTreeList =
         { model with IsSelected = v}
 
 
-    let rec tryTransformModule (key: ModulePath * string list) modules transform =
+    let rec tryTransformModule (key: LibLocation * string list) modules transform =
     
         let rec tryToggleIsSelected (key: string list) modules accum =
             match key with
@@ -102,7 +101,7 @@ module internal ModuleTreeList =
         )
 
 
-    let tryFindModule2 (key: ModulePath * string list) modules : ModuleTree option =
+    let tryFindModule2 (key: LibLocation * string list) modules : ModuleTree option =
     
         let rec tryFindModule (key: string list) modules accum =
     

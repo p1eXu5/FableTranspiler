@@ -1,6 +1,7 @@
 ﻿[<RequireQualifiedAccess>]
 module FableTranspiler.Parsers.Module
 
+open FableTranspiler.SimpleTypes
 open FParsec
 open Types
 open Common

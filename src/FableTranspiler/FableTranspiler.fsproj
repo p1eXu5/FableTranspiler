@@ -9,6 +9,7 @@
 
   <ItemGroup>
     <Compile Include="..\..\..\..\_libs\FSharp.Tools\ConstrainedTypes.fs" Link="ConstrainedTypes.fs" />
+    <Compile Include="SimpleTypes.fs" />
     <Compile Include="Parsers\Parsers.Types.fs" />
     <Compile Include="Parsers\Dsl.fs" />
     <Compile Include="Parsers\Common.fs" />
@@ -22,6 +23,8 @@
     <Compile Include="AppTypes.fs" />
     <Compile Include="VmAdapters\VmAdapters.Types.fs" />
     <Compile Include="VmAdapters\DtsInterpreter.fs" />
+    <Compile Include="VmAdapters\FsInterpreter\FsInterpreter.Interpreter.fs" />
+    <Compile Include="VmAdapters\FsInterpreter\FsInterpreter.Types.fs" />
     <Compile Include="VmAdapters\FsInterpreter\FsInterpreter.Common.fs" />
     <Compile Include="VmAdapters\FsInterpreter\FsInterpreter.React.fs" />
     <Compile Include="VmAdapters\FsInterpreter\FsInterpreter.Fable.fs" />

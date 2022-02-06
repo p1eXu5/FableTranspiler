@@ -1,10 +1,5 @@
 ﻿namespace FableTranspiler.VmAdapters.Types
 
-open FableTranspiler.Parsers.Types
-open System
-
-
-
 
 [<StructuralEquality; StructuralComparison>]
 type CodeItem =
@@ -27,32 +22,6 @@ and
         | EndOfLine = 7
 
 
-type InterfaceFsStatement =
-    {
-        Name: string
-        Content: CodeItem list
-        Construct: CodeItem list
-    }
-
-[<RequireQualifiedAccess>]
-type FsStatement =
-    | Nameless of CodeItem list
-    | Named of Name: string * CodeItem list
-    | Link of Name: string * FsStatement
-    | Let of Name: string * CodeItem list * TypeConstructor: (unit -> CodeItem list)
-    | Typed of Name: string * CodeItem list * TypeConstructor: CodeItem list
-    | Interface of InterfaceFsStatement
-
-
-type GetFsStatement = string -> FsStatement option
-
-type internal FsStatementStore =
-    {
-        Get: string -> GetFsStatement
-        Add: string -> string -> FsStatement -> unit
-    }
-
-
 
 [<ReferenceEquality>]
 type DtsStatementDto =
@@ -61,124 +30,6 @@ type DtsStatementDto =
         DtsStatement: FableTranspiler.Parsers.Types.Statement
         DtsDocumentSection: CodeItem list
     }
-
-
-
-type FsCodeStyle =
-    | Universal
-    | Fable
-    | React
-    | Feliz
-
-
-[<ReferenceEquality>]
-type FsStatementDto =
-    {
-        Index: int
-        DtsStatement: FableTranspiler.Parsers.Types.Statement option
-        StyledFsStatements: StyledFsStatement list
-    }
-and
-    StyledFsStatement =
-        {
-            FsCodeStyle: FsCodeStyle
-            FsStatement: FsStatement
-        }
-
-
-
-type internal Interpreters =
-    {
-        InterpretPlainFableInterface: GetFsStatement -> int -> string -> FieldList -> (CodeItem list * CodeItem list)
-    }
-
-
-[<RequireQualifiedAccess>]
-module internal FsStatement =
-
-    let name = function
-        | FsStatement.Nameless _ -> None
-        | FsStatement.Named (n, _) -> n |> Some
-        | FsStatement.Link (n, _) -> n |> Some
-        | FsStatement.Let (n, _, _) -> n |> Some
-        | FsStatement.Typed (n, _, _) -> n |> Some
-        | FsStatement.Interface v -> v.Name |> Some
-
-    let rec segments = function
-        | FsStatement.Nameless l -> l
-        | FsStatement.Named (_, l) -> l
-        | FsStatement.Link (_, l) -> l |> segments
-        | FsStatement.Let (_, l, _) -> l
-        | FsStatement.Typed (_, l, _) -> l
-        | FsStatement.Interface v -> v.Content
-
-    let rec construct = function
-        | FsStatement.Nameless _ -> None
-        | FsStatement.Named (_, l) -> l |> Some
-        | FsStatement.Link (_, l) -> l |> construct
-        | FsStatement.Let (_, _, f) -> f() |> Some
-        | FsStatement.Typed (_, _, l) -> l |> Some
-        | FsStatement.Interface v -> v.Construct |> Some
-
-    let rec insertAtEnd segment = function
-        | FsStatement.Nameless l -> l @ [segment] |> FsStatement.Nameless
-        | FsStatement.Named (name, l) -> (name, l @ [segment]) |> FsStatement.Named
-        | FsStatement.Link (name, l) -> (name, insertAtEnd segment l) |> FsStatement.Link
-        | FsStatement.Let (name, l, constructor) -> (name, l @ [segment], constructor) |> FsStatement.Let
-        | FsStatement.Typed (name, l, constructor) -> (name, l @ [segment], constructor) |> FsStatement.Typed
-        | FsStatement.Interface v ->
-            {
-                v with
-                    Content = v.Content @ [segment]
-            }
-            |> FsStatement.Interface
-
-
-type FsStatement with
-    member this.Content() = FsStatement.segments this
-    member this.Name() = FsStatement.name this
-    member this.StringContent() =
-        this.Content()
-        |> List.map (fun ci ->
-            match ci.Tag with
-            | Tag.NoContent -> ""
-            | Tag.EndOfLine -> "\n"
-            | _ -> ci.Content
-        )
-        |> fun l -> String.Join("", l)
-    member this.Construct() =
-        match FsStatement.construct this with
-        | Some l -> l
-        | None -> []
-
-
-
-[<RequireQualifiedAccess>]
-module internal FsStatementDto =
-
-    let create dtsStatement ind codeStyle fsStatement =
-        {
-            Index = ind
-            DtsStatement = dtsStatement
-            StyledFsStatements = 
-                [{
-                    FsCodeStyle = codeStyle
-                    FsStatement = fsStatement
-                }]
-        }
-
-type FsStatementDto with
-    member this.Content() =
-        raise (NotImplementedException())
-        //this.StyledFsStatements[this.SelectedFsStatement]
-        //    .FsStatement
-        //    |> FsStatement.segments
-
-    member this.FsCodeStyle() =
-        raise (NotImplementedException())
-        //this.StyledFsStatements[this.SelectedFsStatement]
-        //    .FsCodeStyle
-
 
 
 [<AutoOpen>]

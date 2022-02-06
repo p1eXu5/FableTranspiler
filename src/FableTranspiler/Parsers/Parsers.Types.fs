@@ -1,21 +1,15 @@
 ﻿module rec FableTranspiler.Parsers.Types
 
-open ConstrainedTypes
-
+open FableTranspiler.SimpleTypes
 
 type Identifier = Identifier of string with
     static member Create(v) = Identifier v
     static member Value(Identifier v) = v
 
 
-
 type StringLiteral = StringLiteral of string with
     static member Create(v) = StringLiteral v
     static member Value(StringLiteral v) = v
-
-type ModulePath = ModulePath of string with
-    static member Create(v) = ConstrainedString.Create(nameof ModulePath, ModulePath, 3, 1024, v)
-    static member Value(ModulePath v) = v
 
 
 type DTsType =

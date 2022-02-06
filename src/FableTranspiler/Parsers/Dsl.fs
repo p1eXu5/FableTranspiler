@@ -2,6 +2,7 @@
 
 open Types
 open System
+open FableTranspiler.SimpleTypes
 
 let ``module`` path =
     match (ModulePath.Create path), (Char.IsLetter(path.[0])) with

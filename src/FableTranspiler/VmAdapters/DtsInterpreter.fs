@@ -4,6 +4,7 @@ open FableTranspiler.Parsers.Types
 open System.Linq
 open FableTranspiler.VmAdapters.Types
 open FableTranspiler.VmAdapters.Types.CodeItem
+open FableTranspiler.SimpleTypes
 
 type EntityOrder =
     | Single

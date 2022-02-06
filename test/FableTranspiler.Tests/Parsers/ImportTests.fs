@@ -1,6 +1,7 @@
 ﻿namespace FableTranspiler.Tests.Parsers
 
 open NUnit.Framework
+open FableTranspiler.SimpleTypes
 
 [<Category("Parsers.ImportTests")>]
 module ImportTests =
