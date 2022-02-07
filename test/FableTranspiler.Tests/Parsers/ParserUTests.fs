@@ -161,7 +161,7 @@ module Statements =
         let a = StringLiteral "sdf"
         let b = StringLiteral "sdf"
 
-        Parser.document input |> shouldL equal (Result<StatementList, string>.Ok output)
+        Parser.document input |> shouldL equal (Result<StatementList, string>.Ok output) ""
 
 
     [<Test>]

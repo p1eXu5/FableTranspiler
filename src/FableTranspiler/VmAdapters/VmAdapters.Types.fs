@@ -1,6 +1,8 @@
 ﻿namespace FableTranspiler.VmAdapters.Types
 
 
+
+
 [<StructuralEquality; StructuralComparison>]
 type CodeItem =
     {
@@ -32,8 +34,17 @@ type DtsStatementDto =
     }
 
 
+type TabLevel = TabLevel of int with
+    static member (+) (TabLevel tabLevel, v) =
+        (tabLevel + v) |> TabLevel
+
+    static member (+) (v, TabLevel tabLevel) =
+        (tabLevel + v) |> TabLevel
+
+
 [<AutoOpen>]
 module internal CodeItem =
+    open FableTranspiler.Parsers.Types
     
     let createDtsVm dtsStatement ind dtsDocumentSection =
         {
@@ -41,8 +52,6 @@ module internal CodeItem =
             DtsStatement = dtsStatement
             DtsDocumentSection = dtsDocumentSection
         }
-
-
 
     let vm tag content =
         { Tag = tag; Content = content }
@@ -83,8 +92,11 @@ module internal CodeItem =
     let vmPrn content =
         { Tag = Tag.Parentheses; Content = content }
 
-    let tab level =
-        { Tag = Tag.Text; Content = String.replicate (4 * level) " " }
+    let tab (TabLevel tabLevel) =
+        { Tag = Tag.Text; Content = String.replicate (4 * tabLevel) " " }
+
+    let vmIdentifier (Identifier identifier) =
+        { Tag = Tag.Text; Content = identifier }
 
     let vmNo =
         { Tag = Tag.NoContent; Content = null }

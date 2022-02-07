@@ -1,5 +1,6 @@
 ﻿namespace FableTranspiler.Tests.VmAdapters
 
+open FableTranspiler.Tests
 open NUnit.Framework
 open FsUnit
 open FableTranspiler.Parsers
@@ -9,6 +10,7 @@ open FableTranspiler.Tests.VmAdapters.TestCaseSources.InterfaceTestCaseSources
 open FableTranspiler.SimpleTypes
 open FableTranspiler.VmAdapters.FsInterpreter.Types
 open FableTranspiler.Parsers.Types
+open FableTranspiler.Tests.Parsers.Common
 
 module FsDocumentInterpreterTests =
 
@@ -23,6 +25,7 @@ module FsDocumentInterpreterTests =
         {
             Interpreters = fableInterpreters
             Store = store
+            LoggerFactory = MockLoggerFactory.GetMockLoggerFactory(TestContext.WriteLine).Object
         }
 
 
@@ -49,23 +52,41 @@ module FsDocumentInterpreterTests =
                 smooth?: boolean | string | undefined;
             }
         """
-        let expectedInterpretations =
-            [
-                "type Foo ="
-                "abstract smooth : U2<bool, string> option"
-            ]
-
         do
             interpreter modulePath input
             |> Interpreter.run config
             |> ignore
 
         let actual = store.Get modulePath (Identifier "Foo")
-        actual |> should be (ofCase <@ Some @>)
+        actual |> should be (ofCase <@ Some FsStatement.Typed @>)
 
         let actualDisplay = actual |> Option.map (fun statement -> statement.StringContent()) |> Option.defaultValue ""
-        actualDisplay |> should contain expectedInterpretations[0]
-        actualDisplay |> should contain expectedInterpretations[1]
+        actualDisplay |> should contain "type Foo ="
+        actualDisplay |> should contain "abstract smooth : U2<bool, string> option"
+
+
+    [<Test>]
+    let ``uses existing statement when there is an reference in type alias`` () =
+        let modulePath = "test.d.ts" |> modulePath
+        let input = """
+            export interface Foo {
+                smooth?: boolean | string | undefined;
+            }
+
+            export type LinkProps = Foo & React.HTMLProps<HTMLButtonElement>;
+        """
+
+        do
+            interpreter modulePath input
+            |> Interpreter.run config
+            |> ignore
+
+        let actual = store.Get modulePath (Identifier "LinkProps")
+        actual |> shouldL be (ofCase <@ Some FsStatement.Typed @>) "LinkProps type must be present in store:"
+
+        let actualDisplay = actual |> Option.map (fun statement -> statement.StringContent()) |> Option.defaultValue ""
+        actualDisplay |> should contain "type LinkProps ="
+        actualDisplay |> shouldL contain "abstract smooth : U2<bool, string> option" "field presentation"
 
 
     //[<Test>]

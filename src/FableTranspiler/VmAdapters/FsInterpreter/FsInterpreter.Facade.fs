@@ -8,6 +8,7 @@ open FableTranspiler.SimpleTypes
 open System.IO
 open Types
 open FableTranspiler.VmAdapters.FsInterpreter.InterpreterBuilder
+open Microsoft.Extensions.Logging
 
 
 let importAttribute name source =
@@ -24,8 +25,8 @@ let importAttribute name source =
 
 
 
-
-let private interpretStructure (structure: StructureStatement) tabLevel =
+/// Gateway to interpret structures. Optionally adds Import attribute
+let private interpretStructure (structure: StructureStatement) (tabLevel: TabLevel) =
     let tabbedImportAttribute name jsModule tabLevel =
         [
             tab tabLevel
@@ -44,38 +45,53 @@ let private interpretStructure (structure: StructureStatement) tabLevel =
         ) = Interpreter.ask
 
         match structure with
-        //| FunctionDefinition (FunctionDefinition.Plain (identifier, parameters, returnType)) ->
-        //    return
-        //        (
-        //            identifier,
-        //            [
-        //                yield! tabbedImportAttribute identifier config.ImportingJsModule tabLevel
-        //                tab tabLevel
-        //                yield! interpretFn statements "let" identifier parameters returnType
-        //                vmEndLineNull
-        //                vmEndLineNull
-        //            ],
-        //            (fun () -> interpretFnType statements parameters returnType )
-        //        )
-        //        |> FsStatement.Let
+        | FunctionDefinition (FunctionDefinition.Plain (identifier, parameters, returnType)) ->
+            let! fnInterpretation = 
+                interpretFn "let" identifier parameters returnType 
+                |> Interpreter.withEnv (fun cfg -> cfg.FsStatementReader)
+
+            let display =
+                [
+                    yield! tabbedImportAttribute identifier config.ImportingJsModule tabLevel
+                    tab tabLevel
+                    yield! fnInterpretation
+                    vmEndLineNull
+                    vmEndLineNull
+                ]
+
+            let! signature = 
+                interpretFnType parameters returnType 
+                |> Interpreter.withEnv (fun cfg -> cfg.FsStatementReader)
+
+            return FsStatement.Let (identifier, display, signature)
 
         | InterfaceDefinition (InterfaceDefinition.Plain (identifier, fl)) ->
-            let! (present, construct) = 
+            let! (display, body) = 
                 config.Interpreters.InterpretPlainFableInterface identifier fl tabLevel
                 |> Interpreter.withEnv (fun config -> config.FsStatementReader)
 
-            return
-                (
-                    identifier,
-                    present,
-                    construct
-                )
-                |> FsStatement.Interface
+            return FsStatement.Typed (identifier, display, body)
 
-        //| ConstDefinition (DeclareConst (identifier, tdef)) ->
-        //    match interpretTypeDefinition statements tdef with
-        //    | Choice1Of2 l -> return FsStatement.Named (identifier, l)
-        //    | Choice2Of2 vm -> return FsStatement.Link (identifier, vm)
+        | ConstDefinition (DeclareConst (identifier, tdef)) ->
+            let! typeInterpretation = 
+                interpretTypeDefinition tdef
+                |> Interpreter.withEnv (fun config -> config.FsStatementReader)
+
+            match typeInterpretation with
+            | Choice1Of2 l -> return FsStatement.Named (identifier, l)
+            | Choice2Of2 vm -> return FsStatement.Link (identifier, vm)
+
+        | TypeAlias (TypeAlias.Plain (identifier, comb)) ->
+            let display =
+                [
+                    tab tabLevel
+                    vmKeyword "type "
+                    vmIdentifier identifier
+                    vmPrn " ="
+                    vmEndLineNull
+                ]
+
+            return FsStatement.Typed (identifier, display, [])
 
         | _ -> 
             return
@@ -95,20 +111,90 @@ let internal toDocumentSegmentViewModelList (fsList: FsStatement list) : CodeIte
     |> List.concat
 
 
-let rec private _interpret statements tabLevel ind (result: FsStatementDto list) =
+let inline logDebug category formatMessage formatParameters =
     interpreter {
+        let! (loggerFactory: ILoggerFactory) = Interpreter.ask
+        let logger = loggerFactory.CreateLogger(category)
+        logger.LogDebug(formatMessage, formatParameters)
+    }
+    |> Interpreter.withEnv (fun config -> (^a: (member LoggerFactory: ILoggerFactory) config))
 
+
+let inline logInfo category message =
+    interpreter {
+        let! (loggerFactory: ILoggerFactory) = Interpreter.ask
+        let logger = loggerFactory.CreateLogger(category)
+        logger.LogInformation(message)
+    }
+    |> Interpreter.withEnv (fun config -> (^a: (member LoggerFactory: ILoggerFactory) config))
+
+
+let inline private storeFsStatement fsStatement =
+    let category = "FsInterpreter.Facade.storeFsStatement"
+
+    interpreter {
         let! (
-            config: {|
-                Store : FsStatementStore
-                Interpreters : Interpreters
-                FsStatementReader : FsStatementReader
-                ModulePath: ModulePath
-                ImportingJsModule: string
-            |}
+            config:
+                {|
+                    Store: FsStatementStore 
+                    LoggerFactory: ILoggerFactory
+                    ModulePath: ModulePath 
+                |}
         ) = Interpreter.ask
+
+        match fsStatement |> FsStatement.name with
+        | Some n -> 
+            do! logDebug category "Storing structure {name}..." [|n|]
+            config.Store.Add config.ModulePath n fsStatement
+        | None -> 
+            do! logDebug category "There is no structure for storing." [||]
+    }
+    |> Interpreter.withEnv (fun config -> 
+        {| 
+            Store = (^a: (member Store: FsStatementStore) config);
+            LoggerFactory = (^a: (member LoggerFactory: ILoggerFactory) config) 
+            ModulePath = (^a: (member ModulePath: ModulePath) config) 
+        |}
+    )
+
+
+type private InterpretConfig' =
+    {|
+        Store : FsStatementStore
+        Interpreters : Interpreters
+        FsStatementReader : FsStatementReader
+        ModulePath: ModulePath
+        ImportingJsModule: string
+        LoggerFactory: ILoggerFactory
+    |}
+
+
+let rec private _interpret statements tabLevel ind (result: FsStatementDto list) =
+    let category = "FsInterpreter.Facade._interpret"
+
+    let interpretStructure' structure =
+        interpreter {
+            do! logDebug category "Interpreting structure:\n {structure}..." [|structure|]
+
+            let! (fsStatement: FsStatement) = 
+                interpretStructure structure tabLevel
+                |> Interpreter.withEnv (fun (config: InterpretConfig') ->
+                    {|
+                        ImportingJsModule = config.ImportingJsModule
+                        FsStatementReader = config.FsStatementReader
+                        Interpreters = config.Interpreters
+                    |}
+                )
+            
+            do! storeFsStatement fsStatement
+
+            return fsStatement
+        }
+
+    interpreter {
+        let! (config: InterpretConfig') = Interpreter.ask
     
-    /// append generated view models to the result and invokes interpret
+        /// append generated view models to the result and invokes interpret
         let continueInterpret tail vm =
             _interpret tail tabLevel (ind + 1) (vm :: result)
 
@@ -118,39 +204,16 @@ let rec private _interpret statements tabLevel ind (result: FsStatementDto list)
             let createDto vm = 
                 let fsCodeStyle =
                     match vm with
-                    | FsStatement.Interface _ -> FsCodeStyle.Fable
                     | FsStatement.Typed _ -> FsCodeStyle.Fable
                     | _ -> FsCodeStyle.Universal
                 FsStatementDto.create (statement |> Some) ind fsCodeStyle vm
 
             match statement with
-            | Statement.Export (ExportStatement.Structure structure) ->
-                let! (vm: FsStatement) = 
-                    interpretStructure structure tabLevel
-                    |> Interpreter.withEnv (fun config ->
-                        {|
-                            ImportingJsModule = config.ImportingJsModule
-                            FsStatementReader = config.FsStatementReader
-                            Interpreters = config.Interpreters
-                        |}
-                    )
-                do
-                    match vm |> FsStatement.name with
-                    | Some n -> config.Store.Add config.ModulePath n vm
-                    | None -> ()
+            | Statement.Export (ExportStatement.Structure structure)
+            | Statement.Structure structure ->
+                let! (fsStatement: FsStatement) = interpretStructure' structure
 
-                return! continueInterpret tail (vm |> createDto)
-
-            //| Statement.Structure structure ->
-            //    let vm = 
-            //        interpretStructure interpreters tabLevel jsModuleName (store.Get modulePath) structure
-
-            //    do
-            //        match vm |> FsStatement.name with
-            //        | Some n -> store.Add modulePath n vm
-            //        | None -> ()
-
-            //    return! _interpret tabLevel tail (ind + 1) result
+                return! continueInterpret tail (fsStatement |> createDto)
 
             | Statement.Export (ExportStatement.OutDefault identifier) ->
                 let vm = 
@@ -176,7 +239,6 @@ let internal interpret ns modulePath statements : Interpreter<Config, FsStatemen
     interpreter {
         let fileName = Path.GetFileNameWithoutExtension( modulePath |> ModulePath.Value )
         let jsModuleName = String( fileName |> Seq.takeWhile ((=) '.' >> not) |> Seq.toArray )
-
 
         let fsModuleName =
             let name =

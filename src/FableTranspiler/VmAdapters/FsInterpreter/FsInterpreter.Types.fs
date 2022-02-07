@@ -4,18 +4,16 @@ open System
 open FableTranspiler.Parsers.Types
 open FableTranspiler.SimpleTypes
 open FableTranspiler.VmAdapters.Types
+open Microsoft.Extensions.Logging
 
-
-type TabLevel = TabLevel of int
 
 [<RequireQualifiedAccess>]
 type FsStatement =
     | Nameless of CodeItem list
     | Named of Identifier * CodeItem list
     | Link of Identifier * FsStatement
-    | Let of Identifier * Display: CodeItem list * Body: (unit -> CodeItem list)
+    | Let of Identifier * Display: CodeItem list * Signature: CodeItem list
     | Typed of Identifier * Display: CodeItem list * Body: CodeItem list
-    | Interface of Identifier * Display: CodeItem list * Body: CodeItem list
 
 
 type FsStatementReader = Identifier -> FsStatement option
@@ -58,6 +56,7 @@ type internal Config =
     {
         Store: FsStatementStore
         Interpreters: Interpreters
+        LoggerFactory: ILoggerFactory
     }
 
 
@@ -70,7 +69,6 @@ module internal FsStatement =
         | FsStatement.Link (n, _) -> n |> Some
         | FsStatement.Let (n, _, _) -> n |> Some
         | FsStatement.Typed (n, _, _) -> n |> Some
-        | FsStatement.Interface (n, _, _) -> n |> Some
 
     let rec codeItems = function
         | FsStatement.Nameless l -> l
@@ -78,15 +76,13 @@ module internal FsStatement =
         | FsStatement.Link (_, l) -> l |> codeItems
         | FsStatement.Let (_, l, _) -> l
         | FsStatement.Typed (_, l, _) -> l
-        | FsStatement.Interface (_, l, _) -> l
 
     let rec body = function
         | FsStatement.Nameless _ -> None
         | FsStatement.Named (_, l) -> l |> Some
         | FsStatement.Link (_, l) -> l |> body
-        | FsStatement.Let (_, _, f) -> f() |> Some
-        | FsStatement.Typed (_, _, l) -> l |> Some
-        | FsStatement.Interface (_, _, l) -> l |> Some
+        | FsStatement.Let (_, _, signature) -> signature |> Some
+        | FsStatement.Typed (_, _, body) -> body |> Some
 
     let rec insertAtEnd segment = function
         | FsStatement.Nameless l -> l @ [segment] |> FsStatement.Nameless
@@ -94,9 +90,6 @@ module internal FsStatement =
         | FsStatement.Link (name, l) -> (name, insertAtEnd segment l) |> FsStatement.Link
         | FsStatement.Let (name, l, constructor) -> (name, l @ [segment], constructor) |> FsStatement.Let
         | FsStatement.Typed (name, l, constructor) -> (name, l @ [segment], constructor) |> FsStatement.Typed
-        | FsStatement.Interface (name, l, constructor) ->
-            (name, l @ [segment], constructor)
-            |> FsStatement.Interface
 
 
 type FsStatement with

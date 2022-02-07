@@ -6,7 +6,7 @@ open SimpleTypes
 
 type ParsingResult =
     {
-        Path: ModulePath
+        ModulePath: ModulePath
         Statements: Result<StatementList, string>
     }
 

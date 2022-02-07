@@ -48,7 +48,7 @@ let rec parseFile fileName (accum: Map<string, FileParsingResultTree>) : Task<(F
 
                 let statementResult =
                     {
-                        Path = modulePath
+                        ModulePath = modulePath
                         Statements = (statements |> Ok)
                     }
 
@@ -74,7 +74,7 @@ let rec parseFile fileName (accum: Map<string, FileParsingResultTree>) : Task<(F
             | Ok modulePath, Error err -> 
                 let tree =
                     {
-                        Path = modulePath
+                        ModulePath = modulePath
                         Statements = Error err
                     }
                     |> Leaf

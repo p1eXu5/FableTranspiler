@@ -219,6 +219,8 @@ let interpretFieldFnParameters (fields: FieldList) =
         | _ -> return! interpret fields []
     }
 
+/// Interprets into form `(paramName: ParamType, ...)`.
+/// If parameters is empty list then interprets into `()`.
 let interpretFnParameters (parameters: FieldList) =
 
     let rec interpret (parameters: FieldList) result =
@@ -251,7 +253,11 @@ let interpretFnParameters (parameters: FieldList) =
         | _ -> return! interpret parameters []
     }
 
-
+/// Interprets into two possible options:
+///
+/// - `<keyword> <fnName> : unit -> <returnType>`
+///
+/// - `<keyword> <fnName> `<see cref="interpretFnParameters"/>` : <returnType>`
 let interpretFn keyword fnName parameters returnType =
     interpreter {
         let! parametersInterpretation = interpretFnParameters parameters

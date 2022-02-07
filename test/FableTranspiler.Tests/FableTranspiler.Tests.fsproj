@@ -8,13 +8,14 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Include="Factories\MockLoggerFactories.fs" />
+    <Compile Include="Tests.Common.fs" />
     <None Include="BDD\FileProcessing.feature" />
     <None Include="BDD\StyleChange.features" />
     <Compile Include="VmAdapters\FsInterpreter\TestCaseSources\InterfaceTestCaseSources.fs" />
     <Compile Include="VmAdapters\FsInterpreter\FsInterpreter.FacadeTests.fs" />
     <Compile Include="Parsers\TestCaseSources\StructuresFactory.fs" />
     <Compile Include="Parsers\TestCaseSources\ImportTestCaseSource.fs" />
-    <Compile Include="Parsers\Common.fs" />
     <Compile Include="Parsers\CommentTests.fs" />
     <Compile Include="Parsers\StructuresTests.fs" />
     <Compile Include="Parsers\MiscTests.fs" />
@@ -30,6 +31,7 @@
     <PackageReference Include="FsCheck.NUnit" Version="2.16.3" />
     <PackageReference Include="FsUnit" Version="4.1.0" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.0.0" />
+    <PackageReference Include="Moq" Version="4.16.1" />
     <PackageReference Include="NUnit" Version="3.13.2" />
     <PackageReference Include="NUnit3TestAdapter" Version="4.1.0" />
     <PackageReference Include="coverlet.collector" Version="3.1.0">
@@ -46,7 +48,5 @@
   <ItemGroup>
     <PackageReference Update="FSharp.Core" Version="6.0.1" />
   </ItemGroup>
-
-  <ItemGroup />
 
 </Project>

@@ -2,6 +2,7 @@
 
 open FableTranspiler.SimpleTypes
 open FableTranspiler.VmAdapters.Types
+open Microsoft.Extensions.Logging
 
 [<ReferenceEquality>]
 type ModuleTreeCollection =
@@ -40,8 +41,8 @@ module internal ModuleTreeList =
         , Cmd.none
 
 
-    let add store rootPath parsingResultTree model =
-        let moduleTree = parsingResultTree |> ModuleTree.init store rootPath [] false
+    let add store (loggerFactory: ILoggerFactory) rootPath parsingResultTree model =
+        let moduleTree = parsingResultTree |> ModuleTree.init store loggerFactory rootPath [] false
         {
             model with
                 ModuleTreeMap = 

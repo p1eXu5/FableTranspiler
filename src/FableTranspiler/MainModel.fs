@@ -6,6 +6,7 @@ open FableTranspiler.VmAdapters
 open FableTranspiler.Components
 open FableTranspiler.Parsers.Types
 open SimpleTypes
+open Microsoft.Extensions.Logging
 
 
 
@@ -46,7 +47,7 @@ module internal MainModel =
         Cmd.map ModuleTreeListMsg msg
 
 
-    let update store (msg: Msg) (model: MainModel) =
+    let update store (loggerFactory: ILoggerFactory) (msg: Msg) (model: MainModel) =
         match msg with
         | ParseFile (AsyncOperationMsg.Start) -> 
             {
@@ -61,7 +62,7 @@ module internal MainModel =
             | Ok (modulePath, parsingResultTree) ->
                 let (moduleTreeList, moduleTreeListMsg) =
                     model.ModuleTreeList
-                    |> ModuleTreeList.add store modulePath parsingResultTree
+                    |> ModuleTreeList.add store loggerFactory modulePath parsingResultTree
 
 
                 //parsingResultTree |> ModuleTreeViewModel.toFileTreeVm store [] true

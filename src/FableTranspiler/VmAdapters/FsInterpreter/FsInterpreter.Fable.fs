@@ -70,7 +70,7 @@ let private interpretField (field: Field * TypeDefinition) =
 
 
 
-let interpretPlainFableInterface identifier fieldList (TabLevel tabLevel) =
+let internal interpretPlainFableInterface identifier fieldList (tabLevel: TabLevel) =
     interpreter {
         let! (fsStatementReader: FsStatementReader) = Interpreter.ask
         return
