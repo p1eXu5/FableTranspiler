@@ -3,9 +3,9 @@
 open ConstrainedTypes
 
 
-type Name = Name of string with
-    static member Create(v) = ConstrainedString.Create(nameof Name, Name, 1, 1024, v)
-    static member Value(Name v) = v
+type Identifier = Identifier of string with
+    static member Create(v) = Identifier v
+    static member Value(Identifier v) = v
 
 
 type LibLocation = LibLocation of string with

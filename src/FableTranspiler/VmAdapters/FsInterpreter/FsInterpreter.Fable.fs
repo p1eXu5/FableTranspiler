@@ -6,6 +6,7 @@ open FableTranspiler.VmAdapters.Types
 open FableTranspiler.VmAdapters.FsInterpreter.Common
 open Types
 open FableTranspiler.VmAdapters.FsInterpreter.InterpreterBuilder
+open FableTranspiler.SimpleTypes
 
 
 let private interpretField (field: Field * TypeDefinition) =

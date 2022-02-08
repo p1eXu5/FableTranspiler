@@ -77,7 +77,7 @@ let funcType =
 let typeof =
     skipString "typeof"
     >>. ws1
-    >>. identifier
+    >>. qualifiers
     |>> DTsType.Typeof
 
 

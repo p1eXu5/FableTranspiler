@@ -1,4 +1,4 @@
-﻿module FableTranspiler.Tests.Parsers.Common
+﻿module FableTranspiler.Tests.Common
 
 
 open NUnit.Framework
@@ -14,12 +14,14 @@ open FableTranspiler
 open System.Diagnostics
 open NUnit.Framework.Constraints
 open System.Threading.Tasks
+open FableTranspiler.SimpleTypes
 
 
 
 let inline writeLine s = TestContext.WriteLine(sprintf "%A" s)
 
 let toTask computation : Task = Async.StartAsTask computation :> _
+
 
 [<DebuggerNonUserCode>]
 let shouldL (f: 'a -> #Constraint) x message (y: obj) =
@@ -50,3 +52,8 @@ let inline beOk expected = function
     | Result.Ok ok -> ok |> shouldL equal expected ""
     | Result.Error err -> raise (AssertionException($"Should be %A{expected} but there is an error: %A{err}"))
 
+
+let modulePath fileName =
+    match fileName |> ModulePath.Create with
+    | Result.Ok modulePath -> modulePath
+    | Result.Error err -> raise (AssertionException err)

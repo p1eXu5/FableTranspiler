@@ -16,12 +16,13 @@ type FsStatement =
     | Typed of Identifier * Display: CodeItem list * Body: CodeItem list
 
 
-type FsStatementReader = Identifier -> FsStatement option
+type FsStatementReader = Identifier list -> FsStatement option
 
 type internal FsStatementStore =
     {
         Get: ModulePath -> Identifier -> FsStatement option
-        Add: ModulePath -> Identifier -> FsStatement -> unit
+        Add: ModulePath -> FsStatement -> unit
+        FsStatementReader: unit -> FsStatementReader
     }
 
 

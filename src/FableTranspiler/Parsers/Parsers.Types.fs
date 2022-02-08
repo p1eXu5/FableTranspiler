@@ -2,10 +2,6 @@
 
 open FableTranspiler.SimpleTypes
 
-type Identifier = Identifier of string with
-    static member Create(v) = Identifier v
-    static member Value(Identifier v) = v
-
 
 type StringLiteral = StringLiteral of string with
     static member Create(v) = StringLiteral v
@@ -19,9 +15,14 @@ type DTsType =
     | Func of parameters: FieldList * returnType: TypeDefinition
     | Plain of Identifier list
     | Generic of Identifier list * DTsType list
-    | Typeof of Identifier
+    | Typeof of Identifier list
     | Array of DTsType
     | InlineObject of FieldList
+    with
+        static member Identifier(dtsType) =
+            match dtsType with
+            | Plain is | Generic (is, _) | Typeof is -> is |> Some 
+            | _ -> None
 
 
 type TypeCombination =

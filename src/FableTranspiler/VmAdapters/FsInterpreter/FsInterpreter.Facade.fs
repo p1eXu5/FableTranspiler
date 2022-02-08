@@ -81,7 +81,11 @@ let private interpretStructure (structure: StructureStatement) (tabLevel: TabLev
             | Choice1Of2 l -> return FsStatement.Named (identifier, l)
             | Choice2Of2 vm -> return FsStatement.Link (identifier, vm)
 
-        | TypeAlias (TypeAlias.Plain (identifier, comb)) ->
+        | TypeAlias (TypeAlias.Plain (identifier, Composition comb)) ->
+            let body =
+                comb 
+                |> List.map (fun dtsType -> config.FsStatementReader)
+
             let display =
                 [
                     tab tabLevel
@@ -217,7 +221,7 @@ let rec private _interpret statements tabLevel ind (result: FsStatementDto list)
 
             | Statement.Export (ExportStatement.OutDefault identifier) ->
                 let vm = 
-                    match config.FsStatementReader identifier with
+                    match config.FsStatementReader [identifier] with
                     | Some fsStatement -> createDto fsStatement
                     | None -> 
                         FsStatement.Nameless [

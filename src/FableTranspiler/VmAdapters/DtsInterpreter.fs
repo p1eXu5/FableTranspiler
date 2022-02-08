@@ -247,11 +247,11 @@ let rec private constructCombination sep combination res =
                 ]
             constructCombination sep tail (l :: res)
 
-        | DTsType.Typeof (Identifier i) ->
+        | DTsType.Typeof is ->
             let l =
                 [
                     vmKeyword "typeof "
-                    vmText i
+                    yield! constructType is
                 ]
             constructCombination sep tail (l :: res)
 

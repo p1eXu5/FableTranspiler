@@ -10,7 +10,7 @@ open FableTranspiler.Tests.VmAdapters.TestCaseSources.InterfaceTestCaseSources
 open FableTranspiler.SimpleTypes
 open FableTranspiler.VmAdapters.FsInterpreter.Types
 open FableTranspiler.Parsers.Types
-open FableTranspiler.Tests.Parsers.Common
+open FableTranspiler.Tests.Common
 
 module FsDocumentInterpreterTests =
 
@@ -29,10 +29,7 @@ module FsDocumentInterpreterTests =
         }
 
 
-    let modulePath fileName =
-        match fileName |> ModulePath.Create with
-        | Ok modulePath -> modulePath
-        | Error err -> raise (AssertionException err)
+    
 
 
     let private interpreter modulePath fileContent =
