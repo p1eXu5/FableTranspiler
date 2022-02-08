@@ -8,12 +8,10 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Include="Factories\MockLoggerFactories.fs" />
     <Compile Include="Tests.Common.fs" />
-    <None Include="BDD\FileProcessing.feature" />
-    <None Include="BDD\StyleChange.features" />
-    <Compile Include="VmAdapters\FsInterpreter\TestCaseSources\InterfaceTestCaseSources.fs" />
-    <Compile Include="VmAdapters\FsInterpreter\FsInterpreter.FacadeTests.fs" />
+    <Compile Include="Factories\MockLoggerFactories.fs" />
+    <Compile Include="LibTests\FParsecTests.fs" />
+    <Compile Include="LibTests\FsCheckTests.fs" />
     <Compile Include="Parsers\TestCaseSources\StructuresFactory.fs" />
     <Compile Include="Parsers\TestCaseSources\ImportTestCaseSource.fs" />
     <Compile Include="Parsers\CommentTests.fs" />
@@ -22,8 +20,11 @@
     <Compile Include="Parsers\ImportTests.fs" />
     <Compile Include="Parsers\ExportTests.fs" />
     <Compile Include="Parsers\ParserUTests.fs" />
-    <Compile Include="LibTests\FParsecTests.fs" />
-    <Compile Include="LibTests\FsCheckTests.fs" />
+    <Compile Include="VmAdapters\FsInterpreter\TestCaseSources\InterfaceTestCaseSources.fs" />
+    <Compile Include="VmAdapters\FsInterpreter\FsInterpreter.FacadeTests.fs" />
+    <Compile Include="Infrastructure\FsStatementStoreTests.fs" />
+    <None Include="BDD\FileProcessing.feature" />
+    <None Include="BDD\StyleChange.features" />
     <Compile Include="Program.fs" />
   </ItemGroup>
 
