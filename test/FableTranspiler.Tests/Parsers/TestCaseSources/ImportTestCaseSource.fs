@@ -8,6 +8,7 @@ open NUnit.Framework
 open FParsec
 open FParsec.Primitives
 open FableTranspiler.Parsers.Types
+open FableTranspiler.SimpleTypes
 
 type TestCases () =
 

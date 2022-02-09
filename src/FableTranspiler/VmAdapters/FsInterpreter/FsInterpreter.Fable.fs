@@ -4,7 +4,6 @@ module internal FableTranspiler.VmAdapters.FsInterpreter.Fable
 open FableTranspiler.Parsers.Types
 open FableTranspiler.VmAdapters.Types
 open FableTranspiler.VmAdapters.FsInterpreter.Common
-open Types
 open FableTranspiler.VmAdapters.FsInterpreter.InterpreterBuilder
 open FableTranspiler.SimpleTypes
 
@@ -88,4 +87,9 @@ let internal interpretPlainFableInterface identifier fieldList (tabLevel: TabLev
                 vmEndLineNull
             ],
             [ vmType (identifier |> Identifier.Value) ]
+    }
+
+let interpretators =
+    {
+        InterpretPlainFableInterface = interpretPlainFableInterface
     }

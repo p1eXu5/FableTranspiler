@@ -8,7 +8,7 @@ module CommentTests =
     open FableTranspiler.Parsers
     open FableTranspiler.Parsers.Types
     open FParsec
-    open FableTranspiler.Tests.Parsers.Common
+    open FableTranspiler.Tests.Common
 
 
     [<Test>]

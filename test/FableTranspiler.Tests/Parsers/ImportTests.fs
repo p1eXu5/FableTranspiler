@@ -9,7 +9,7 @@ module ImportTests =
     open FableTranspiler.Parsers
     open FableTranspiler.Parsers.Types
     open FParsec
-    open FableTranspiler.Tests.Parsers.Common
+    open FableTranspiler.Tests.Common
 
 
     [<TestCase("foo as Bar ")>]

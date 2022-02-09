@@ -1,20 +1,25 @@
 ﻿namespace FableTranspiler.Components
 
+open FableTranspiler
 open FableTranspiler.SimpleTypes
 open FableTranspiler.VmAdapters.Types
 open Microsoft.Extensions.Logging
+open FableTranspiler.VmAdapters.FsInterpreter
+
+
 
 [<ReferenceEquality>]
 type ModuleTreeCollection =
     {
-        ModuleTreeMap: Map<LibLocation, ModuleTree>
+        LibModuleTreeMap: Map<LibLocation, ModuleTree>
+        InterpretConfig: InterpretConfig
         DtsStatements: Choice<DtsStatementViewModel list, CodeItem list> option
         FsStatements: Choice<FsStatementViewModel list, CodeItem list> option
         SelectedModuleKey: (LibLocation * string list) option
     }
 
 [<RequireQualifiedAccess>]
-module internal ModuleTreeList =
+module internal ModuleTreeCollection =
 
     type Msg =
         | SelectModule of LibLocation * SelectModuleMsg
@@ -31,9 +36,10 @@ module internal ModuleTreeList =
     open Elmish
     open Elmish.WPF
 
-    let init () =
+    let init loggerFactory =
         {
-            ModuleTreeMap = Map.empty
+            LibModuleTreeMap = Map.empty
+            InterpretConfig = InterpretConfigFactory.build loggerFactory FsCodeStyle.Fable
             DtsStatements = None
             FsStatements = None
             SelectedModuleKey = None
@@ -41,17 +47,18 @@ module internal ModuleTreeList =
         , Cmd.none
 
 
-    let add store (loggerFactory: ILoggerFactory) rootPath parsingResultTree model =
-        let moduleTree = parsingResultTree |> ModuleTree.init store loggerFactory rootPath [] false
+    let add libLocation parsingResultTree model =
+        let moduleTree = ModuleTree.build libLocation parsingResultTree
+
         {
             model with
-                ModuleTreeMap = 
-                    model.ModuleTreeMap
-                    |> Map.add rootPath moduleTree
+                LibModuleTreeMap = 
+                    model.LibModuleTreeMap
+                    |> Map.add libLocation moduleTree
         }
         , Cmd.batch [
             Cmd.ofMsg ResetSelection
-            Cmd.ofMsg (SelectModule (rootPath, (ChildMsg (moduleTree.Key, ToggleModuleSelection true))))
+            Cmd.ofMsg (SelectModule (libLocation, (ChildMsg (moduleTree.Key, ToggleModuleSelection true))))
         ]
 
 
@@ -130,26 +137,26 @@ module internal ModuleTreeList =
 
 
 
-    let update store msg model =
+    let update msg model =
         match msg with
-        | SelectModule (modulePath, ChildMsg (key, ToggleModuleSelection v)) when not v ->
+        | SelectModule (modulePath, ChildMsg (key, ToggleModuleSelection v)) when v = false ->
             {
                 model with
-                    ModuleTreeMap = tryTransformModule (modulePath, key) model.ModuleTreeMap (changeIsSelected v)
+                    LibModuleTreeMap = tryTransformModule (modulePath, key) model.LibModuleTreeMap (changeIsSelected v)
                     SelectedModuleKey = None
             }
             , Cmd.none
 
-        | SelectModule (modulePath, ChildMsg (key, ToggleModuleSelection v)) when v ->
+        | SelectModule (modulePath, ChildMsg (key, ToggleModuleSelection v)) when v = true ->
             let selectedModuleKey = (modulePath, key)
 
-            match tryFindModule2 selectedModuleKey model.ModuleTreeMap with
+            match tryFindModule2 selectedModuleKey model.LibModuleTreeMap with
             | Some selectedModule ->
                 {
                     model with
-                        ModuleTreeMap = tryTransformModule selectedModuleKey model.ModuleTreeMap (changeIsSelected v)
+                        LibModuleTreeMap = tryTransformModule selectedModuleKey model.LibModuleTreeMap (changeIsSelected v)
                         DtsStatements = selectedModule.DtsDocumentVm.Value |> Some
-                        FsStatements = selectedModule.FsDocumentVm.Value |> Some
+                        FsStatements = selectedModule.FsDocumentVm |> Interpreter.run model.InterpretConfig |> Some
                         SelectedModuleKey = selectedModuleKey |> Some
                 }
                 , Cmd.none
@@ -188,7 +195,7 @@ module internal ModuleTreeList =
     let bindings () =
         [
             "ModuleTreeList" |> Binding.subModelSeq (
-                (fun m -> m.ModuleTreeMap |> Map.values),
+                (fun m -> m.LibModuleTreeMap |> Map.values),
                 (fun (m, sm) -> sm),
                 (fun (vm: ModuleTree) -> vm.RootKey, vm.Key),
                 (fun (id, msg) -> 

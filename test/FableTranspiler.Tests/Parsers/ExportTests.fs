@@ -9,7 +9,7 @@ module ExportTests =
     open FableTranspiler.Parsers.Dsl
     open FableTranspiler.Parsers.Types
     open FParsec
-    open FableTranspiler.Tests.Parsers.Common
+    open FableTranspiler.Tests.Common
 
 
     [<TestCase("export = ReactScroll;")>]

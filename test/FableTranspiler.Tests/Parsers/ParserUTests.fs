@@ -2,6 +2,7 @@ namespace FableTranspiler.Tests.Parsers
 
 open NUnit.Framework
 open System.Threading.Tasks
+open FableTranspiler.SimpleTypes
 
 [<Category("Statements")>]
 module Statements =
@@ -17,7 +18,7 @@ module Statements =
     open FableTranspiler
     open System.Diagnostics
     open NUnit.Framework.Constraints
-    open FableTranspiler.Tests.Parsers.Common
+    open FableTranspiler.Tests.Common
 
 
 

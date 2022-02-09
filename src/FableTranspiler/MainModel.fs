@@ -1,13 +1,9 @@
 ﻿namespace FableTranspiler
 
 open Elmish
-open AppTypes
-open FableTranspiler.VmAdapters
-open FableTranspiler.Components
-open FableTranspiler.Parsers.Types
-open SimpleTypes
 open Microsoft.Extensions.Logging
-
+open SimpleTypes
+open FableTranspiler.Components
 
 
 type MainModel =
@@ -29,25 +25,26 @@ module internal MainModel =
     open Elmish.Extensions
 
     type Msg =
-        | ModuleTreeListMsg of ModuleTreeList.Msg
+        | ModuleTreeListMsg of ModuleTreeCollection.Msg
         | ParseFile of AsyncOperationMsg<Result<(LibLocation * AppTypes.FileParsingResultTree), string>>
         | SetSelectedModule of string list option
 
 
-    let init () =
-        let (moduleTree, msg) = ModuleTreeList.init ()
-        {
-            ModuleTreeList = moduleTree
-            DtsModules = Map.empty
-            FsModules = Map.empty
-            SelectedModuleKey = []
-            IsBusy = false
-            LastError = None
-        },
-        Cmd.map ModuleTreeListMsg msg
+    let init loggerFactory =
+        fun () ->
+            let (moduleTree, msg) = ModuleTreeCollection.init loggerFactory
+            {
+                ModuleTreeList = moduleTree
+                DtsModules = Map.empty
+                FsModules = Map.empty
+                SelectedModuleKey = []
+                IsBusy = false
+                LastError = None
+            },
+            Cmd.map ModuleTreeListMsg msg
 
 
-    let update store (loggerFactory: ILoggerFactory) (msg: Msg) (model: MainModel) =
+    let update (msg: Msg) (model: MainModel) =
         match msg with
         | ParseFile (AsyncOperationMsg.Start) -> 
             {
@@ -60,10 +57,8 @@ module internal MainModel =
         | ParseFile (AsyncOperationMsg.Finish result) ->
             match result with
             | Ok (modulePath, parsingResultTree) ->
-                let (moduleTreeList, moduleTreeListMsg) =
-                    model.ModuleTreeList
-                    |> ModuleTreeList.add store loggerFactory modulePath parsingResultTree
 
+                let (moduleTreeList, moduleTreeListMsg) = model.ModuleTreeList |> ModuleTreeCollection.add modulePath parsingResultTree
 
                 //parsingResultTree |> ModuleTreeViewModel.toFileTreeVm store [] true
                 {
@@ -80,8 +75,8 @@ module internal MainModel =
                 }
                 , Cmd.none
     
-        | ModuleTreeListMsg m ->
-            let (model', msg') = ModuleTreeList.update store m model.ModuleTreeList
+        | ModuleTreeListMsg msg ->
+            let (model', msg') = ModuleTreeCollection.update msg model.ModuleTreeList
             {
                 model with
                     ModuleTreeList = model'
@@ -104,7 +99,7 @@ module internal MainModel =
                 (fun m -> m.ModuleTreeList),
                 (fun (_, sm) -> sm),
                 ModuleTreeListMsg,
-                ModuleTreeList.bindings
+                ModuleTreeCollection.bindings
             )
     
             "LastError" |> Binding.oneWayOpt (fun m -> m.LastError)

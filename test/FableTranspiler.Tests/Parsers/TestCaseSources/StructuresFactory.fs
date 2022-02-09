@@ -3,6 +3,7 @@ module FableTranspiler.Tests.Parsers.Factories
 
 open FableTranspiler.Parsers
 open FableTranspiler.Parsers.Types
+open FableTranspiler.SimpleTypes
 
 [<RequireQualifiedAccess>]
 module StructuresFactory =

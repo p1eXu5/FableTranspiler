@@ -30,11 +30,12 @@
     <Compile Include="VmAdapters\FsInterpreter\FsInterpreter.Fable.fs" />
     <Compile Include="VmAdapters\FsInterpreter\FsInterpreter.Facade.fs" />
     <Compile Include="Infrastruture.fs" />
+    <Compile Include="InterpretConfigFactory.fs" />
     <Compile Include="Elmish.Extensions.fs" />
     <Compile Include="Components\DtsStatementViewModel.fs" />
     <Compile Include="Components\FsStatementViewModel.fs" />
     <Compile Include="Components\ModuleTree.fs" />
-    <Compile Include="Components\ModuleTreeList.fs" />
+    <Compile Include="Components\ModuleTreeCollection.fs" />
     <Compile Include="MainModel.fs" />
     <Compile Include="App.fs" />
   </ItemGroup>

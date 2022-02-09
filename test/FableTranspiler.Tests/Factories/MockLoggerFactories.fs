@@ -1,8 +1,9 @@
-﻿namespace FableTranspiler.Tests
+﻿namespace FableTranspiler.Tests.Factories
 
 open System
 open Moq
 open Microsoft.Extensions.Logging;
+open NUnit.Framework
 
 
 type MockLoggerFactory () =
@@ -85,3 +86,6 @@ type MockLoggerFactory () =
             |> ignore
 
         mockFactory
+
+    static member GetMockedLoggerFactory() =
+        MockLoggerFactory.GetMockLoggerFactory(TestContext.WriteLine).Object

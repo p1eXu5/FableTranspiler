@@ -6,7 +6,6 @@ open FableTranspiler.VmAdapters.FsInterpreter.Common
 open System
 open FableTranspiler.SimpleTypes
 open System.IO
-open Types
 open FableTranspiler.VmAdapters.FsInterpreter.InterpreterBuilder
 open Microsoft.Extensions.Logging
 
@@ -21,8 +20,6 @@ let importAttribute name source =
         vmText $"=\"{source}\""
         vmPrn ")>]"
     ]
-
-
 
 
 /// Gateway to interpret structures. Optionally adds Import attribute
@@ -107,8 +104,6 @@ let private interpretStructure (structure: StructureStatement) (tabLevel: TabLev
     }
 
 
-
-
 let internal toDocumentSegmentViewModelList (fsList: FsStatement list) : CodeItem list =
     fsList
     |> List.map FsStatement.codeItems
@@ -149,7 +144,7 @@ let inline private storeFsStatement fsStatement =
         match fsStatement |> FsStatement.name with
         | Some n -> 
             do! logDebug category "Storing structure {name}..." [|n|]
-            config.Store.Add config.ModulePath n fsStatement
+            config.Store.Add config.ModulePath fsStatement
         | None -> 
             do! logDebug category "There is no structure for storing." [||]
     }
@@ -221,7 +216,7 @@ let rec private _interpret statements tabLevel ind (result: FsStatementDto list)
 
             | Statement.Export (ExportStatement.OutDefault identifier) ->
                 let vm = 
-                    match config.FsStatementReader [identifier] with
+                    match config.FsStatementReader.Get [identifier] with
                     | Some fsStatement -> createDto fsStatement
                     | None -> 
                         FsStatement.Nameless [
@@ -237,8 +232,7 @@ let rec private _interpret statements tabLevel ind (result: FsStatementDto list)
     }
     
 
-
-let internal interpret ns modulePath statements : Interpreter<Config, FsStatementDto list> =
+let internal interpret ns modulePath statements : Interpreter<InterpretConfig, FsStatementDto list> =
 
     interpreter {
         let fileName = Path.GetFileNameWithoutExtension( modulePath |> ModulePath.Value )
@@ -275,7 +269,7 @@ let internal interpret ns modulePath statements : Interpreter<Config, FsStatemen
             |> Interpreter.withEnv (fun config -> 
                 {| 
                     config with 
-                        FsStatementReader = (fun _ -> None)
+                        FsStatementReader = config.Store.InitReader modulePath
                         ModulePath = modulePath
                         ImportingJsModule = jsModuleName
                 |})

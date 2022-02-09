@@ -1,8 +1,6 @@
 ﻿namespace FableTranspiler.VmAdapters.Types
 
 
-
-
 [<StructuralEquality; StructuralComparison>]
 type CodeItem =
     {
@@ -44,7 +42,7 @@ type TabLevel = TabLevel of int with
 
 [<AutoOpen>]
 module internal CodeItem =
-    open FableTranspiler.Parsers.Types
+    open FableTranspiler.SimpleTypes
     
     let createDtsVm dtsStatement ind dtsDocumentSection =
         {

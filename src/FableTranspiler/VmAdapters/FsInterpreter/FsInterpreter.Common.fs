@@ -4,8 +4,8 @@
 open FableTranspiler.Parsers.Types
 open FableTranspiler.VmAdapters.Types
 open System
-open Types
 open FableTranspiler.VmAdapters.FsInterpreter.InterpreterBuilder
+open FableTranspiler.SimpleTypes
 
 
 
@@ -30,7 +30,7 @@ let rec interpretSingleType (type': DTsType)  =
         | DTsType.Plain is -> 
             let typeNameVms = interpretQualifiers is
             let typeName = String.Join("", typeNameVms |> List.map (fun t -> t.Content))
-            match fsStatementReader ([typeName |> Identifier.Create]) with
+            match fsStatementReader.Get ([typeName |> Identifier.Create]) with
             | Some v -> return v |> Choice2Of2
             | None ->
                 match typeNameVms[0].Content with
@@ -44,8 +44,8 @@ let rec interpretSingleType (type': DTsType)  =
         | DTsType.Any -> return [vmType "obj"] |> Choice1Of2
         | DTsType.Void -> return [vmType "unit"] |> Choice1Of2
 
-        | DTsType.Typeof is ->
-            return fsStatementReader is |> Option.get |> Choice2Of2
+        | DTsType.Typeof qualifiers ->
+            return fsStatementReader.Get qualifiers |> Option.get |> Choice2Of2
 
         | DTsType.Array t ->
             match! interpretSingleType t with

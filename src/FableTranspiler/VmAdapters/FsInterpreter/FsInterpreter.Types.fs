@@ -1,10 +1,11 @@
-﻿module FableTranspiler.VmAdapters.FsInterpreter.Types
+﻿namespace FableTranspiler.VmAdapters.FsInterpreter
 
 open System
 open FableTranspiler.Parsers.Types
 open FableTranspiler.SimpleTypes
 open FableTranspiler.VmAdapters.Types
 open Microsoft.Extensions.Logging
+open FableTranspiler.VmAdapters.FsInterpreter
 
 
 [<RequireQualifiedAccess>]
@@ -16,14 +17,27 @@ type FsStatement =
     | Typed of Identifier * Display: CodeItem list * Body: CodeItem list
 
 
-type FsStatementReader = Identifier list -> FsStatement option
+type FsStatementReader = 
+    {
+        CurrentModulePath: ModulePath
+        ImportedModules: Map<Identifier, ModulePath>
+        Get: Identifier list -> FsStatement option
+    }
 
-type internal FsStatementStore =
+type FsStatementStore =
     {
         Get: ModulePath -> Identifier -> FsStatement option
         Add: ModulePath -> FsStatement -> unit
-        FsStatementReader: unit -> FsStatementReader
+
+        /// Initializes new FsStatementReader with set current module path
+        /// and no imported modules.
+        InitReader: ModulePath -> FsStatementReader
+
+        ImportAll: Identifier -> ModulePath -> FsStatementReader -> FsStatementReader
     }
+
+
+type InterpretationError = CodeItem list
 
 
 type FsCodeStyle =
@@ -48,12 +62,12 @@ and
         }
 
 
-type internal Interpreters =
+type Interpreters =
     {
         InterpretPlainFableInterface: Identifier -> FieldList -> TabLevel -> Interpreter<FsStatementReader, (CodeItem list * CodeItem list)>
     }
 
-type internal Config =
+type InterpretConfig =
     {
         Store: FsStatementStore
         Interpreters: Interpreters
@@ -124,6 +138,7 @@ module internal FsStatementDto =
                     FsStatement = fsStatement
                 }]
         }
+
 
 type FsStatementDto with
     member this.Content() =

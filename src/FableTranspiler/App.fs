@@ -20,6 +20,6 @@ let main window =
     let loggerFactory = new SerilogLoggerFactory(logger)
     let store = Infrastruture.FsStatementInMemoryStore.store
 
-    WpfProgram.mkProgram MainModel.init (update store loggerFactory) bindings
+    WpfProgram.mkProgram (MainModel.init loggerFactory) update bindings
     |> WpfProgram.withLogger loggerFactory
     |> WpfProgram.startElmishLoop window

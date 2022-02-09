@@ -3,30 +3,21 @@
 open FableTranspiler.Tests
 open NUnit.Framework
 open FsUnit
+open FableTranspiler
 open FableTranspiler.Parsers
-open FableTranspiler.VmAdapters.Types
 open FableTranspiler.VmAdapters.FsInterpreter
 open FableTranspiler.Tests.VmAdapters.TestCaseSources.InterfaceTestCaseSources
 open FableTranspiler.SimpleTypes
-open FableTranspiler.VmAdapters.FsInterpreter.Types
+open FableTranspiler.VmAdapters.FsInterpreter
 open FableTranspiler.Parsers.Types
 open FableTranspiler.Tests.Common
+open FableTranspiler.Tests.Factories
 
 module FsDocumentInterpreterTests =
 
-    let private store : FsStatementStore = FableTranspiler.Infrastruture.FsStatementInMemoryStore.store
-
-    let private fableInterpreters =
-        {
-            InterpretPlainFableInterface = Fable.interpretPlainFableInterface
-        }
 
     let private config = 
-        {
-            Interpreters = fableInterpreters
-            Store = store
-            LoggerFactory = MockLoggerFactory.GetMockLoggerFactory(TestContext.WriteLine).Object
-        }
+        InterpretConfigFactory.build (MockLoggerFactory.GetMockedLoggerFactory()) FsCodeStyle.Fable
 
 
     
@@ -54,7 +45,7 @@ module FsDocumentInterpreterTests =
             |> Interpreter.run config
             |> ignore
 
-        let actual = store.Get modulePath (Identifier "Foo")
+        let actual = config.Store.Get modulePath (Identifier "Foo")
         actual |> should be (ofCase <@ Some FsStatement.Typed @>)
 
         let actualDisplay = actual |> Option.map (fun statement -> statement.StringContent()) |> Option.defaultValue ""
@@ -78,7 +69,7 @@ module FsDocumentInterpreterTests =
             |> Interpreter.run config
             |> ignore
 
-        let actual = store.Get modulePath (Identifier "LinkProps")
+        let actual = config.Store.Get modulePath (Identifier "LinkProps")
         actual |> shouldL be (ofCase <@ Some FsStatement.Typed @>) "LinkProps type must be present in store:"
 
         let actualDisplay = actual |> Option.map (fun statement -> statement.StringContent()) |> Option.defaultValue ""

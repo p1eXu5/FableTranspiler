@@ -2,6 +2,7 @@
 
 open FParsec
 open Types
+open FableTranspiler.SimpleTypes
 
 ///<summary>
 /// Skips over any sequence of *zero* or more whitespaces (space (' '), tab ('\t')

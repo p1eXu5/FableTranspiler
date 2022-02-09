@@ -1,31 +1,76 @@
 ﻿namespace FableTranspiler.Tests.Infrastructure
 
+open FableTranspiler
 open FableTranspiler.SimpleTypes
-open FableTranspiler.Parsers.Types
-open FableTranspiler.VmAdapters.FsInterpreter.Types
-open FableTranspiler.Infrastruture
+open FableTranspiler.VmAdapters.FsInterpreter
 open NUnit.Framework
 open FableTranspiler.Tests.Common
+open FableTranspiler.Tests.Factories
 open FsUnit
 
 module FsStatementStoreTests =
 
-    let private store = FsStatementInMemoryStore.store
+    let private store = 
+        (InterpretConfigFactory.build (MockLoggerFactory.GetMockedLoggerFactory()) FsCodeStyle.Fable)
+            .Store
+            
+    let typedFsStatmenet name =
+        let identifier = Identifier "foo"
+        let statement =
+            FsStatement.Typed (identifier, [], [])
+        (identifier, statement)
 
 
     [<Test>]
-    let ``WHEN store has statement THEN statments can be obtained through identifier and quilifier`` () =
-        let identifier = Identifier "foo"
-
-        let testStatement =
-            FsStatement.Typed (identifier, [], [])
-
+    let ``Store can returns statement by its identifier when it's added to the store`` () =
+        let (identifier, statement) = typedFsStatmenet "foo"
         let modulePath = modulePath @"z:\bar\baz.d.ts"
 
         do
-            store.Add modulePath testStatement
+            store.Add modulePath statement
 
-        let reader = store.FsStatementReader ()
+        store.Get modulePath identifier |> should be (ofCase <@ Some statement @>)
 
-        reader [identifier] |> shouldL equal testStatement ""
-        reader [Identifier "baz"; identifier] |> shouldL equal testStatement ""
+
+    [<Test>]
+    let ``Statement can be obtained through reader by identifier when reader is initialized with statment module path`` () =
+        let (identifier, statement) = typedFsStatmenet "foo"
+        let modulePath = ModulePath @"z:\bar\baz.d.ts"
+
+        do
+            store.Add modulePath statement
+
+        let reader = store.InitReader modulePath
+
+        reader.Get [identifier] |> should be (ofCase <@ Some statement @>)
+
+
+    [<Test>]
+    let ``Statement can be obtained through reader by qualifiers when statment module is imported`` () =
+        let (identifier, statement) = typedFsStatmenet "foo"
+        let modulePath = ModulePath @"z:\bar\baz.d.ts"
+
+        do
+            store.Add modulePath statement
+
+        let moduleAlias = Identifier "Baz"
+        let reader = 
+            store.InitReader (ModulePath "some-else")
+            |> store.ImportAll moduleAlias modulePath
+
+        reader.Get [moduleAlias; identifier] |> should be (ofCase <@ Some statement @>)
+
+
+    [<Test>]
+    let ``Statement can not be obtained through reader by qualifiers when statment module is not imported`` () =
+        let (identifier, statement) = typedFsStatmenet "foo"
+        let modulePath = ModulePath @"z:\bar\baz.d.ts"
+
+        do
+            store.Add modulePath statement
+
+        let moduleAlias = Identifier "Baz"
+        let reader = 
+            store.InitReader (ModulePath "some-else")
+
+        reader.Get [moduleAlias; identifier] |> should be (ofCase <@ None @>)

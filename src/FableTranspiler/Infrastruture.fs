@@ -9,7 +9,7 @@ open FableTranspiler.AppTypes
 open System.Threading.Tasks
 
 open System
-open FableTranspiler.VmAdapters.FsInterpreter.Types
+open FableTranspiler.VmAdapters.FsInterpreter
 
 let readFile file =
     task {
@@ -103,28 +103,62 @@ let openAndProcessFile () =
     }
 
 
-module FsStatementInMemoryStore =
+module internal FsStatementInMemoryStore =
 
     open System.Collections.Generic
     open FableTranspiler.VmAdapters.Types
 
-    let private dict = Dictionary<ModulePath, Dictionary<Identifier, FsStatement>>()
+    
 
-    let internal store : FsStatementStore =
+    let internal store (dict: IDictionary<ModulePath, Dictionary<Identifier, FsStatement>>) : FsStatementStore =
+
+        let get modulePath typeName =
+            match dict.TryGetValue(modulePath) with
+            | true, v ->
+                match v.TryGetValue(typeName) with
+                | true, s -> s |> Some
+                | false, _ -> None
+            | false, _ -> None
+
+        let readerGet currentModulePath map =
+            fun qualifiers ->
+                match qualifiers with
+                | [identifier] -> get currentModulePath identifier
+                | [alias; identifier] ->
+                    map
+                    |> Map.tryFind alias
+                    |> Option.bind (fun modulePath -> get modulePath identifier)
+                | _ -> None
+
         {
-            Get =
-                fun fileName typeName ->
-                    match dict.TryGetValue(fileName) with
-                    | true, v ->
-                        match v.TryGetValue(typeName) with
-                        | true, s -> s |> Some
-                        | false, _ -> None
-                    | false, _ -> None
-
+            Get = get
             Add =
-                fun fileName typeName statement ->
-                    if not (dict.ContainsKey(fileName)) then
-                        dict[fileName] <- Dictionary<Identifier, FsStatement>()
+                fun modulePath statement ->
+                    match statement |> FsStatement.name with
+                    | Some identifier ->
+                        if not (dict.ContainsKey(modulePath)) then
+                            dict[modulePath] <- Dictionary<Identifier, FsStatement>()
 
-                    dict[fileName][typeName] <- statement
+                        dict[modulePath][identifier] <- statement
+                    | None -> ()
+
+            ImportAll =
+                fun moduleAlias modulePath reader ->
+                    if dict.ContainsKey(modulePath) then
+                        let importedModules = reader.ImportedModules |> Map.add moduleAlias modulePath
+                        {
+                            reader with
+                                ImportedModules = importedModules
+                                Get = readerGet reader.CurrentModulePath importedModules
+                        }
+                    else reader
+
+            InitReader =
+                fun currentModulePath ->
+                    let importedModules = Map.empty
+                    {
+                        CurrentModulePath = currentModulePath
+                        ImportedModules = importedModules
+                        Get = readerGet currentModulePath importedModules
+                    }
         }

@@ -2,13 +2,14 @@
 
 open NUnit.Framework
 open FableTranspiler.Parsers.Types
+open FableTranspiler.SimpleTypes
 
 [<Category("Parsers.StructuresTests")>]
 module StructuresTests =
 
     open FableTranspiler.Parsers
     open FParsec
-    open FableTranspiler.Tests.Parsers.Common
+    open FableTranspiler.Tests.Common
 
     // -------------------
     //       Types        

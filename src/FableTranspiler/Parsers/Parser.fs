@@ -3,6 +3,7 @@
 open FParsec
 open Types
 open Common
+open FableTranspiler.SimpleTypes
 
 
 let stringLiteral = quote >>. manyCharsTill anyChar quote |>> (StringLiteral.Create >> Expression.StringLiteral)
