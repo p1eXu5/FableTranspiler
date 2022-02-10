@@ -9,7 +9,7 @@ open FableTranspiler.AppTypes
 open System.Threading.Tasks
 
 open System
-open FableTranspiler.VmAdapters.FsInterpreter
+open FableTranspiler.Interpreters.FsInterpreter
 
 let readFile file =
     task {
@@ -106,7 +106,7 @@ let openAndProcessFile () =
 module internal FsStatementInMemoryStore =
 
     open System.Collections.Generic
-    open FableTranspiler.VmAdapters.Types
+    open FableTranspiler.Interpreters
 
     
 

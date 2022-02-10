@@ -1,12 +1,12 @@
-﻿module rec FableTranspiler.VmAdapters.FsInterpreter.Facade
+﻿module rec FableTranspiler.Interpreters.FsInterpreter.Facade
 
 open FableTranspiler.Parsers.Types
-open FableTranspiler.VmAdapters.Types
-open FableTranspiler.VmAdapters.FsInterpreter.Common
+open FableTranspiler.Interpreters
+open FableTranspiler.Interpreters.FsInterpreter.Common
 open System
 open FableTranspiler.SimpleTypes
 open System.IO
-open FableTranspiler.VmAdapters.FsInterpreter.InterpreterBuilder
+open FableTranspiler.Interpreters.FsInterpreter.InterpreterBuilder
 open Microsoft.Extensions.Logging
 
 

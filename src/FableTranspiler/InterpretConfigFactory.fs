@@ -1,7 +1,7 @@
 ﻿[<RequireQualifiedAccess>]
 module internal FableTranspiler.InterpretConfigFactory
 
-open FableTranspiler.VmAdapters.FsInterpreter
+open FableTranspiler.Interpreters.FsInterpreter
 open System.Collections.Generic
 open SimpleTypes
 open Infrastruture

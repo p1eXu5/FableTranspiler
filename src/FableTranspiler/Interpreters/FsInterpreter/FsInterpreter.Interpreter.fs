@@ -1,4 +1,4 @@
-﻿namespace FableTranspiler.VmAdapters.FsInterpreter
+﻿namespace FableTranspiler.Interpreters.FsInterpreter
 
 type Interpreter<'config, 'a> = Interpreter of action: ('config -> 'a)
 

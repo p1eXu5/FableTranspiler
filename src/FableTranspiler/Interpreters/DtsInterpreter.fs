@@ -1,10 +1,27 @@
-﻿module internal rec FableTranspiler.VmAdapters.DtsInterpreter
+﻿module rec FableTranspiler.Interpreters.DtsInterpreter
 
 open FableTranspiler.Parsers.Types
 open System.Linq
-open FableTranspiler.VmAdapters.Types
-open FableTranspiler.VmAdapters.Types.CodeItem
+open FableTranspiler.Interpreters
 open FableTranspiler.SimpleTypes
+
+
+[<ReferenceEquality>]
+type DtsStatementDto =
+    {
+        Index: int
+        DtsStatement: FableTranspiler.Parsers.Types.Statement
+        DtsDocumentSection: CodeItem list
+    }
+
+let createDtsVm dtsStatement ind dtsDocumentSection =
+    {
+        Index = ind
+        DtsStatement = dtsStatement
+        DtsDocumentSection = dtsDocumentSection
+    }
+
+
 
 type EntityOrder =
     | Single

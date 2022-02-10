@@ -1,11 +1,10 @@
-﻿namespace FableTranspiler.VmAdapters.FsInterpreter
+﻿namespace FableTranspiler.Interpreters.FsInterpreter
 
 open System
 open FableTranspiler.Parsers.Types
 open FableTranspiler.SimpleTypes
-open FableTranspiler.VmAdapters.Types
+open FableTranspiler.Interpreters
 open Microsoft.Extensions.Logging
-open FableTranspiler.VmAdapters.FsInterpreter
 
 
 [<RequireQualifiedAccess>]

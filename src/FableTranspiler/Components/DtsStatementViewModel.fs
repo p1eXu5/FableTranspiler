@@ -1,6 +1,6 @@
 ﻿namespace FableTranspiler.Components
 
-open FableTranspiler.VmAdapters.Types
+open FableTranspiler.Interpreters.DtsInterpreter
 
 [<ReferenceEquality>]
 type DtsStatementViewModel =

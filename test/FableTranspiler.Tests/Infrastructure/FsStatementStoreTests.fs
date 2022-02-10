@@ -2,7 +2,7 @@
 
 open FableTranspiler
 open FableTranspiler.SimpleTypes
-open FableTranspiler.VmAdapters.FsInterpreter
+open FableTranspiler.Interpreters.FsInterpreter
 open NUnit.Framework
 open FableTranspiler.Tests.Common
 open FableTranspiler.Tests.Factories

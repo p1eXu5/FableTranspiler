@@ -4,9 +4,8 @@ open System
 open System.IO
 open FableTranspiler.SimpleTypes
 open FableTranspiler.AppTypes
-open FableTranspiler.VmAdapters.Types
-open FableTranspiler.VmAdapters
-open FableTranspiler.VmAdapters.FsInterpreter
+open FableTranspiler.Interpreters
+open FableTranspiler.Interpreters.FsInterpreter
 
 
 /// Contains `Dts` and `Fs` statement generators
@@ -28,11 +27,11 @@ type ModuleTree =
 
 module internal ModuleTree =
 
-    open FableTranspiler.VmAdapters.FsInterpreter.InterpreterBuilder
+    open FableTranspiler.Interpreters.FsInterpreter.InterpreterBuilder
 
     let initialInterpreters =
         {
-            InterpretPlainFableInterface = FableTranspiler.VmAdapters.FsInterpreter.Fable.interpretPlainFableInterface
+            InterpretPlainFableInterface = FableTranspiler.Interpreters.FsInterpreter.Fable.interpretPlainFableInterface
         }
 
 

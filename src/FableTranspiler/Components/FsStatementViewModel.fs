@@ -1,7 +1,7 @@
 ﻿namespace FableTranspiler.Components
 
-open FableTranspiler.VmAdapters.Types
-open FableTranspiler.VmAdapters.FsInterpreter
+open FableTranspiler.Interpreters
+open FableTranspiler.Interpreters.FsInterpreter
 
 [<ReferenceEquality>]
 type FsStatementViewModel =

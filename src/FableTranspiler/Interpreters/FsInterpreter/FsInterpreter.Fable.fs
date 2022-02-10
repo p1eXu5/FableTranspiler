@@ -1,10 +1,10 @@
 ﻿[<RequireQualifiedAccess>]
-module internal FableTranspiler.VmAdapters.FsInterpreter.Fable
+module internal FableTranspiler.Interpreters.FsInterpreter.Fable
 
 open FableTranspiler.Parsers.Types
-open FableTranspiler.VmAdapters.Types
-open FableTranspiler.VmAdapters.FsInterpreter.Common
-open FableTranspiler.VmAdapters.FsInterpreter.InterpreterBuilder
+open FableTranspiler.Interpreters
+open FableTranspiler.Interpreters.FsInterpreter.Common
+open FableTranspiler.Interpreters.FsInterpreter.InterpreterBuilder
 open FableTranspiler.SimpleTypes
 
 

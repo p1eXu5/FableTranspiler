@@ -2,9 +2,9 @@
 
 open FableTranspiler
 open FableTranspiler.SimpleTypes
-open FableTranspiler.VmAdapters.Types
+open FableTranspiler.Interpreters
 open Microsoft.Extensions.Logging
-open FableTranspiler.VmAdapters.FsInterpreter
+open FableTranspiler.Interpreters.FsInterpreter
 
 
 
