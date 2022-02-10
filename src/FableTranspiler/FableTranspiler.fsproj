@@ -8,7 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Include="..\..\..\..\_libs\FSharp.Tools\ConstrainedTypes.fs" Link="ConstrainedTypes.fs" />
+    <Compile Include="ConstrainedTypes.fs" />
     <Compile Include="SimpleTypes.fs" />
     <Compile Include="Parsers\Parsers.Types.fs" />
     <Compile Include="Parsers\Dsl.fs" />
