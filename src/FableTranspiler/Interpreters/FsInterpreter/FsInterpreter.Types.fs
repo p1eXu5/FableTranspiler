@@ -71,6 +71,7 @@ type InterpretConfig =
         Store: FsStatementStore
         Interpreters: Interpreters
         LoggerFactory: ILoggerFactory
+        TryFindModule: ModulePath -> StatementList option
     }
 
 

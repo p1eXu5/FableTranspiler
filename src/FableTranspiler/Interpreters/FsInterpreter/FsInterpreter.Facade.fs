@@ -165,30 +165,13 @@ type private InterpretConfig' =
         ModulePath: ModulePath
         ImportingJsModule: string
         LoggerFactory: ILoggerFactory
+        Namespace: string option
+        TryFindModule: ModulePath -> StatementList option
     |}
 
 
 let rec private _interpret statements tabLevel ind (result: FsStatementDto list) =
     let category = "FsInterpreter.Facade._interpret"
-
-    let interpretStructure' structure =
-        interpreter {
-            do! logDebug category "Interpreting structure:\n {structure}..." [|structure|]
-
-            let! (fsStatement: FsStatement) = 
-                interpretStructure structure tabLevel
-                |> Interpreter.withEnv (fun (config: InterpretConfig') ->
-                    {|
-                        ImportingJsModule = config.ImportingJsModule
-                        FsStatementReader = config.FsStatementReader
-                        Interpreters = config.Interpreters
-                    |}
-                )
-            
-            do! storeFsStatement fsStatement
-
-            return fsStatement
-        }
 
     interpreter {
         let! (config: InterpretConfig') = Interpreter.ask
@@ -208,9 +191,40 @@ let rec private _interpret statements tabLevel ind (result: FsStatementDto list)
                 FsStatementDto.create (statement |> Some) ind fsCodeStyle vm
 
             match statement with
+            | Statement.Import (importingEntities, Relative dtsModule) ->
+                if config.FsStatementReader.ImportedModules |> Map.values |> Seq.contains dtsModule |> not then
+                    match config.TryFindModule dtsModule with
+                    | Some statements' ->
+                        do! 
+                            interpret config.Namespace dtsModule statements' 
+                            |> Interpreter.withEnv (fun (c: InterpretConfig') ->
+                                {
+                                    Store = c.Store
+                                    Interpreters = c.Interpreters
+                                    LoggerFactory = c.LoggerFactory
+                                    TryFindModule = c.TryFindModule
+                                }
+                            )
+                            |> Interpreter.map ignore
+                    | None -> ()
+
+                return! _interpret tail tabLevel ind result
+                
             | Statement.Export (ExportStatement.Structure structure)
             | Statement.Structure structure ->
-                let! (fsStatement: FsStatement) = interpretStructure' structure
+                do! logDebug category "Interpreting structure:\n {structure}..." [|structure|]
+                
+                let! (fsStatement: FsStatement) = 
+                    interpretStructure structure tabLevel
+                    |> Interpreter.withEnv (fun (config: InterpretConfig') ->
+                        {|
+                            ImportingJsModule = config.ImportingJsModule
+                            FsStatementReader = config.FsStatementReader
+                            Interpreters = config.Interpreters
+                        |}
+                    )
+                            
+                do! storeFsStatement fsStatement
 
                 return! continueInterpret tail (fsStatement |> createDto)
 
@@ -272,5 +286,6 @@ let internal interpret ns modulePath statements : Interpreter<InterpretConfig, F
                         FsStatementReader = config.Store.InitReader modulePath
                         ModulePath = modulePath
                         ImportingJsModule = jsModuleName
+                        Namespace = ns
                 |})
     }

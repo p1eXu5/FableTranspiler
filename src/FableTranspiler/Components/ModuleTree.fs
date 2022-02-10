@@ -62,8 +62,8 @@ module internal ModuleTree =
                     DtsDocumentVm =
                         lazy (
                             match parsingResult.Statements with
-                            | Ok l -> 
-                                DtsInterpreter.interpret l 
+                            | Ok statements -> 
+                                DtsInterpreter.interpret statements 
                                 |> List.map DtsStatementViewModel.create
                                 |> Choice1Of2
                             | Error err -> interpretError err |> Choice2Of2
@@ -71,8 +71,12 @@ module internal ModuleTree =
                     FsDocumentVm =
                         interpreter {
                             match parsingResult.Statements with
-                            | Ok l ->
-                                    let! fsStatements = FsInterpreter.Facade.interpret None parsingResult.ModulePath l
+                            | Ok statements ->
+                                    let! fsStatements = 
+                                        FsInterpreter.Facade.interpret 
+                                            None // namespace
+                                            parsingResult.ModulePath 
+                                            statements
                                     return
                                         fsStatements
                                         |> List.map FsStatementViewModel.create

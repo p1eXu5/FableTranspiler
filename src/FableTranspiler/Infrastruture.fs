@@ -52,24 +52,20 @@ let rec parseFile fileName (accum: Map<string, FileParsingResultTree>) : Task<(F
                         Statements = (statements |> Ok)
                     }
 
-                return 
-                    if results.Length > 0 then
+                if results.Length > 0 then
 
-                        let accum' =
-                            results
-                            |> Array.map snd
-                            |> Array.reduce join
+                    let accum' =
+                        results
+                        |> Array.map snd
+                        |> Array.reduce join
 
-                        let trees = 
-                            results
-                            |> Array.map fst
+                    let trees = 
+                        results
+                        |> Array.map fst
 
-                        (statementResult, trees |> Array.toList) 
-                        |> Branch
-                        , accum'
-                    else
-                        statementResult |> Leaf
-                        , accum
+                    return (Branch (statementResult, trees |> Array.toList), accum')
+                else
+                    return (Leaf statementResult, accum)
 
             | Ok modulePath, Error err -> 
                 let tree =
