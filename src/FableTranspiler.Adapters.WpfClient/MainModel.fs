@@ -1,22 +1,25 @@
-﻿namespace FableTranspiler
+﻿namespace FableTranspiler.Adapters.WpfClient
 
 open Elmish
 open Microsoft.Extensions.Logging
-open SimpleTypes
+open FableTranspiler.SimpleTypes
 open FableTranspiler.Components
+open FableTranspiler.AppTypes
+open FableTranspiler
+open Microsoft.Win32
 
 
 type MainModel =
     {
+        ProcessingFile : string option
         //FileTree: FileTreeViewModel list option
         //SelectedModuleKey: string list option
         //SelectedDocument: FileTreeViewModel option
-        ModuleTreeList: ModuleTreeCollection
-        DtsModules: Map<string list, DtsStatementViewModel list>
-        FsModules: Map<string list, FsStatementViewModel list>
-        SelectedModuleKey: string list
-        IsBusy: bool
-        LastError: string option
+        ModuleTreeList : ModuleTreeCollection
+        DtsModules : Map<string list, DtsStatementViewModel list>
+        FsModules : Map<string list, FsStatementViewModel list>
+        SelectedModuleKey : string list
+        LastError : string option
     }
 
 
@@ -25,8 +28,9 @@ module internal MainModel =
     open Elmish.Extensions
 
     type Msg =
+        | OpenFile
         | ModuleTreeListMsg of ModuleTreeCollection.Msg
-        | ParseFile of AsyncOperationMsg<Result<(LibLocation * AppTypes.FileParsingResultTree), string>>
+        | ParseFile of Operation<Result<(LibLocation * FileParsingResultTree), string>>
         | SetSelectedModule of string list option
 
 
@@ -34,11 +38,11 @@ module internal MainModel =
         fun () ->
             let (moduleTree, msg) = ModuleTreeCollection.init loggerFactory
             {
+                ProcessingFile = None
                 ModuleTreeList = moduleTree
                 DtsModules = Map.empty
                 FsModules = Map.empty
                 SelectedModuleKey = []
-                IsBusy = false
                 LastError = None
             },
             Cmd.map ModuleTreeListMsg msg
@@ -46,15 +50,21 @@ module internal MainModel =
 
     let update (msg: Msg) (model: MainModel) =
         match msg with
-        | ParseFile (AsyncOperationMsg.Start) -> 
+        | OpenFile ->
+            let fd = OpenFileDialog()
+            fd.Filter <- "d.ts files (*.d.ts)|*.d.ts|All files (*.*)|*.*"
+            let result = fd.ShowDialog()
+            if result.HasValue && result.Value then (model, Cmd.ofMsg (Start |> ParseFile))
+            else (model, Cmd.none)
+
+        | ParseFile (Operation.Start) -> 
             {
                 model with
-                    IsBusy = true
                     LastError = None
             },
-            Cmd.OfTask.perform Infrastruture.openAndProcessFile () (AsyncOperationMsg.Finish >> ParseFile)
+            Cmd.OfTask.perform Infrastruture.openAndProcessFile () (Operation.Finish >> ParseFile)
     
-        | ParseFile (AsyncOperationMsg.Finish result) ->
+        | ParseFile (Operation.Finish result) ->
             match result with
             | Ok (modulePath, parsingResultTree) ->
 
@@ -93,7 +103,7 @@ module internal MainModel =
 
     let bindings () =
         [
-            "OpenFileCommand" |> Binding.cmd (fun m -> AsyncOperationMsg.Start |> ParseFile)
+            "OpenFileCommand" |> Binding.cmd (fun m -> Operation.Start |> ParseFile)
     
             "ModuleTreeListVm" |> Binding.subModel(
                 (fun m -> m.ModuleTreeList),

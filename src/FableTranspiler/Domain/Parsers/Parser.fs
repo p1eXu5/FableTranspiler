@@ -141,7 +141,7 @@ let queryFull =
     >>. query 
     .>> eof
 
-let document input =
+let run input =
     run queryFull input
     |> function
         | Success (ok,_,_) -> Result.Ok ok

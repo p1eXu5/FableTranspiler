@@ -1,6 +1,5 @@
 ﻿using FableTranspiler.Components;
-using FableTranspiler.VmAdapters;
-using FableTranspiler.VmAdapters.Types;
+using FableTranspiler.Interpreters;
 using FableTranspiler.WpfClient.Converters;
 using Microsoft.FSharp.Collections;
 using System.Globalization;

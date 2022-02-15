@@ -5,7 +5,7 @@ open Microsoft.Win32
 open FableTranspiler.SimpleTypes
 open FableTranspiler.Parsers
 open FableTranspiler.Parsers.Types
-open FableTranspiler.AppTypes
+open FableTranspiler.Domain
 open System.Threading.Tasks
 
 open System
@@ -29,7 +29,7 @@ let rec parseFile fileName (accum: Map<string, FileParsingResultTree>) : Task<(F
         | false, _ ->
             let! content = readFile fileName
 
-            match ModulePath.Create(fileName), Parser.document content with
+            match ModulePath.Create(fileName), Parser.run content with
             | Ok modulePath, Ok statements ->
 
                 let! results =
@@ -40,8 +40,8 @@ let rec parseFile fileName (accum: Map<string, FileParsingResultTree>) : Task<(F
                         | _ -> None
                     )
                     |> List.map (fun (ModulePath modulePath) ->
-                        let relativePath = Path.Combine(Path.GetDirectoryName(fileName), modulePath + ".d.ts")
-                        parseFile relativePath accum
+                        let fullModulePath = Path.Combine(Path.GetDirectoryName(fileName), modulePath + ".d.ts")
+                        parseFile fullModulePath accum
                     )
                     |> Task.WhenAll
 
@@ -81,22 +81,22 @@ let rec parseFile fileName (accum: Map<string, FileParsingResultTree>) : Task<(F
     }
 
 
-let openAndProcessFile () =
-    task {
-        let fd = OpenFileDialog()
-        fd.Filter <- "d.ts files (*.d.ts)|*.d.ts|All files (*.*)|*.*"
-        match fd.ShowDialog() |> Option.ofNullable with
-        | Some _ ->
-            match Path.GetDirectoryName(fd.FileName) |> LibLocation.Create with
-            | Ok rootModulePath ->
-                try
-                    let! tree = parseFile fd.FileName Map.empty
-                    return (rootModulePath, fst tree) |> Ok
-                with
-                | ex -> return Error (ex.ToString())
-            | Error err -> return Error (err)
-        | None -> return Error "open file canceled"
-    }
+//let openAndProcessFile () =
+//    task {
+//        let fd = OpenFileDialog()
+//        fd.Filter <- "d.ts files (*.d.ts)|*.d.ts|All files (*.*)|*.*"
+//        match fd.ShowDialog() |> Option.ofNullable with
+//        | Some _ ->
+//            match Path.GetDirectoryName(fd.FileName) |> LibLocation.Create with
+//            | Ok libLocation -> // "D:\\Projects\\Programming\\FSharp\\_wpf\\FableTranspiler\\node_modules\\@types\\react-scroll"
+//                try
+//                    let! tree = parseFile fd.FileName Map.empty
+//                    return (libLocation, fst tree) |> Ok
+//                with
+//                | ex -> return Error (ex.ToString())
+//            | Error err -> return Error (err)
+//        | None -> return Error "open file canceled"
+//    }
 
 
 module internal FsStatementInMemoryStore =

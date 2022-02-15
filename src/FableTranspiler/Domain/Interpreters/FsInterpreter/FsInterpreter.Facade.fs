@@ -8,7 +8,7 @@ open FableTranspiler.SimpleTypes
 open System.IO
 open FableTranspiler.Interpreters.FsInterpreter.InterpreterBuilder
 open Microsoft.Extensions.Logging
-
+open System.Text
 
 let importAttribute name source =
     [
@@ -246,7 +246,29 @@ let rec private _interpret statements tabLevel ind (result: FsStatementDto list)
     }
     
 
-let internal interpret ns modulePath statements : Interpreter<InterpretConfig, FsStatementDto list> =
+
+let fsNamespace (LibLocation libLocation) =
+    let dir = Path.GetFileName(libLocation)
+    String.Join(
+        "",
+        dir.Split([|' '; '-'|])
+            |> Array.map (fun s -> Char.ToUpper(s[0]).ToString() + s[1..])
+    )
+
+let fsModuleName (ModulePath modulePath) =
+    let dir = 
+        match Path.GetFileName(modulePath) with
+        | s when s.EndsWith(".d.ts") -> s[..^5]
+        | s -> s
+
+    String.Join(
+        "",
+        dir.Split([|' '; '-'; '.'|])
+            |> Array.where (fun s -> Seq.length s > 1)
+            |> Array.map (fun s -> Char.ToUpper(s[0]).ToString() + s[1..])
+    )
+
+let internal interpret libLocation modulePath statements : Interpreter<InterpretConfig, FsStatementDto list> =
 
     interpreter {
         let fileName = Path.GetFileNameWithoutExtension( modulePath |> ModulePath.Value )
@@ -260,7 +282,7 @@ let internal interpret ns modulePath statements : Interpreter<InterpretConfig, F
                 )
                 |> fun l -> String.Join("", l |> Seq.toArray)
 
-            match ns with
+            match libLocation with
             | Some ns' -> $"{ns'}.{name}"
             | _ -> name
 
@@ -286,6 +308,6 @@ let internal interpret ns modulePath statements : Interpreter<InterpretConfig, F
                         FsStatementReader = config.Store.InitReader modulePath
                         ModulePath = modulePath
                         ImportingJsModule = jsModuleName
-                        Namespace = ns
+                        Namespace = libLocation
                 |})
     }

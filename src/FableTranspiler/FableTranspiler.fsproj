@@ -1,51 +1,44 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net6.0-windows</TargetFramework>
+    <TargetFramework>net6.0</TargetFramework>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <WarnOn>3390;$(WarnOn)</WarnOn>
-    <UseWpf>true</UseWpf>
+    <LangVersion>preview</LangVersion>
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Include="ConstrainedTypes.fs" />
-    <Compile Include="SimpleTypes.fs" />
-    <Compile Include="Parsers\Parsers.Types.fs" />
-    <Compile Include="Parsers\Dsl.fs" />
-    <Compile Include="Parsers\Common.fs" />
-    <Compile Include="Parsers\Structures.fs" />
-    <Compile Include="Parsers\Misc.fs" />
-    <Compile Include="Parsers\Comment.fs" />
-    <Compile Include="Parsers\Module.fs" />
-    <Compile Include="Parsers\Import.fs" />
-    <Compile Include="Parsers\Export.fs" />
-    <Compile Include="Parsers\Parser.fs" />
-    <Compile Include="AppTypes.fs" />
-    <Compile Include="Interpreters\Interpreters.Types.fs" />
-    <Compile Include="Interpreters\DtsInterpreter.fs" />
-    <Compile Include="Interpreters\FsInterpreter\FsInterpreter.Interpreter.fs" />
-    <Compile Include="Interpreters\FsInterpreter\FsInterpreter.Types.fs" />
-    <Compile Include="Interpreters\FsInterpreter\FsInterpreter.Common.fs" />
-    <Compile Include="Interpreters\FsInterpreter\FsInterpreter.React.fs" />
-    <Compile Include="Interpreters\FsInterpreter\FsInterpreter.Fable.fs" />
-    <Compile Include="Interpreters\FsInterpreter\FsInterpreter.Facade.fs" />
+    <Compile Include="SharedKernel\ConstrainedTypes.fs" />
+    <Compile Include="SharedKernel\SimpleTypes.fs" />
+    <Compile Include="SharedKernel\Helpers.fs" />
+    <Compile Include="Domain\Parsers\Parsers.Types.fs" />
+    <Compile Include="Domain\Parsers\Dsl.fs" />
+    <Compile Include="Domain\Parsers\Common.fs" />
+    <Compile Include="Domain\Parsers\Structures.fs" />
+    <Compile Include="Domain\Parsers\Misc.fs" />
+    <Compile Include="Domain\Parsers\Comment.fs" />
+    <Compile Include="Domain\Parsers\Module.fs" />
+    <Compile Include="Domain\Parsers\Import.fs" />
+    <Compile Include="Domain\Parsers\Export.fs" />
+    <Compile Include="Domain\Parsers\Parser.fs" />
+    <Compile Include="Domain\Interpreters\Interpreters.Types.fs" />
+    <Compile Include="Domain\Interpreters\DtsInterpreter.fs" />
+    <Compile Include="Domain\Interpreters\FsInterpreter\FsInterpreter.Interpreter.fs" />
+    <Compile Include="Domain\Interpreters\FsInterpreter\FsInterpreter.Types.fs" />
+    <Compile Include="Domain\Interpreters\FsInterpreter\FsInterpreter.Common.fs" />
+    <Compile Include="Domain\Interpreters\FsInterpreter\FsInterpreter.React.fs" />
+    <Compile Include="Domain\Interpreters\FsInterpreter\FsInterpreter.Fable.fs" />
+    <Compile Include="Domain\Interpreters\FsInterpreter\FsInterpreter.Facade.fs" />
+    <Compile Include="Domain\Types.fs" />
+    <Compile Include="Domain\Ports.fs" />
+    <Compile Include="Domain\UseCases.fs" />
     <Compile Include="Infrastruture.fs" />
     <Compile Include="InterpretConfigFactory.fs" />
-    <Compile Include="Elmish.Extensions.fs" />
-    <Compile Include="Components\DtsStatementViewModel.fs" />
-    <Compile Include="Components\FsStatementViewModel.fs" />
-    <Compile Include="Components\ModuleTree.fs" />
-    <Compile Include="Components\ModuleTreeCollection.fs" />
-    <Compile Include="MainModel.fs" />
-    <Compile Include="App.fs" />
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Elmish.WPF" Version="4.0.0-beta-41" />
     <PackageReference Include="FParsec" Version="1.1.1" />
-    <PackageReference Include="Serilog.Extensions.Logging" Version="3.1.0" />
-    <PackageReference Include="Serilog.Sinks.Console" Version="4.0.1" />
-    <PackageReference Include="Serilog.Sinks.Seq" Version="5.1.1" />
+    <PackageReference Include="Microsoft.Extensions.Logging" Version="6.0.0" />
   </ItemGroup>
 
   <ItemGroup>
@@ -55,6 +48,9 @@
 	<ItemGroup>
 		<AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
 			<_Parameter1>FableTranspiler.Tests</_Parameter1>
+		</AssemblyAttribute>
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
+			<_Parameter1>FableTranspiler.Adapters.Persistence</_Parameter1>
 		</AssemblyAttribute>
 	</ItemGroup>
 	

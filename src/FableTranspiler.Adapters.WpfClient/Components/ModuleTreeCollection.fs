@@ -39,7 +39,7 @@ module internal ModuleTreeCollection =
     let init loggerFactory =
         {
             LibModuleTreeMap = Map.empty
-            InterpretConfig = InterpretConfigFactory.build loggerFactory FsCodeStyle.Fable
+            InterpretConfig = InterpretConfigFactory.build loggerFactory (fun _ -> None) FsCodeStyle.Fable
             DtsStatements = None
             FsStatements = None
             SelectedModuleKey = None
@@ -49,6 +49,12 @@ module internal ModuleTreeCollection =
 
     let add libLocation parsingResultTree model =
         let moduleTree = ModuleTree.build libLocation parsingResultTree
+
+        (* необходимо изменить InterpretConfig для включения в поиск добавляемое дерево
+           поиск осуществляется по алгоритму
+           определить количество уровней - '../..'
+           в каждом дереве попытаться найти модуль, путь которого заканчивается на имя искомого модуля + '.d.ts'
+        *)
 
         {
             model with

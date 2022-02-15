@@ -11,13 +11,14 @@ let private fableDict = Dictionary<ModulePath, Dictionary<Identifier, FsStatemen
 let private reactDict = Dictionary<ModulePath, Dictionary<Identifier, FsStatement>>()
 let private felizDict = Dictionary<ModulePath, Dictionary<Identifier, FsStatement>>()
 
-let build loggerFactory fsCodeStyle =
+let build loggerFactory tryFindModule fsCodeStyle =
     match fsCodeStyle with
     | FsCodeStyle.Fable ->
         {
             Store = FsStatementInMemoryStore.store fableDict
             Interpreters = Fable.interpretators
             LoggerFactory = loggerFactory
+            TryFindModule = tryFindModule
         }
     | FsCodeStyle.React ->
         raise (NotImplementedException())

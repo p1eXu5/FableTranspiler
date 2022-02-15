@@ -1,11 +1,10 @@
 ﻿using FableTranspiler.WpfClient.Converters;
-using FableTranspiler.VmAdapters;
+using FableTranspiler.Interpreters;
 using System.Globalization;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Documents;
 using Microsoft.FSharp.Collections;
-using FableTranspiler.VmAdapters.Types;
 using FableTranspiler.Components;
 
 namespace FableTranspiler.WpfClient.AttachedProperties

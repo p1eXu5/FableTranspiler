@@ -1,7 +1,6 @@
-﻿module FableTranspiler.App
+﻿module FableTranspiler.Adapters.WpfClient.App
 
 open Elmish.WPF
-open Bindings
 open Serilog
 open Serilog.Extensions.Logging
 open MainModel
@@ -18,7 +17,7 @@ let main window =
           .CreateLogger()
 
     let loggerFactory = new SerilogLoggerFactory(logger)
-    let store = Infrastruture.FsStatementInMemoryStore.store
+    //let store = Infrastruture.FsStatementInMemoryStore.store
 
     WpfProgram.mkProgram (MainModel.init loggerFactory) update bindings
     |> WpfProgram.withLogger loggerFactory

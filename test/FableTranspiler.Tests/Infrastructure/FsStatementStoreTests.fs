@@ -11,7 +11,7 @@ open FsUnit
 module FsStatementStoreTests =
 
     let private store = 
-        (InterpretConfigFactory.build (MockLoggerFactory.GetMockedLoggerFactory()) FsCodeStyle.Fable)
+        (InterpretConfigFactory.build (MockLoggerFactory.GetMockedLoggerFactory()) (fun _ -> None) FsCodeStyle.Fable)
             .Store
             
     let typedFsStatmenet name =

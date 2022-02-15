@@ -5,10 +5,10 @@ open NUnit.Framework
 open FsUnit
 open FableTranspiler
 open FableTranspiler.Parsers
-open FableTranspiler.VmAdapters.FsInterpreter
+open FableTranspiler.Interpreters
 open FableTranspiler.Tests.VmAdapters.TestCaseSources.InterfaceTestCaseSources
 open FableTranspiler.SimpleTypes
-open FableTranspiler.VmAdapters.FsInterpreter
+open FableTranspiler.Interpreters.FsInterpreter
 open FableTranspiler.Parsers.Types
 open FableTranspiler.Tests.Common
 open FableTranspiler.Tests.Factories
@@ -17,7 +17,7 @@ module FsDocumentInterpreterTests =
 
 
     let private config = 
-        InterpretConfigFactory.build (MockLoggerFactory.GetMockedLoggerFactory()) FsCodeStyle.Fable
+        InterpretConfigFactory.build (MockLoggerFactory.GetMockedLoggerFactory()) (fun _ -> None) FsCodeStyle.Fable
 
 
     
@@ -25,7 +25,7 @@ module FsDocumentInterpreterTests =
 
     let private interpreter modulePath fileContent =
         let statements = 
-            match Parser.document fileContent with
+            match Parser.run fileContent with
             | Ok s -> s
             | Error err -> AssertionException(err) |> raise
 
@@ -75,6 +75,8 @@ module FsDocumentInterpreterTests =
         let actualDisplay = actual |> Option.map (fun statement -> statement.StringContent()) |> Option.defaultValue ""
         actualDisplay |> should contain "type LinkProps ="
         actualDisplay |> shouldL contain "abstract smooth : U2<bool, string> option" "field presentation"
+
+
 
 
     //[<Test>]

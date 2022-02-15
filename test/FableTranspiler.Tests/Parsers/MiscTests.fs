@@ -41,6 +41,6 @@ module MiscTests =
 
         let expected = [declareConst; export]
 
-        let result = Parser.document input
+        let result = Parser.run input
         result  |> beOk expected
 

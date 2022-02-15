@@ -1,8 +1,8 @@
-﻿module FableTranspiler.AppTypes
+﻿namespace FableTranspiler.Domain
 
+open System
+open FableTranspiler.SimpleTypes
 open FableTranspiler.Parsers.Types
-open SimpleTypes
-
 
 type ParsingResult =
     {

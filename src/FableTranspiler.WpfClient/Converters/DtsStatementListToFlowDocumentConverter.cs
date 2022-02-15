@@ -4,8 +4,8 @@ using System.Windows;
 using System.Windows.Data;
 using System.Windows.Documents;
 using FableTranspiler.Components;
-using FableTranspiler.VmAdapters.FsInterpreter;
-using FableTranspiler.VmAdapters.Types;
+using FableTranspiler.Interpreters;
+using FableTranspiler.Interpreters.FsInterpreter;
 using FableTranspiler.WpfClient.AttachedProperties;
 using Microsoft.FSharp.Collections;
 

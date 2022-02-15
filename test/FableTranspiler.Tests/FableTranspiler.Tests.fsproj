@@ -9,6 +9,7 @@
 
   <ItemGroup>
     <Compile Include="Tests.Common.fs" />
+    <Compile Include="HelpersTests.fs" />
     <Compile Include="Factories\MockLoggerFactories.fs" />
     <Compile Include="LibTests\FParsecTests.fs" />
     <Compile Include="LibTests\FsCheckTests.fs" />
@@ -20,16 +21,21 @@
     <Compile Include="Parsers\ImportTests.fs" />
     <Compile Include="Parsers\ExportTests.fs" />
     <Compile Include="Parsers\ParserUTests.fs" />
-    <Compile Include="VmAdapters\FsInterpreter\TestCaseSources\InterfaceTestCaseSources.fs" />
-    <Compile Include="VmAdapters\FsInterpreter\FsInterpreter.FacadeTests.fs" />
+    <Compile Include="Interpreters\FsInterpreter\TestCaseSources\InterfaceTestCaseSources.fs" />
+    <Compile Include="Interpreters\FsInterpreter\FsInterpreter.FacadeTests.fs" />
     <Compile Include="Infrastructure\FsStatementStoreTests.fs" />
+    <EmbeddedResource Include="BDD\Domain\UseCases\ParseFile.feature" />
+    <Compile Include="BDD\Domain\UseCases\ParseFileSteps.fs" />
+    <Compile Include="BDD\Domain\UseCases\Fixtures.fs" />
     <None Include="BDD\FileProcessing.feature" />
+    <Compile Include="BDD\FileProcessingSteps.fs" />
     <None Include="BDD\StyleChange.features" />
     <Compile Include="Program.fs" />
   </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="FsCheck.NUnit" Version="2.16.3" />
+    <PackageReference Include="FsToolkit.ErrorHandling" Version="2.13.0" />
     <PackageReference Include="FsUnit" Version="4.1.0" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.0.0" />
     <PackageReference Include="Moq" Version="4.16.1" />
@@ -40,14 +46,16 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
     <PackageReference Include="TickSpec" Version="2.0.2" />
+    <PackageReference Include="TickSpec.NUnit" Version="1.0.0.1" />
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\src\FableTranspiler.Adapters.Persistence\FableTranspiler.Adapters.Persistence.fsproj" />
     <ProjectReference Include="..\..\src\FableTranspiler\FableTranspiler.fsproj" />
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Update="FSharp.Core" Version="6.0.1" />
+    <PackageReference Update="FSharp.Core" Version="6.0.3" />
   </ItemGroup>
 
 </Project>
