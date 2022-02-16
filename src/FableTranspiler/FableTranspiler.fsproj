@@ -30,8 +30,10 @@
     <Compile Include="Domain\Interpreters\FsInterpreter\FsInterpreter.Fable.fs" />
     <Compile Include="Domain\Interpreters\FsInterpreter\FsInterpreter.Facade.fs" />
     <Compile Include="Domain\Types.fs" />
-    <Compile Include="Domain\Ports.fs" />
-    <Compile Include="Domain\UseCases.fs" />
+    <Compile Include="Domain\Ports\Ports.Types.fs" />
+    <Compile Include="Domain\Ports\Ports.PortsBuilder.fs" />
+    <Compile Include="Domain\UseCases\UseCases.Types.fs" />
+    <Compile Include="Domain\UseCases\UseCases.Implementation.fs" />
     <Compile Include="Infrastruture.fs" />
     <Compile Include="InterpretConfigFactory.fs" />
   </ItemGroup>

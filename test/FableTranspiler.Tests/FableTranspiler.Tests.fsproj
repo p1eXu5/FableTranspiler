@@ -24,9 +24,9 @@
     <Compile Include="Interpreters\FsInterpreter\TestCaseSources\InterfaceTestCaseSources.fs" />
     <Compile Include="Interpreters\FsInterpreter\FsInterpreter.FacadeTests.fs" />
     <Compile Include="Infrastructure\FsStatementStoreTests.fs" />
+    <Compile Include="BDD\FeatureFixtures.fs" />
     <EmbeddedResource Include="BDD\Domain\UseCases\ParseFile.feature" />
     <Compile Include="BDD\Domain\UseCases\ParseFileSteps.fs" />
-    <Compile Include="BDD\Domain\UseCases\Fixtures.fs" />
     <None Include="BDD\FileProcessing.feature" />
     <Compile Include="BDD\FileProcessingSteps.fs" />
     <None Include="BDD\StyleChange.features" />
@@ -46,7 +46,6 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
     <PackageReference Include="TickSpec" Version="2.0.2" />
-    <PackageReference Include="TickSpec.NUnit" Version="1.0.0.1" />
   </ItemGroup>
 
   <ItemGroup>

@@ -1,15 +1,9 @@
-﻿module FableTranspiler.Domain.UseCases
+﻿module FableTranspiler.Domain.UseCases.Implementation
 
-open System
+
 open FableTranspiler.Parsers
 open FableTranspiler.Ports.AsyncPortsBuilder
 open FableTranspiler.Ports.Persistence
-
-type UriGraph =
-    | Node of Node: Uri * Importing: UriGraph list * Imported: UriGraph list
-    | ErrorNode of Node: Uri * Error: string
-
-type ParseFileUseCase = Uri -> UriGraph
 
 
 let parseFile uri : AsyncPorts<(StatementStore * ReadFileAsync), UriGraph> =
@@ -23,7 +17,7 @@ let parseFile uri : AsyncPorts<(StatementStore * ReadFileAsync), UriGraph> =
             do
                 store.TryAdd uri statements
                 |> ignore
-            return UriGraph.Node (uri, [], [])
+            return UriGraph.Root (uri, [])
         | Error err ->
             return UriGraph.ErrorNode (uri, err)
     }

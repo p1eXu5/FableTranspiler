@@ -162,3 +162,29 @@ and
             | Undefined
 
 type StatementList = Statement list
+
+
+module StructureStatement =
+
+    let name = function
+        | TypeAlias (TypeAlias.Plain (i, _)) 
+        | TypeAlias (TypeAlias.Generic (i, _, _))
+        | ClassDefinition (ClassDefinition.ExtendsEmpty (i, _))
+        | InterfaceDefinition (InterfaceDefinition.Extends (i, _, _))
+        | InterfaceDefinition (InterfaceDefinition.Plain (i, _))
+        | FunctionDefinition (FunctionDefinition.Plain (i, _, _))
+        | FunctionDefinition (FunctionDefinition.Generic (i, _, _, _))
+        | ConstDefinition (ConstDefinition.DeclareConst (i, _))
+        | ConstDefinition (ConstDefinition.Const (i, _)) -> i |> Some
+        | _ -> None
+
+
+module Statement =
+
+    let name = function
+        | NamespaceDeclaration (identifier, _) -> identifier |> Some
+        | Structure ss -> ss |> StructureStatement.name
+        | Export (ExportStatement.Structure ss)
+        | Export (ExportStatement.StructureDefault ss) -> ss |> StructureStatement.name
+        | Export (ExportStatement.Namespace (i, _)) -> i |> Some 
+        | _ -> None 

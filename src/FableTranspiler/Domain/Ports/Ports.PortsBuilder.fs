@@ -1,23 +1,6 @@
 ﻿namespace FableTranspiler.Ports
 
-open System.Threading.Tasks
 open System
-
-module Persistence =
-    open System
-    open System.IO
-    open System.Collections.Generic
-    open FableTranspiler.Parsers.Types
-
-    type ReadFileAsync = Uri -> Task<TextReader>
-
-    type StatementStore =
-        {
-            ContainsKey : Uri -> bool
-            TryAdd : Uri -> StatementList -> bool
-        }
-
-
 
 module PortsBuilder =
 
@@ -73,6 +56,9 @@ module PortsBuilder =
 
 
 module AsyncPortsBuilder =
+
+    open System.Threading.Tasks
+
 
     type AsyncPorts<'config, 'a> = AsyncPorts of action: ('config -> Task<'a>)
 
