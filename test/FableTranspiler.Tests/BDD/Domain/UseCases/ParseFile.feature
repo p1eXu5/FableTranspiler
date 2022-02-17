@@ -8,7 +8,7 @@
 			}
 			"""
 		When the z:\test.d.ts file is parsing
-		Then a tree with single z:\test.d.ts root node is produced
+		Then a tree with single z:\test.d.ts node is produced
 		And the Foo statement from z:\test.d.ts file is stored
 
 
@@ -21,7 +21,7 @@
 			"""
 		And an another z:\test-foo-props.d.ts file with content:
 			"""
-			import { Foo } from "./test-foo";
+			import { Foo } from './test-foo';
 
 			export type FooProps =
 				Foo & {
@@ -29,9 +29,8 @@
 				};
 			"""
 		When the z:\test-foo-props.d.ts file is parsing
-		Then a tree has z:\test-foo-props.d.ts root node importing:
+		Then a tree z:\test-foo-props.d.ts node is importing:
 			* z:\test-foo.d.ts
-		And a z:\test-foo.d.ts node is imported to:
-			* z:\test-foo-props.d.ts
+		And a z:\test-foo.d.ts node is importing nothing
 		And the Foo statement from z:\test-foo.d.ts file is stored
 		And the FooProps statement from z:\test-foo-props.d.ts file is stored

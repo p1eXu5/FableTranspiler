@@ -2,45 +2,49 @@
 
 open FableTranspiler.SimpleTypes
 
-type ParseFileUseCase = FullPath -> UriGraph
+type ParseFileUseCase = FullPath -> FullPathTree
 and 
-    UriGraph =
-        | Root of Node: FullPath * Importing: UriGraph list
-        | Node of Node: FullPath * Importing: UriGraph list * ImportedTo: UriGraph list
+    FullPathTree =
+        | Node of Node: FullPath * Importing: FullPathTree list
         | ErrorNode of Node: FullPath * Error: string
 
 
-module UriGraph =
-    let root = function
-        | UriGraph.Root (uri, importing) -> (uri, importing) |> Some
-        | _ -> None
+module FullPathTree =
 
-    let uri = function
-        | UriGraph.Root (uri, _)
-        | UriGraph.Node (uri, _, _)
-        | UriGraph.ErrorNode (uri, _) -> uri
+    let fullPath = function
+        | FullPathTree.Node (fp, _)
+        | FullPathTree.ErrorNode (fp, _) -> fp
 
     let (|ImportingUriList|_|) = function
-        | UriGraph.Root (_, l) 
-        | UriGraph.Node (_, l, _) -> l |> List.map (uri) |> Some
+        | FullPathTree.Node (_, l) -> l |> List.map (fullPath) |> Some
         | _ -> None
 
     let (|ImportedToUriList|_|) = function
-    | UriGraph.Node (_, _, l) -> l |> List.map (uri) |> Some
+    | FullPathTree.Node (_, l) -> l |> List.map (fullPath) |> Some
     | _ -> None
 
     let importingList = function
-    | UriGraph.Root (_, l) 
-    | UriGraph.Node (_, l, _) -> l
+    | FullPathTree.Node (_, l) -> l
     | _ -> []
 
     let tryFind targetUri startFromLevel graph =
-        let rec tryFindRun level xgraph =
+        let rec goToLevel level xgraph =
             if level > 0 then
-                tryFindRun (level - 1) (xgraph |> List.map importingList |> List.concat)
+                goToLevel (level - 1) (xgraph |> List.map importingList |> List.concat)
             else
-                xgraph |> List.tryFind (fun node -> (node |> uri) = targetUri)
+                xgraph
 
-        tryFindRun startFromLevel [graph]
+        let rec tryFind' xgraph =
+            if (xgraph |> List.length) = 0 then None
+            else
+                match xgraph |> List.tryFind (fun node -> (node |> fullPath) = targetUri) with
+                | Some g -> g |> Some
+                | None  ->
+                    tryFind' (xgraph |> List.map importingList |> List.concat)
+            
+        if startFromLevel > 0 then
+            goToLevel startFromLevel [graph]
+            |> tryFind'
+        else tryFind' [graph]
 
 

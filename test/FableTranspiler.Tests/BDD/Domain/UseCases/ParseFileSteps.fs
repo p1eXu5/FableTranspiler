@@ -82,51 +82,50 @@ module ParseFileSteps =
             let foo =
                 parseFile (fullPath)
                 |> AsyncPorts.run (config.StatementStore, config.ReadFileAsync)
-                , config
-            return foo
+                |> Async.AwaitTask
+                |> Async.RunSynchronously
+
+            return (foo, config)
         }
 
 
-    let [<Then>] ``a tree with single (.*) root node is produced`` (path: string) (actionResult: Result<(UriGraph * TestConfig), string>) =
+    let [<Then>] ``a tree with single (.*) node is produced`` (path: string) (actionResult: Result<(FullPathTree * TestConfig), string>) =
         result {
             let! (graph,_) = actionResult
             let! fullPath = path |> FullPath.Create
             do
-                graph |> should be (ofCase <@ UriGraph.Root (fullPath, []) @>)
+                graph |> should be (ofCase <@ FullPathTree.Node (fullPath, []) @>)
         }
 
 
-    let [<Then>] ``the (.*) statement from (.*) file is stored`` (name: string) (path: string) (actionResult: Result<(UriGraph * TestConfig), string>) =
+    let [<Then>] ``the (.*) statement from (.*) file is stored`` (name: string) (path: string) (actionResult: Result<(FullPathTree * TestConfig), string>) =
         result {
             let! (_,config) = actionResult
 
             let! uri = path |> FullPath.Create
             config.StatementStore.ContainsKey uri |> should equal true
-            config.StatementStore.TryGetValue uri (Identifier name) |> should be (ofCase <@ Some @>)
+            config.StatementStore.TryGetStatement uri (Identifier name) |> should be (ofCase <@ Some @>)
         }
 
 
-    let [<Then>] ``a tree has (.*) root node importing:`` (path: string) (importingPathes: string[]) (actionResult: Result<(UriGraph * TestConfig), string>) =
+    let [<Then>] ``a tree (.*) node is importing:`` (path: string) (importingPathes: string[]) (actionResult: Result<(FullPathTree * TestConfig), string>) =
         result {
             let! (graph,_) = actionResult
             let! uri = path |> FullPath.Create
-            graph |> UriGraph.uri |> should equal uri
+            graph |> FullPathTree.fullPath |> should equal uri
 
             let! expectedImportingUriList = importingPathes |> List.ofArray |> List.traverseResultM (FullPath.Create)
-            let actualImportingUriList = graph |> (function | UriGraph.ImportingUriList l -> l | _ -> [])
+            let actualImportingUriList = graph |> (function | FullPathTree.ImportingUriList l -> l | _ -> [])
             actualImportingUriList |> shouldL equivalent expectedImportingUriList "Expected importing uri list for root node is wrong."
         }
 
 
-    let [<Then>] ``a (.*) node is imported to:`` (path: string) (importingPathes: string[]) (actionResult: Result<(UriGraph * TestConfig), string>) =
+    let [<Then>] ``a (.*) node is importing nothing`` (path: string) (actionResult: Result<(FullPathTree * TestConfig), string>) =
         result {
             let! (graph,_) = actionResult
             let! uri = path |> FullPath.Create
-            match UriGraph.tryFind uri 0 graph with
+            match FullPathTree.tryFind uri 0 graph with
             | Some node -> 
-                let! expectedImportedToList = importingPathes |> List.ofArray |> List.traverseResultM (FullPath.Create)
-                let actualImportedToList = node |> (function | UriGraph.ImportedToUriList l -> l | _ -> [])
-                do
-                    actualImportedToList |> should equivalent expectedImportedToList
+                node |> FullPathTree.importingList |> should be Empty
             | _ -> return raise (AssertionException($"There is not an {uri} in graph."))
         }

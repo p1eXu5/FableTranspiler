@@ -4,14 +4,17 @@ open Elmish
 open Microsoft.Extensions.Logging
 open FableTranspiler.SimpleTypes
 open FableTranspiler.Components
-open FableTranspiler.AppTypes
-open FableTranspiler
+open FableTranspiler.Ports.Persistence
+open FableTranspiler.Ports.AsyncPortsBuilder
 open Microsoft.Win32
-
+open FableTranspiler.Domain.UseCases
+open FableTranspiler.Domain.UseCases.Implementation
+open FsToolkit.ErrorHandling
 
 type MainModel =
     {
-        ProcessingFile : string option
+        ProcessingFile : FullPath option
+        UriGraph : FullPathTree option
         //FileTree: FileTreeViewModel list option
         //SelectedModuleKey: string list option
         //SelectedDocument: FileTreeViewModel option
@@ -30,7 +33,7 @@ module internal MainModel =
     type Msg =
         | OpenFile
         | ModuleTreeListMsg of ModuleTreeCollection.Msg
-        | ParseFile of Operation<Result<(LibLocation * FileParsingResultTree), string>>
+        | ParseFile of Operation<FullPath, FullPathTree>
         | SetSelectedModule of string list option
 
 
@@ -39,6 +42,7 @@ module internal MainModel =
             let (moduleTree, msg) = ModuleTreeCollection.init loggerFactory
             {
                 ProcessingFile = None
+                UriGraph = None
                 ModuleTreeList = moduleTree
                 DtsModules = Map.empty
                 FsModules = Map.empty
@@ -49,52 +53,51 @@ module internal MainModel =
 
 
     let update (msg: Msg) (model: MainModel) =
-        match msg with
-        | OpenFile ->
-            let fd = OpenFileDialog()
-            fd.Filter <- "d.ts files (*.d.ts)|*.d.ts|All files (*.*)|*.*"
-            let result = fd.ShowDialog()
-            if result.HasValue && result.Value then (model, Cmd.ofMsg (Start |> ParseFile))
-            else (model, Cmd.none)
+        taskPorts {
+            match msg with
+            | OpenFile ->
+                let fd = OpenFileDialog()
+                fd.Filter <- "d.ts files (*.d.ts)|*.d.ts|All files (*.*)|*.*"
+                let result = fd.ShowDialog()
+                if result.HasValue && result.Value then
+                    return
+                        fd.FileName 
+                        |> FullPath.Create
+                        |> Result.map (fun fp -> ({model with ProcessingFile = fp |> Some}, Cmd.ofMsg (Start fp |> ParseFile)))
+                        |> Result.defaultValue (model, Cmd.none)
+                else return (model, Cmd.none)
 
-        | ParseFile (Operation.Start) -> 
-            {
-                model with
-                    LastError = None
-            },
-            Cmd.OfTask.perform Infrastruture.openAndProcessFile () (Operation.Finish >> ParseFile)
+            | ParseFile (Operation.Start fp) ->
+                let! (config: StatementStore * ReadFileAsync) = AsyncPorts.ask
+                return
+                    {
+                        model with
+                            LastError = None
+                    },
+                    Cmd.OfTask.perform (AsyncPorts.run config ) (parseFile fp) (Operation.Finish >> ParseFile)
     
-        | ParseFile (Operation.Finish result) ->
-            match result with
-            | Ok (modulePath, parsingResultTree) ->
-
-                let (moduleTreeList, moduleTreeListMsg) = model.ModuleTreeList |> ModuleTreeCollection.add modulePath parsingResultTree
-
-                //parsingResultTree |> ModuleTreeViewModel.toFileTreeVm store [] true
-                {
-                    model with 
-                        ModuleTreeList = moduleTreeList
-                        IsBusy = false
-                }, Cmd.map ModuleTreeListMsg moduleTreeListMsg
-    
-            | Error err ->
-                {
-                    model with 
-                        IsBusy = false
-                        LastError = err |> Some
-                }
-                , Cmd.none
-    
-        | ModuleTreeListMsg msg ->
-            let (model', msg') = ModuleTreeCollection.update msg model.ModuleTreeList
-            {
-                model with
-                    ModuleTreeList = model'
-            }
-            , Cmd.map ModuleTreeListMsg msg'
+            | ParseFile (Operation.Finish uriGraph) ->
+                return
+                    {
+                        model with
+                            ProcessingFile = None
+                            UriGraph = uriGraph |> Some
+                    }
+                    , Cmd.none
     
     
-        | _ -> {model with IsBusy = false}, Cmd.none
+            | ModuleTreeListMsg msg ->
+                let (model', msg') = ModuleTreeCollection.update msg model.ModuleTreeList
+                return 
+                    {
+                        model with
+                            ModuleTreeList = model'
+                    }
+                    , Cmd.map ModuleTreeListMsg msg'
+    
+    
+            | _ -> return model, Cmd.none
+        }
 
 
     // =========================================================
@@ -103,7 +106,7 @@ module internal MainModel =
 
     let bindings () =
         [
-            "OpenFileCommand" |> Binding.cmd (fun m -> Operation.Start |> ParseFile)
+            "OpenFileCommand" |> Binding.cmd (fun _ -> OpenFile)
     
             "ModuleTreeListVm" |> Binding.subModel(
                 (fun m -> m.ModuleTreeList),

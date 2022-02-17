@@ -55,9 +55,11 @@ module PortsBuilder =
     let ports = PortsBuilder()
 
 
+
 module AsyncPortsBuilder =
 
     open System.Threading.Tasks
+    open PortsBuilder
 
 
     type AsyncPorts<'config, 'a> = AsyncPorts of action: ('config -> Task<'a>)
@@ -66,11 +68,11 @@ module AsyncPortsBuilder =
         /// Run a Interpreter with a given environment
         let run env (AsyncPorts action)  =
             action env  // simply call the inner function
-            |> Async.AwaitTask
-            |> Async.RunSynchronously
+            //|> Async.AwaitTask
+            //|> Async.RunSynchronously
 
         /// Create a Interpreter which returns the environment itself
-        let ask = AsyncPorts (fun env -> task { return env }) 
+        let ask = Ports (fun env -> env) 
 
         /// Map a function over a Reader
         let map f reader =
@@ -80,15 +82,15 @@ module AsyncPortsBuilder =
         let bind f interpreter =
             let newAction env =
                 task {
-                    let x = run env interpreter
-                    return run env (f x)
+                    let! x = run env interpreter
+                    return! run env (f x)
                 }
             AsyncPorts newAction
 
-        ///// The sequential composition operator.
-        ///// This is boilerplate in terms of "result" and "bind".
-        //let combine expr1 expr2 =
-        //    expr1 |> bind (fun () -> task { return expr2 } )
+        /// The sequential composition operator.
+        /// This is boilerplate in terms of "result" and "bind".
+        let combine expr1 expr2 =
+            expr1 |> bind (fun () -> expr2)
 
         /// The delay operator.
         let delay func = func()
@@ -102,7 +104,7 @@ module AsyncPortsBuilder =
             let action env =
                 task {
                     try
-                        return run env delayed
+                        return! run env delayed
                     finally
                         compensation ()
                 }
@@ -117,15 +119,23 @@ module AsyncPortsBuilder =
         member _.Return(v) = AsyncPorts.retn v
         member _.ReturnFrom(expr) = expr
         member _.Bind(m: AsyncPorts<_,_>, f) = AsyncPorts.bind f m
-        member this.Bind(m: Task<_>, f: 'a -> AsyncPorts<_,_>) =
+        member _.Bind(m: Task<_>, f: 'a -> AsyncPorts<_,_>) =
             AsyncPorts (fun env ->
                 task {
                     let! x = m
-                    return AsyncPorts.run env (f x)
+                    return! AsyncPorts.run env (f x)
                 }
             )
+        member _.Bind(m: Ports<_,_>, f: 'a -> AsyncPorts<_,_>) =
+            AsyncPorts (fun env ->
+                task {
+                    let x = Ports.run env m
+                    return! AsyncPorts.run env (f x)
+                }
+            )
+
         member _.Zero() = AsyncPorts.retn ()
-        //member _.Combine(expr1, expr2) = AsyncPorts.combine expr1 expr2
+        member _.Combine(expr1, expr2) = AsyncPorts.combine expr1 expr2
         member _.Delay(func) = AsyncPorts.delay func
         member _.Using(v, f) = AsyncPorts.using f v
 

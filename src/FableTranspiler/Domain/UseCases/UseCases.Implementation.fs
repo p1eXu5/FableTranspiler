@@ -4,20 +4,59 @@
 open FableTranspiler.Parsers
 open FableTranspiler.Ports.AsyncPortsBuilder
 open FableTranspiler.Ports.Persistence
+open System.IO
+open FableTranspiler.SimpleTypes
+open FsToolkit.ErrorHandling
+open FableTranspiler.Parsers.Types
+open System.Threading.Tasks
 
 
-let parseFile uri : AsyncPorts<(StatementStore * ReadFileAsync), UriGraph> =
-    taskPorts {
-        let! (store: StatementStore, readFileAsync: ReadFileAsync) = AsyncPorts.ask
-        use! sr = readFileAsync uri
-        let! content = sr.ReadToEndAsync()
+let parseFile fullPath : AsyncPorts<(StatementStore * ReadFileAsync), FullPathTree> =
 
-        match Parser.run content with
-        | Ok statements ->
-            do
-                store.TryAdd uri statements
-                |> ignore
-            return UriGraph.Root (uri, [])
-        | Error err ->
-            return UriGraph.ErrorNode (uri, err)
-    }
+    let importingFullPaths fullPath : AsyncPorts<(StatementStore * ReadFileAsync), FullPath list>  =
+        taskPorts {
+            let! (store: StatementStore, readFileAsync: ReadFileAsync) = AsyncPorts.ask
+            use! sr = readFileAsync fullPath
+            let! content = sr.ReadToEndAsync()
+            let presult = 
+                store.GetOrAdd
+                    fullPath
+                    (fun () -> Parser.run content)
+
+            match presult with
+            | Ok statements ->
+                let path = fullPath |> FullPath.Value
+                return
+                    statements
+                    |> List.choose (function 
+                        | Statement.Import (_, Relative t) ->  t |> Some 
+                        | Statement.Export (Transit (_, (Relative t))) ->  t |> Some 
+                        | _ -> None
+                    )
+                    |> List.map (fun (ModulePath modulePath) ->
+                        Path.GetFullPath(Path.Combine(Path.GetDirectoryName(path), modulePath + ".d.ts"))
+                        |> FullPath.Create
+                    )
+                    |> List.choose (function Ok p -> Some p | _ -> None) // TODO: add repo for not found paths
+
+            | Error _ ->
+                return []
+        }
+
+    let rec parseFile' fullPath  =
+        taskPorts {
+            let! importingFullPaths = importingFullPaths fullPath
+            let! (store: StatementStore, readFileAsync: ReadFileAsync) = AsyncPorts.ask
+
+            let! nodes =
+                importingFullPaths
+                |> List.map (fun fp ->
+                    AsyncPorts.run (store, readFileAsync) (parseFile' fp)
+                )
+                |> Task.WhenAll
+
+            let result = FullPathTree.Node (fullPath, nodes |> List.ofArray)
+            return result 
+        }
+
+    parseFile' fullPath

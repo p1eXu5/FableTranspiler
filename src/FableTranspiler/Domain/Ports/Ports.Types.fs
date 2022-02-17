@@ -12,6 +12,8 @@ module Persistence =
     type StatementStore =
         {
             ContainsKey : FullPath -> bool
-            TryAdd : FullPath -> StatementList -> bool
-            TryGetValue : FullPath -> Identifier -> Statement option 
+            TryAdd : FullPath -> Result<StatementList, string> -> bool
+            GetOrAdd: FullPath -> (unit -> Result<StatementList, string>) -> Result<StatementList, string>
+            TryGetStatementList: FullPath -> Result<StatementList, string> option
+            TryGetStatement : FullPath -> Identifier -> Statement option 
         }

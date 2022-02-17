@@ -7,7 +7,6 @@ open Microsoft.Extensions.Logging
 open FableTranspiler.Interpreters.FsInterpreter
 
 
-
 [<ReferenceEquality>]
 type ModuleTreeCollection =
     {
