@@ -1,16 +1,15 @@
-﻿namespace FableTranspiler.Tests.BDD
+﻿namespace FableTranspiler.Tests.BDD.Base
 
 open TickSpec
 open NUnit.Framework
 
+open System
 open System.Reflection
 open System.Runtime.ExceptionServices
 
 [<AbstractClass>]
 /// Class containing all BDD tests in current assembly as NUnit unit tests
 type FeatureFixture () =
-
-    static let definitions = new StepDefinitions(Assembly.GetExecutingAssembly().GetTypes())
 
     /// Test method for all BDD tests in current assembly as NUnit unit tests
     abstract member Bdd : Scenario -> unit
@@ -25,7 +24,7 @@ type FeatureFixture () =
         | :? TargetInvocationException as ex -> ExceptionDispatchInfo.Capture(ex.InnerException).Throw()
 
     /// All test scenarios from feature files in current assembly
-    static member GenerateTestCaseData(fuetureFileName: string) =
+    static member GenerateTestCaseData(fuetureFileName: string, [<ParamArray>] steps: string[]) =
         let createFeatureData (feature:Feature) =
             let createTestCaseData (feature:Feature) (scenario:Scenario) =
                 let enhanceScenarioName parameters scenarioName =
@@ -44,6 +43,11 @@ type FeatureFixture () =
             |> Seq.map (createTestCaseData feature)
         
         let assembly = Assembly.GetExecutingAssembly()
+        let definitions = 
+            if steps |> Array.isEmpty then
+                new StepDefinitions(assembly.GetTypes())
+            else
+                new StepDefinitions(assembly.GetTypes() |> Array.filter (fun t -> steps |> Array.exists ((=) t.Name)))
 
         assembly.GetManifestResourceNames()
         |> Seq.filter (fun (n:string) -> n.EndsWith($"%s{fuetureFileName}.feature", System.StringComparison.Ordinal) )

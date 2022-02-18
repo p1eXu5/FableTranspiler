@@ -10,7 +10,8 @@ open FableTranspiler.Tests.VmAdapters.TestCaseSources.InterfaceTestCaseSources
 open FableTranspiler.SimpleTypes
 open FableTranspiler.Interpreters.FsInterpreter
 open FableTranspiler.Parsers.Types
-open FableTranspiler.Tests.Common
+open FableTranspiler.Tests.Common.FsUnit
+open FableTranspiler.Tests.Common.SimpleTypesFactories
 open FableTranspiler.Tests.Factories
 
 module FsDocumentInterpreterTests =
@@ -34,7 +35,7 @@ module FsDocumentInterpreterTests =
 
     [<Test>]
     let ``saves exported interface statement in store`` () =
-        let modulePath = "test.d.ts" |> modulePath
+        let modulePath = "test.d.ts" |> ModulePath.createUnsafe
         let input = """
             export interface Foo {
                 smooth?: boolean | string | undefined;
@@ -55,7 +56,7 @@ module FsDocumentInterpreterTests =
 
     [<Test>]
     let ``uses existing statement when there is an reference in type alias`` () =
-        let modulePath = "test.d.ts" |> modulePath
+        let modulePath = "test.d.ts" |> ModulePath.createUnsafe
         let input = """
             export interface Foo {
                 smooth?: boolean | string | undefined;

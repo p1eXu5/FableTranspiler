@@ -2,6 +2,7 @@
 
 open NUnit.Framework
 open FableTranspiler.SimpleTypes
+open FableTranspiler.Tests.Common.FsUnit
 
 [<Category("Parsers.ImportTests")>]
 module ImportTests =

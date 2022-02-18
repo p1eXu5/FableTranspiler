@@ -46,9 +46,3 @@ module FsUnit =
     let inline beOk expected = function
         | Result.Ok ok -> ok |> shouldL equal expected ""
         | Result.Error err -> raise (AssertionException($"Should be %A{expected} but there is an error: %A{err}"))
-
-
-    let modulePath fileName =
-        match fileName |> ModulePath.Create with
-        | Result.Ok modulePath -> modulePath
-        | Result.Error err -> raise (AssertionException err)

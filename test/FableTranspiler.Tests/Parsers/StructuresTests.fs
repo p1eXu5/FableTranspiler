@@ -3,6 +3,7 @@
 open NUnit.Framework
 open FableTranspiler.Parsers.Types
 open FableTranspiler.SimpleTypes
+open FableTranspiler.Tests.Common.FsUnit
 
 [<Category("Parsers.StructuresTests")>]
 module StructuresTests =

@@ -1,6 +1,7 @@
 ﻿namespace FableTranspiler.Tests.Parsers
 
 open NUnit.Framework
+open FableTranspiler.Tests.Common.FsUnit
 
 [<Category("Parsers.ExportTests")>]
 module ExportTests =

@@ -22,9 +22,12 @@
     <Compile Include="Interpreters\FsInterpreter\TestCaseSources\InterfaceTestCaseSources.fs" />
     <Compile Include="Interpreters\FsInterpreter\FsInterpreter.FacadeTests.fs" />
     <Compile Include="Infrastructure\FsStatementStoreTests.fs" />
-    <Compile Include="BDD\FeatureFixtures.fs" />
+    <Compile Include="BDD\Base\FeatureFixtures.fs" />
+    <Compile Include="BDD\Base\CommonSteps.fs" />
     <EmbeddedResource Include="BDD\Domain\UseCases\ParseFile.feature" />
     <Compile Include="BDD\Domain\UseCases\ParseFileSteps.fs" />
+    <EmbeddedResource Include="BDD\Domain\Interpreters\FableInterpretation.feature" />
+    <Compile Include="BDD\Domain\Interpreters\FableInterpretationSteps.fs" />
     <None Include="BDD\FileProcessing.feature" />
     <Compile Include="BDD\FileProcessingSteps.fs" />
     <None Include="BDD\StyleChange.features" />

@@ -19,6 +19,7 @@ module Statements =
     open System.Diagnostics
     open NUnit.Framework.Constraints
     open FableTranspiler.Tests.Common
+    open FableTranspiler.Tests.Common.FsUnit
 
 
 

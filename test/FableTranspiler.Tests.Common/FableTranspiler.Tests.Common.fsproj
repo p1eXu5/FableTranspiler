@@ -8,7 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Include="Tests.Common.fs" />
+    <Compile Include="FsUnit.fs" />
     <Compile Include="HelpersTests.fs" />
     <Compile Include="Factories\SimpleTypesFactories.fs" />
     <Compile Include="Factories\MockLoggerFactories.fs" />

@@ -1,4 +1,4 @@
-﻿namespace FableTranspiler.Tests.BDD
+﻿namespace rec FableTranspiler.Tests.BDD
 
 open NUnit.Framework
 open FsUnit
@@ -10,17 +10,24 @@ open System.Text
 open FableTranspiler.Ports.Persistence
 open FableTranspiler.Ports.AsyncPortsBuilder
 open FableTranspiler.Adapters.Persistence
-open FableTranspiler.Tests.BDD
+open FableTranspiler.Tests.BDD.Base
 open FableTranspiler.SimpleTypes
 open FsToolkit.ErrorHandling
 open FableTranspiler.Domain.UseCases.Implementation
-open FableTranspiler.Tests.Common
+open FableTranspiler.Tests.Common.FsUnit
 
-type ParseFileFeatureFixture() =
+[<TestFixture(TestName="Feature: Parse file")>]
+type ParseFileFeature() = 
     inherit FeatureFixture()
+
     [<TestCaseSource("Scenarios")>]
     override _.Bdd(scenario: Scenario) = base.Bdd(scenario)
-    static member Scenarios = FeatureFixture.GenerateTestCaseData("ParseFile")
+    static member Scenarios = 
+        FeatureFixture.GenerateTestCaseData(
+            "ParseFile",
+            nameof ParseFileSteps,
+            nameof CommonSteps
+        )
 
 
 type TestConfig =
@@ -30,13 +37,6 @@ type TestConfig =
     }
 
 module ParseFileSteps =
-
-    let initReadFileAsync : ReadFileAsync =
-        fun _ ->
-            task {
-                return raise (FileNotFoundException())
-            }
-
 
     let [<Given>] ``a (.*) file with content:`` (path: string) (content: string) =
         result {
@@ -54,7 +54,7 @@ module ParseFileSteps =
                         }
             }
         }
-
+    
     let [<Given>] ``an another (.*) file with content:`` (path: string) (content: string) (configResult: Result<TestConfig, string>) =
         result {
             let! config = configResult

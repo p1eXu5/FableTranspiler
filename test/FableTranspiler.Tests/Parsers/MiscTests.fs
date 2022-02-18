@@ -4,6 +4,7 @@ open NUnit.Framework
 open FableTranspiler.Parsers.Types
 open FableTranspiler.Parsers
 open FableTranspiler.SimpleTypes
+open FableTranspiler.Tests.Common.FsUnit
 
 [<Category("Parsers.MiscTests")>]
 module MiscTests =

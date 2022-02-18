@@ -5,6 +5,7 @@ open FableTranspiler.SimpleTypes
 open FableTranspiler.Interpreters.FsInterpreter
 open NUnit.Framework
 open FableTranspiler.Tests.Common
+open FableTranspiler.Tests.Common.SimpleTypesFactories
 open FableTranspiler.Tests.Factories
 open FsUnit
 
@@ -24,7 +25,7 @@ module FsStatementStoreTests =
     [<Test>]
     let ``Store can returns statement by its identifier when it's added to the store`` () =
         let (identifier, statement) = typedFsStatmenet "foo"
-        let modulePath = modulePath @"z:\bar\baz.d.ts"
+        let modulePath = @"z:\bar\baz.d.ts" |> ModulePath.createUnsafe
 
         do
             store.Add modulePath statement
