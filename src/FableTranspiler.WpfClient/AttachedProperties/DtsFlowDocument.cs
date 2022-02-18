@@ -5,7 +5,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Documents;
 using Microsoft.FSharp.Collections;
-using FableTranspiler.Components;
+using FableTranspiler.Adapters.WpfClient.Components;
 
 namespace FableTranspiler.WpfClient.AttachedProperties
 {

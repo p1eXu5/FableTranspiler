@@ -3,7 +3,7 @@ using System.Globalization;
 using System.Windows;
 using System.Windows.Data;
 using System.Windows.Documents;
-using FableTranspiler.Components;
+using FableTranspiler.Adapters.WpfClient.Components;
 using FableTranspiler.Interpreters;
 using FableTranspiler.Interpreters.FsInterpreter;
 using FableTranspiler.WpfClient.AttachedProperties;

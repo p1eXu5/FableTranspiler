@@ -1,4 +1,4 @@
-﻿using FableTranspiler.Components;
+﻿using FableTranspiler.Adapters.WpfClient.Components;
 using FableTranspiler.Interpreters;
 using FableTranspiler.WpfClient.Converters;
 using Microsoft.FSharp.Collections;

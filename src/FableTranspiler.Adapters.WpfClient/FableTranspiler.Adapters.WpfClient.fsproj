@@ -13,7 +13,7 @@
     <Compile Include="Components\DtsStatementViewModel.fs" />
     <Compile Include="Components\FsStatementViewModel.fs" />
     <Compile Include="Components\ModuleTree.fs" />
-    <Compile Include="Components\ModuleTreeCollection.fs" />
+    <Compile Include="Components\ModuleTreeList.fs" />
     <Compile Include="MainModel.fs" />
     <Compile Include="App.fs" />
   </ItemGroup>
@@ -26,6 +26,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\FableTranspiler.Adapters.Persistence\FableTranspiler.Adapters.Persistence.fsproj" />
     <ProjectReference Include="..\FableTranspiler\FableTranspiler.fsproj" />
   </ItemGroup>
 
@@ -33,4 +34,9 @@
     <PackageReference Update="FSharp.Core" Version="6.0.3" />
   </ItemGroup>
 
+  <ItemGroup>
+		<AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
+			<_Parameter1>FableTranspiler.Adapters.WpfClient.Tests</_Parameter1>
+		</AssemblyAttribute>
+	</ItemGroup>
 </Project>

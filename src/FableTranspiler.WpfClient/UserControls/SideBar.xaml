@@ -4,7 +4,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:local="clr-namespace:FableTranspiler.WpfClient.UserControls"
-             xmlns:vm="clr-namespace:FableTranspiler.Components;assembly=FableTranspiler"
+             xmlns:vm="clr-namespace:FableTranspiler.Adapters.WpfClient.Components;assembly=FableTranspiler.Adapters.WpfClient"
              xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
              xmlns:behaviors="http://schemas.microsoft.com/xaml/behaviors"
              mc:Ignorable="d" 

@@ -28,7 +28,7 @@ namespace FableTranspiler.WpfClient
         private void StartElmish( object? sender, EventArgs e )
         {
             this.Activated -= StartElmish;
-            FableTranspiler.App.main(MainWindow);
+            FableTranspiler.Adapters.WpfClient.App.main(MainWindow);
         }
     }
 }

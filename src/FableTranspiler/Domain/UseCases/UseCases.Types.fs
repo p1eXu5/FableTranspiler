@@ -27,24 +27,42 @@ module FullPathTree =
     | FullPathTree.Node (_, l) -> l
     | _ -> []
 
-    let tryFind targetUri startFromLevel graph =
-        let rec goToLevel level xgraph =
+    let tryFind targetUri startFromLevel tree =
+        let rec goToLevel level xtree =
             if level > 0 then
-                goToLevel (level - 1) (xgraph |> List.map importingList |> List.concat)
+                goToLevel (level - 1) (xtree |> List.map importingList |> List.concat)
             else
-                xgraph
+                xtree
 
-        let rec tryFind' xgraph =
-            if (xgraph |> List.length) = 0 then None
+        let rec tryFind' xtree =
+            if (xtree |> List.length) = 0 then None
             else
-                match xgraph |> List.tryFind (fun node -> (node |> fullPath) = targetUri) with
+                match xtree |> List.tryFind (fun node -> (node |> fullPath) = targetUri) with
                 | Some g -> g |> Some
                 | None  ->
-                    tryFind' (xgraph |> List.map importingList |> List.concat)
+                    tryFind' (xtree |> List.map importingList |> List.concat)
             
         if startFromLevel > 0 then
-            goToLevel startFromLevel [graph]
+            goToLevel startFromLevel [tree]
             |> tryFind'
-        else tryFind' [graph]
+        else tryFind' [tree]
 
 
+    let rec apply (ffp, fn, fer, state, getState) tree =
+        match tree with
+        | Node (fp, l) -> 
+            let node' = fp |> ffp state
+            let state' = getState node'
+            let importing' = l |> List.map (apply (ffp, fn, fer, state', getState))
+            (node', importing') ||> fn
+        | ErrorNode (fp, err) -> ((fp |> ffp state), err) ||> fer
+
+
+    let rec allNodes fullPathTree =
+        fullPathTree
+        :: (
+            fullPathTree 
+            |> importingList
+            |> List.map allNodes
+            |> List.concat
+        )

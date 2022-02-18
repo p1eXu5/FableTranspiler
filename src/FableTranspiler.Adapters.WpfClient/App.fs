@@ -4,7 +4,10 @@ open Elmish.WPF
 open Serilog
 open Serilog.Extensions.Logging
 open MainModel
-
+open FableTranspiler.Ports.Persistence
+open FableTranspiler.Ports.PortsBuilder
+open FableTranspiler.SimpleTypes
+open System.IO
 
 let main window =
     let logger =
@@ -19,6 +22,21 @@ let main window =
     let loggerFactory = new SerilogLoggerFactory(logger)
     //let store = Infrastruture.FsStatementInMemoryStore.store
 
-    WpfProgram.mkProgram (MainModel.init loggerFactory) update bindings
+
+    let readFile : ReadFileAsync =
+        fun fullPath ->
+            task {
+                let fileName = fullPath |> FullPath.Value
+                return File.OpenText(fileName)
+            }
+        
+
+    let config =
+        (
+            FableTranspiler.Adapters.Persistence.StatementStore.create (),
+            readFile
+        )
+
+    WpfProgram.mkProgram (MainModel.init ()) (fun msg m -> Ports.run config (update msg m)) bindings
     |> WpfProgram.withLogger loggerFactory
     |> WpfProgram.startElmishLoop window

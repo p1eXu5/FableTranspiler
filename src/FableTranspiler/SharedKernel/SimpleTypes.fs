@@ -23,9 +23,11 @@ open System.IO
 [<Struct>]
 type FullPath = private FullPath of string with
     static member Create(v: string) =
-        if Path.IsPathFullyQualified(v) then
-            FullPath v |> Ok
-        else
-            Error $"{v} is not full path"
-
+        ConstrainedString.Create(nameof FullPath, id, 4, 2048, v)
+        |> Result.bind (fun s ->
+            if Path.IsPathFullyQualified(s) then
+                FullPath s |> Ok
+            else
+                Error $"{s} is not full path"
+        )
     static member Value(FullPath v) = v

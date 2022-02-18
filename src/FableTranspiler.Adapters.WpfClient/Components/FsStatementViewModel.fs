@@ -1,4 +1,4 @@
-﻿namespace FableTranspiler.Components
+﻿namespace FableTranspiler.Adapters.WpfClient.Components
 
 open FableTranspiler.Interpreters
 open FableTranspiler.Interpreters.FsInterpreter
@@ -14,8 +14,7 @@ type FsStatementViewModel =
     with
         member this.Content() = 
             this.FsStatement.StyledFsStatements[this.SelectedStyle]
-                .FsStatement
-                |> FsStatement.codeItems
+                .FsStatement.CodeItems()
 
         member this.FsCodeStyle() =
             this.FsStatement.StyledFsStatements[this.SelectedStyle]

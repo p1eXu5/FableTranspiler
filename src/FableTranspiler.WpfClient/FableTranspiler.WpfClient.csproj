@@ -15,7 +15,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\FableTranspiler\FableTranspiler.fsproj" />
+    <ProjectReference Include="..\FableTranspiler.Adapters.WpfClient\FableTranspiler.Adapters.WpfClient.fsproj" />
   </ItemGroup>
 
 </Project>

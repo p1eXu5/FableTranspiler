@@ -1,4 +1,4 @@
-﻿namespace FableTranspiler.Components
+﻿namespace FableTranspiler.Adapters.WpfClient.Components
 
 open FableTranspiler.Interpreters.DtsInterpreter
 

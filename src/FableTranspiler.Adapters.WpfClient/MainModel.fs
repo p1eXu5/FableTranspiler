@@ -3,25 +3,25 @@
 open Elmish
 open Microsoft.Extensions.Logging
 open FableTranspiler.SimpleTypes
-open FableTranspiler.Components
 open FableTranspiler.Ports.Persistence
+open FableTranspiler.Ports.PortsBuilder
 open FableTranspiler.Ports.AsyncPortsBuilder
 open Microsoft.Win32
 open FableTranspiler.Domain.UseCases
 open FableTranspiler.Domain.UseCases.Implementation
 open FsToolkit.ErrorHandling
+open FableTranspiler.Adapters.WpfClient.Components
 
 type MainModel =
     {
         ProcessingFile : FullPath option
-        UriGraph : FullPathTree option
+        ModuleTreeList : ModuleTreeList
         //FileTree: FileTreeViewModel list option
         //SelectedModuleKey: string list option
         //SelectedDocument: FileTreeViewModel option
-        ModuleTreeList : ModuleTreeCollection
-        DtsModules : Map<string list, DtsStatementViewModel list>
-        FsModules : Map<string list, FsStatementViewModel list>
-        SelectedModuleKey : string list
+        //DtsModules : Map<string list, DtsStatementViewModel list>
+        //FsModules : Map<string list, FsStatementViewModel list>
+        //SelectedModuleKey : string list
         LastError : string option
     }
 
@@ -32,28 +32,27 @@ module internal MainModel =
 
     type Msg =
         | OpenFile
-        | ModuleTreeListMsg of ModuleTreeCollection.Msg
+        | ModuleTreeListMsg of ModuleTreeList.Msg
         | ParseFile of Operation<FullPath, FullPathTree>
         | SetSelectedModule of string list option
 
 
-    let init loggerFactory =
+    let init () =
         fun () ->
-            let (moduleTree, msg) = ModuleTreeCollection.init loggerFactory
+            let (moduleTree, msg) = ModuleTreeList.init ()
             {
                 ProcessingFile = None
-                UriGraph = None
                 ModuleTreeList = moduleTree
-                DtsModules = Map.empty
-                FsModules = Map.empty
-                SelectedModuleKey = []
+                //DtsModules = Map.empty
+                //FsModules = Map.empty
+                //SelectedModuleKey = []
                 LastError = None
             },
             Cmd.map ModuleTreeListMsg msg
 
 
     let update (msg: Msg) (model: MainModel) =
-        taskPorts {
+        ports {
             match msg with
             | OpenFile ->
                 let fd = OpenFileDialog()
@@ -68,26 +67,22 @@ module internal MainModel =
                 else return (model, Cmd.none)
 
             | ParseFile (Operation.Start fp) ->
-                let! (config: StatementStore * ReadFileAsync) = AsyncPorts.ask
+                let! (config: StatementStore * ReadFileAsync) = Ports.ask
                 return
                     {
                         model with
                             LastError = None
                     },
-                    Cmd.OfTask.perform (AsyncPorts.run config ) (parseFile fp) (Operation.Finish >> ParseFile)
+                    Cmd.OfTask.perform (AsyncPorts.run config) (parseFile fp) (Operation.Finish >> ParseFile)
     
             | ParseFile (Operation.Finish uriGraph) ->
                 return
-                    {
-                        model with
-                            ProcessingFile = None
-                            UriGraph = uriGraph |> Some
-                    }
-                    , Cmd.none
+                    {model with ProcessingFile = None}
+                    , Cmd.ofMsg (uriGraph |> ModuleTreeList.Msg.AppendNewModuleTree |> ModuleTreeListMsg )
     
     
             | ModuleTreeListMsg msg ->
-                let (model', msg') = ModuleTreeCollection.update msg model.ModuleTreeList
+                let (model', msg') = ModuleTreeList.update msg model.ModuleTreeList
                 return 
                     {
                         model with
@@ -108,12 +103,10 @@ module internal MainModel =
         [
             "OpenFileCommand" |> Binding.cmd (fun _ -> OpenFile)
     
-            "ModuleTreeListVm" |> Binding.subModel(
-                (fun m -> m.ModuleTreeList),
-                (fun (_, sm) -> sm),
-                ModuleTreeListMsg,
-                ModuleTreeCollection.bindings
-            )
+            "ModuleTreeListVm" 
+            |> Binding.SubModel.required ModuleTreeList.bindings
+            |> Binding.mapModel (fun m -> m.ModuleTreeList)
+            |> Binding.mapMsg ModuleTreeListMsg
     
             "LastError" |> Binding.oneWayOpt (fun m -> m.LastError)
         ]
