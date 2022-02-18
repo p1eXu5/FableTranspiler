@@ -24,7 +24,7 @@
         <StatusBar DockPanel.Dock="Bottom" Height="24">
             <TextBlock Text="{Binding LastError}" />
         </StatusBar>
-        <local:SideBar DockPanel.Dock="Left" DataContext="{Binding ModuleTreeListVm}"/>
-        <local:Content DockPanel.Dock="Right" DataContext="{Binding ModuleTreeListVm}" />
+        <local:SideBar DockPanel.Dock="Left" DataContext="{Binding ModuleTreeList}"/>
+        <local:Content DockPanel.Dock="Right" DataContext="{Binding}" />
     </DockPanel>
 </Window>

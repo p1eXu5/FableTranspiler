@@ -22,19 +22,19 @@ namespace FableTranspiler.WpfClient.AttachedProperties
         public static readonly DependencyProperty DtsDocumentProperty =
             DependencyProperty.RegisterAttached(
                 "DtsDocument",
-                typeof(FSharpList<DtsStatementViewModel>),
+                typeof(FSharpList< DtsInterpreter.DtsStatement >),
                 typeof(DtsFlowDocument),
                 new FrameworkPropertyMetadata {
                     BindsTwoWayByDefault = false,
-                    PropertyChangedCallback = DtsDocumentChangedCallback<DtsStatementViewModel>
+                    PropertyChangedCallback = DtsDocumentChangedCallback< DtsInterpreter.DtsStatement >
                 });
 
-        public static FSharpList<DtsStatementViewModel> GetDtsDocument(DependencyObject obj)
+        public static FSharpList< DtsInterpreter.DtsStatement > GetDtsDocument(DependencyObject obj)
         {
-            return (FSharpList<DtsStatementViewModel>)obj.GetValue(DtsDocumentProperty);
+            return (FSharpList< DtsInterpreter.DtsStatement >)obj.GetValue(DtsDocumentProperty);
         }
 
-        public static void SetDtsDocument(DependencyObject obj, FSharpList<DtsStatementViewModel> value)
+        public static void SetDtsDocument(DependencyObject obj, FSharpList< DtsInterpreter.DtsStatement > value)
         {
             obj.SetValue(DtsDocumentProperty, value);
         }
@@ -82,7 +82,7 @@ namespace FableTranspiler.WpfClient.AttachedProperties
             var richTextBox = (RichTextBox)d;
 
             object? statements = typeof(TViewModel).Name switch {
-                nameof(DtsStatementViewModel) => GetDtsDocument(richTextBox),
+                nameof(DtsInterpreter.DtsStatement) => GetDtsDocument(richTextBox),
                 nameof(CodeItem) => GetDtsDocumentError(richTextBox),
                 _ => null
             };

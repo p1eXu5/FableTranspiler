@@ -26,11 +26,9 @@ type ModuleTreeList = ModuleTree list
 module internal ModuleTreeList =
 
     type Msg =
-        | SelectModule of RootFullPath: FullPath * SelectModuleMsg
-        | ResetSelection
-        | DtsStatementMsg of int * DtsStatementViewModel.Msg
-        | FsStatementMsg of int * FsStatementViewModel.Msg
         | AppendNewModuleTree of FullPathTree
+        | ResetSelection
+        | ChangeSelection of RootFullPath: FullPath * SelectModuleMsg
     and
         /// for tree item selection:
         SelectModuleMsg =
@@ -75,7 +73,6 @@ module internal ModuleTreeList =
         let changeIsSelected v (model: ModuleTree) =
             { model with IsSelected = v}
 
-
         let rec tryTransformModule rootFullPath key modules transform =
     
             let rec tryToggleIsSelected key modules accum =
@@ -112,7 +109,6 @@ module internal ModuleTreeList =
                 else moduleTree
             )
 
-
         let tryFindModule2 rootFullPath key modules : ModuleTree option =
     
             let rec tryFindModule (key: string list) modules accum =
@@ -146,6 +142,15 @@ module internal ModuleTreeList =
                 |> List.concat
             )
 
+
+    let (|SelectModule|_|) moduleList = function
+        | ChangeSelection (rootFullPath, ChildMsg (key, ToggleModuleSelection v)) when v = true ->
+            tryFindModule2 rootFullPath key moduleList
+            |> Option.map (fun mt -> mt.ModulePath)
+        | _ -> None
+
+
+
     // ==============
     //    Program
     // ==============
@@ -158,10 +163,10 @@ module internal ModuleTreeList =
             moduleTree :: model
             , Cmd.batch [
                 Cmd.ofMsg ResetSelection
-                Cmd.ofMsg (SelectModule (rootFullPath, (ChildMsg (moduleTree.Key, ToggleModuleSelection true))))
+                Cmd.ofMsg (ChangeSelection (rootFullPath, (ChildMsg (moduleTree.Key, ToggleModuleSelection true))))
             ]
             
-        | SelectModule (rootFullPath, ChildMsg (key, ToggleModuleSelection v)) ->
+        | ChangeSelection (rootFullPath, ChildMsg (key, ToggleModuleSelection v)) ->
             let newModel = ModuleTree.tryTransformModule rootFullPath key model (ModuleTree.changeIsSelected v)
             newModel
             , Cmd.none
@@ -202,10 +207,11 @@ module internal ModuleTreeList =
                 (fun m -> m),
                 (fun (m, sm) -> sm),
                 (fun (vm: ModuleTree) -> (vm.RootPath, vm.Key)),
-                (fun (id, msg) -> 
+                (fun (id, msg) ->
                     match msg with
-                    | ToggleModuleSelection _ -> (fst id, ChildMsg (snd id, msg)) |> SelectModule
-                    | _ -> (fst id, msg) |> SelectModule
+                    | ToggleModuleSelection _ -> (fst id, ChildMsg (snd id, msg))
+                    | _ -> (fst id, msg)
+                    |> ChangeSelection
                 ),
                 moduleTreeBindings
             )

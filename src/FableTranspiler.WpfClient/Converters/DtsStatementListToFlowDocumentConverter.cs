@@ -36,13 +36,13 @@ namespace FableTranspiler.WpfClient.Converters
         }
 
 
-        internal object Convert(FSharpList<DtsStatementViewModel> vmList)
+        internal object Convert(FSharpList<DtsInterpreter.DtsStatement> vmList)
         {
             var fd = new FlowDocument();
 
             foreach (var vm in vmList) 
             {
-                var section = BuildSection(vm.DtsStatement.DtsDocumentSection);
+                var section = BuildSection(vm.Presentation);
                 fd.Blocks.Add(section);
             }
 

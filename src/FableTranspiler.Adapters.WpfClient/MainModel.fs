@@ -16,6 +16,7 @@ type MainModel =
     {
         ProcessingFile : FullPath option
         ModuleTreeList : ModuleTreeList
+        DtsModule : DtsModule
         //FileTree: FileTreeViewModel list option
         //SelectedModuleKey: string list option
         //SelectedDocument: FileTreeViewModel option
@@ -33,22 +34,27 @@ module internal MainModel =
     type Msg =
         | OpenFile
         | ModuleTreeListMsg of ModuleTreeList.Msg
+        | DtsModuleMsg of DtsModule.Msg
         | ParseFile of Operation<FullPath, FullPathTree>
         | SetSelectedModule of string list option
 
 
     let init () =
         fun () ->
-            let (moduleTree, msg) = ModuleTreeList.init ()
+            let (moduleTreeList, moduleTreeListMsg) = ModuleTreeList.init ()
+            let (dtsModule, dtsModuleMsg) = DtsModule.init ()
             {
                 ProcessingFile = None
-                ModuleTreeList = moduleTree
-                //DtsModules = Map.empty
+                ModuleTreeList = moduleTreeList
+                DtsModule = dtsModule
                 //FsModules = Map.empty
                 //SelectedModuleKey = []
                 LastError = None
             },
-            Cmd.map ModuleTreeListMsg msg
+            Cmd.batch [
+                Cmd.map ModuleTreeListMsg moduleTreeListMsg
+                Cmd.map DtsModuleMsg dtsModuleMsg
+            ]
 
 
     let update (msg: Msg) (model: MainModel) =
@@ -82,15 +88,29 @@ module internal MainModel =
     
     
             | ModuleTreeListMsg msg ->
-                let (model', msg') = ModuleTreeList.update msg model.ModuleTreeList
-                return 
-                    {
-                        model with
-                            ModuleTreeList = model'
-                    }
-                    , Cmd.map ModuleTreeListMsg msg'
+                let (mtlModel, mtlMsg) = ModuleTreeList.update msg model.ModuleTreeList
+                let model' = {model with ModuleTreeList = mtlModel}
+                match msg with
+                | ModuleTreeList.SelectModule mtlModel fullPath ->
+                    return
+                        model',
+                        Cmd.batch [
+                            Cmd.map ModuleTreeListMsg mtlMsg
+                            Cmd.ofMsg (DtsModuleMsg (DtsModule.Msg.Interpret fullPath))
+                        ]
+                | _ ->
+                    return 
+                        model'
+                        , Cmd.map ModuleTreeListMsg mtlMsg
     
-    
+            | DtsModuleMsg msg ->
+                let! (dtsModule', dtsModuleMsg) =
+                    DtsModule.update msg model.DtsModule
+                    |> Ports.withEnv (fun config -> fst config)
+
+                return
+                    {model with DtsModule = dtsModule'}, Cmd.map DtsModuleMsg dtsModuleMsg
+
             | _ -> return model, Cmd.none
         }
 
@@ -103,10 +123,15 @@ module internal MainModel =
         [
             "OpenFileCommand" |> Binding.cmd (fun _ -> OpenFile)
     
-            "ModuleTreeListVm" 
+            "ModuleTreeList" 
             |> Binding.SubModel.required ModuleTreeList.bindings
             |> Binding.mapModel (fun m -> m.ModuleTreeList)
             |> Binding.mapMsg ModuleTreeListMsg
+
+            "DtsModule"
+            |> Binding.SubModel.required DtsModule.bindings
+            |> Binding.mapModel (fun m -> m.DtsModule)
+            |> Binding.mapMsg DtsModuleMsg
     
             "LastError" |> Binding.oneWayOpt (fun m -> m.LastError)
         ]

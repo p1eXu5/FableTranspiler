@@ -31,53 +31,64 @@ type TabLevel = TabLevel of int with
 
 
 [<AutoOpen>]
-module internal CodeItem =
+module CodeItem =
     open FableTranspiler.SimpleTypes
 
-    let vm tag content =
+    let internal vm tag content =
         { Tag = tag; Content = content }
 
-    let vmKeyword content =
+    let internal vmKeyword content =
         { Tag = Tag.Keyword; Content = content }
 
-    let vmModifier content =
+    let internal vmModifier content =
         { Tag = Tag.Modifier; Content = content }
 
-    let vmComment content =
+    let internal vmComment content =
         { Tag = Tag.Comment; Content = content }
 
-    let vmType content =
+    let internal vmType content =
         { Tag = Tag.Type; Content = content }
 
-    let vmTypeS content =
+    let internal vmTypeS content =
         { Tag = Tag.Type; Content = $"{content} " }
 
     /// adds space to the end
-    let vmKeywordS content =
+    let internal vmKeywordS content =
         { Tag = Tag.Keyword; Content = $"{content} " }
 
-    let vmText content =
+    let internal vmText content =
         { Tag = Tag.Text; Content = content }
 
     /// adds space to the end
-    let vmTextS content =
+    let internal vmTextS content =
         { Tag = Tag.Text; Content = $"{content} " }
 
-    let vmEndLine content =
+    let internal vmEndLine content =
         { Tag = Tag.EndOfLine; Content = content }
 
-    let vmEndLineNull =
+    let internal vmEndLineNull =
         { Tag = Tag.EndOfLine; Content = null }
 
     /// Tag.Parentheses
-    let vmPrn content =
+    let internal vmPrn content =
         { Tag = Tag.Parentheses; Content = content }
 
-    let tab (TabLevel tabLevel) =
+    let internal tab (TabLevel tabLevel) =
         { Tag = Tag.Text; Content = String.replicate (4 * tabLevel) " " }
 
-    let vmIdentifier (Identifier identifier) =
+    let internal vmIdentifier (Identifier identifier) =
         { Tag = Tag.Text; Content = identifier }
 
-    let vmNo =
+    let internal vmNo =
         { Tag = Tag.NoContent; Content = null }
+
+    let interpretError (err: string) =
+        (err.Split(System.Environment.NewLine)
+        |> Array.toList
+        |> List.map (fun s ->
+            [
+                vmText s
+                vmEndLineNull
+            ]
+        )
+        |> List.concat)

@@ -7,19 +7,20 @@ open FableTranspiler.SimpleTypes
 
 
 [<ReferenceEquality>]
-type DtsStatementDto =
+type DtsStatement =
     {
-        Index: int
-        DtsStatement: FableTranspiler.Parsers.Types.Statement
-        DtsDocumentSection: CodeItem list
+        StatementIndex: int
+        Presentation: CodeItem list
     }
 
-let createDtsVm dtsStatement ind dtsDocumentSection =
-    {
-        Index = ind
-        DtsStatement = dtsStatement
-        DtsDocumentSection = dtsDocumentSection
-    }
+[<RequireQualifiedAccess>]
+module DtsStatement =
+
+    let create ind codeItems =
+        {
+            StatementIndex = ind
+            Presentation = codeItems
+        }
 
 
 
@@ -441,7 +442,7 @@ let rec private interpretStructure structure : CodeItem list =
 
 let interpret statements =
 
-    let rec interpret statements ind result lastTag : DtsStatementDto list =
+    let rec interpret statements ind result lastTag : DtsStatement list =
 
         /// append generated view models to the result and invokes interpret
         let continueInterpret tail xvm =
@@ -450,7 +451,7 @@ let interpret statements =
         match statements with
         | statement :: tail ->
 
-            let createVm = createDtsVm statement ind
+            let createVm = DtsStatement.create ind
 
             match statement with
             | Statement.Import (entities, ``module``) ->
@@ -619,7 +620,7 @@ let interpret statements =
                         yield vmType i
                         yield vmPrn " {"
                         yield vmEndLineNull
-                        yield! (interpret statements' (ind + 1) [] "" |> List.map (fun vm -> vm.DtsDocumentSection) |> List.concat)
+                        yield! (interpret statements' (ind + 1) [] "" |> List.map (fun vm -> vm.Presentation) |> List.concat)
                         yield vmEndLineNull
                         yield vmPrn "}"
                         yield vmEndLineNull
@@ -664,7 +665,7 @@ let interpret statements =
                         yield vmType i
                         yield vmPrn " {"
                         yield vmEndLineNull
-                        yield! (interpret statements' (ind + 1) [] "" |> List.map (fun vm -> vm.DtsDocumentSection) |> List.concat)
+                        yield! (interpret statements' (ind + 1) [] "" |> List.map (fun vm -> vm.Presentation) |> List.concat)
                         yield vmEndLineNull
                         yield vmPrn "}"
                         yield vmEndLineNull
