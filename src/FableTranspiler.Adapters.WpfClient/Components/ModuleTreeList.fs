@@ -50,7 +50,11 @@ module internal ModuleTreeList =
 
         let toModuleTree rootFullPath =
             let getModuleName fp =
-                Path.GetFileName(fp |> FullPath.Value)[..^5]
+                let path = fp |> FullPath.Value
+                if path.EndsWith(".d.ts") then
+                    Path.GetFileName(path)[..^5]
+                else
+                    Path.GetFileName(path)
             (
                 (fun parentKey fp ->
                     let key = (getModuleName fp) :: parentKey
@@ -155,11 +159,22 @@ module internal ModuleTreeList =
     //    Program
     // ==============
 
+    open FableTranspiler.Helpers
+    open FsToolkit.ErrorHandling
+
+    let [<Literal>] libTypesPattern = @"(.*node_modules[/\\]@types[/\\][\w -._]+)"
+
     let update msg model =
         match msg with
-        | AppendNewModuleTree fullPathTree ->
-            let rootFullPath = fullPathTree |> FullPathTree.fullPath
-            let moduleTree = fullPathTree |> FullPathTree.apply (ModuleTree.toModuleTree rootFullPath)
+        | AppendNewModuleTree pathTree ->
+            let root =
+                match pathTree |> FullPathTree.fullPath |> FullPath.Value with
+                | Regex libTypesPattern [path] -> (path |> FullPath.Create |> Result.defaultWith (fun _ -> failwith "Wrong path"), [pathTree]) |> FullPathTree.Node
+                | _ -> 
+                    raise (System.NotImplementedException("Need to add open folder dialog"))
+
+            let rootFullPath = root |> FullPathTree.fullPath
+            let moduleTree = root |> FullPathTree.apply (ModuleTree.toModuleTree rootFullPath)
             moduleTree :: model
             , Cmd.batch [
                 Cmd.ofMsg ResetSelection

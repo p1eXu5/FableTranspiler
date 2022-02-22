@@ -48,14 +48,22 @@ module FullPathTree =
         else tryFind' [tree]
 
 
-    let rec apply (ffp, fn, fer, state, getState) tree =
-        match tree with
-        | Node (fp, l) -> 
-            let node' = fp |> ffp state
-            let state' = getState node'
-            let importing' = l |> List.map (apply (ffp, fn, fer, state', getState))
-            (node', importing') ||> fn
-        | ErrorNode (fp, err) -> ((fp |> ffp state), err) ||> fer
+
+    let rec apply 
+        ( createNode:'state -> FullPath -> 'node,
+          addSubmodules: 'node -> 'node list -> 'node, 
+          createErrorNode,
+          state,
+          getState: 'node -> 'state )
+          tree =
+              match tree with
+              | Node (fp, importing) -> 
+                  let node' = fp |> createNode state
+                  let state' = getState node'
+                  importing 
+                  |> List.map (apply (createNode, addSubmodules, createErrorNode, state', getState))
+                  |> addSubmodules node'
+              | ErrorNode (fp, err) -> ((fp |> createNode state), err) ||> createErrorNode
 
 
     let rec allNodes fullPathTree =

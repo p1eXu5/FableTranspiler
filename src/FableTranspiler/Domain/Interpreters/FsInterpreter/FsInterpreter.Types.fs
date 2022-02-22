@@ -5,6 +5,10 @@ open FableTranspiler.Parsers.Types
 open FableTranspiler.SimpleTypes
 open FableTranspiler.Interpreters
 open Microsoft.Extensions.Logging
+open System.Text
+
+
+
 
 
 [<RequireQualifiedAccess>]
@@ -105,6 +109,8 @@ module internal FsStatement =
         | FsStatement.Link (name, l) -> (name, insertAtEnd segment l) |> FsStatement.Link
         | FsStatement.Let (name, l, constructor) -> (name, l @ [segment], constructor) |> FsStatement.Let
         | FsStatement.Typed (name, l, constructor) -> (name, l @ [segment], constructor) |> FsStatement.Typed
+
+
 
 
 type FsStatement with

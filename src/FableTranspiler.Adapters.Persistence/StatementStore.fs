@@ -17,7 +17,7 @@ let private tryGetStatement uri identifier =
     tryGetStatementList uri
     |> Option.bind (fun result ->
         match result with
-        | Ok statements -> statements |> List.tryFind (fun s -> (s |> Statement.name) |> Option.map ((=) identifier) |> Option.defaultValue false)
+        | Ok statements -> statements |> List.tryFind (fun s -> (s |> Statement.identifier) |> Option.map ((=) identifier) |> Option.defaultValue false)
         | Error _ -> None
     )
 

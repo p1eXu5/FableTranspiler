@@ -19,18 +19,12 @@
     <Compile Include="Parsers\ImportTests.fs" />
     <Compile Include="Parsers\ExportTests.fs" />
     <Compile Include="Parsers\ParserUTests.fs" />
-    <Compile Include="Interpreters\FsInterpreter\TestCaseSources\InterfaceTestCaseSources.fs" />
-    <Compile Include="Interpreters\FsInterpreter\FsInterpreter.FacadeTests.fs" />
+    <Compile Include="Interpreters\FsStatementV2Tests.fs" />
+    <Compile Include="Interpreters\FsInterpreter\TestCaseSources\DtsStatements.fs" />
+    <Compile Include="Interpreters\FsInterpreter\TestCaseSources\FableTestCases.fs" />
+    <Compile Include="Interpreters\FsInterpreter\TestCaseSources\ReactTestCases.fs" />
+    <Compile Include="Interpreters\FsInterpreter\ReactTests.fs" />
     <Compile Include="Infrastructure\FsStatementStoreTests.fs" />
-    <Compile Include="BDD\Base\FeatureFixtures.fs" />
-    <Compile Include="BDD\Base\CommonSteps.fs" />
-    <EmbeddedResource Include="BDD\Domain\UseCases\ParseFile.feature" />
-    <Compile Include="BDD\Domain\UseCases\ParseFileSteps.fs" />
-    <EmbeddedResource Include="BDD\Domain\Interpreters\FableInterpretation.feature" />
-    <Compile Include="BDD\Domain\Interpreters\FableInterpretationSteps.fs" />
-    <None Include="BDD\FileProcessing.feature" />
-    <Compile Include="BDD\FileProcessingSteps.fs" />
-    <None Include="BDD\StyleChange.features" />
     <Compile Include="Program.fs" />
   </ItemGroup>
 

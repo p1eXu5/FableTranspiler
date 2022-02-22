@@ -10,7 +10,7 @@ open FableTranspiler.SimpleTypes
 
 let private interpretField (field: Field * TypeDefinition) =
     interpreter {
-        let! (fsStatementReader: FsStatementReader) = Interpreter.ask
+        let! (fsStatementReader: FsStatementReader, tabLevel) = Interpreter.ask
 
         match field with
         | ((Field.Required (Identifier name)), td) -> 
@@ -70,9 +70,9 @@ let private interpretField (field: Field * TypeDefinition) =
 
 
 
-let internal interpretPlainFableInterface identifier fieldList (tabLevel: TabLevel) =
+let internal interpretPlainInterface identifier fieldList (tabLevel: TabLevel) =
     interpreter {
-        let! (fsStatementReader: FsStatementReader) = Interpreter.ask
+        let! (fsStatementReader: FsStatementReader, tabLevel) = Interpreter.ask
         return
             [
                 tab tabLevel
@@ -82,7 +82,7 @@ let internal interpretPlainFableInterface identifier fieldList (tabLevel: TabLev
                 vmEndLineNull
                 yield!
                     fieldList 
-                    |> List.map (fun t -> (tab (tabLevel + 1)) :: (interpretField t |> Interpreter.run fsStatementReader))
+                    |> List.map (fun t -> (tab (tabLevel + 1)) :: (interpretField t |> Interpreter.run (fsStatementReader, tabLevel)))
                     |> List.concat
                 vmEndLineNull
             ],
@@ -91,5 +91,5 @@ let internal interpretPlainFableInterface identifier fieldList (tabLevel: TabLev
 
 let interpretators =
     {
-        InterpretPlainFableInterface = interpretPlainFableInterface
+        InterpretPlainFableInterface = interpretPlainInterface
     }

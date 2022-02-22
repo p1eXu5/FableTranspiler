@@ -43,6 +43,17 @@ module FsUnit =
 
 
     [<DebuggerStepThrough>]
-    let inline beOk expected = function
+    let inline shouldEqual expected = function
         | Result.Ok ok -> ok |> shouldL equal expected ""
         | Result.Error err -> raise (AssertionException($"Should be %A{expected} but there is an error: %A{err}"))
+
+    [<DebuggerStepThrough>]
+    let inline shouldBe expected = function
+        | Result.Ok ok -> ok |> shouldL be expected ""
+        | Result.Error err -> raise (AssertionException($"Should be %A{expected} but there is an error: %A{err}"))
+
+    module Result =
+
+        let runTest = function
+            | Result.Ok _ -> ()
+            | Result.Error err -> raise (AssertionException(err))

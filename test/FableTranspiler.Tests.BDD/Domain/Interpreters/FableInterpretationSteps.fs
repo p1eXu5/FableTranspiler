@@ -6,6 +6,7 @@ open TickSpec
 open FableTranspiler.Tests.BDD.Base
 
 
+[<Ignore("need implement 'When the z:\Link.d.ts file is parsing with ReactScroll namespace'")>]
 [<TestFixture(TestName="Feature: DTS to Fable interpretation")>]
 type FableInterpretationFeatureFixture() = 
     inherit FeatureFixture()

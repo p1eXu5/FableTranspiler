@@ -84,7 +84,7 @@ module Statements =
                     Dsl.Export.outAssignment "ReactScroll"
                  ]
             return
-                doc |> beOk expected
+                doc |> shouldEqual expected
         }
 
     [<Test>]
@@ -108,7 +108,7 @@ module Statements =
                     Dsl.Export.outList ["animateScroll"; "scroller"]
                  ]
             return
-                doc |> beOk expeced
+                doc |> shouldEqual expeced
         }
 
 

@@ -1,6 +1,9 @@
 ﻿namespace FableTranspiler.Interpreters.FsInterpreter
 
-type Interpreter<'config, 'a> = Interpreter of action: ('config -> 'a)
+open FableTranspiler.Interpreters
+
+
+type Interpreter<'config, 'a> = Interpreter of action: (('config * TabLevel) -> 'a)
 
 
 
@@ -23,10 +26,6 @@ module Interpreter =
             run env (f x)
         Interpreter newAction
 
-    /// The sequential composition operator.
-    /// This is boilerplate in terms of "result" and "bind".
-    let combine expr1 expr2 =
-        expr1 |> bind (fun () -> expr2)
 
     /// The delay operator.
     let delay func = func()
@@ -36,6 +35,10 @@ module Interpreter =
     let withEnv f interpreter =
         Interpreter (fun env -> run (f env) interpreter)
 
+    /// The sequential composition operator.
+    /// This is boilerplate in terms of "result" and "bind".
+    let combine expr1 expr2 =
+        expr1 |> bind (fun () -> expr2 )
 
 module InterpreterBuilder =
 

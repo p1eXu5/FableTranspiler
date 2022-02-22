@@ -46,7 +46,7 @@ type IFoo =
     abstract onDo : (unit -> unit) option
     abstract dutarion: U3<float, string, (float -> float)> option
 
-// or [<Import("execute", from="./${outDir}/../../../NodejsConsoleApp/lib/test-interface.js")>]
+//[<Import("execute", from="./${outDir}/../../../NodejsConsoleApp/lib/test-interface.js")>] // also valid
 [<Import("execute", from="./${outDir}/../../../NodejsConsoleApp/lib/test.js")>]
 let execute(foo: IFoo) : unit = jsNative
 
@@ -63,8 +63,11 @@ execute foo
 open Elmish
 open Elmish.React
 open App
+open Elmish.Navigation
+open Elmish.UrlParser
 
-Program.mkProgram Model.Init update (fun state dispatch -> app {| Model = state; Dispatch = dispatch |})
-|> Program.withReactSynchronous "root"
+Program.mkProgram init update (fun state dispatch -> app {| Model = state; Dispatch = dispatch |})
+|> Program.toNavigable (parseHash Router.route) urlUpdate
+|> Program.withReactBatched "root"
 |> Program.withConsoleTrace
 |> Program.run

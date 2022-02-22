@@ -3,7 +3,7 @@
 open ConstrainedTypes
 
 
-type Identifier = Identifier of string with
+type [<Struct>] Identifier = Identifier of string with
     static member Create(v) = Identifier v
     static member Value(Identifier v) = v
 

@@ -38,14 +38,15 @@ let private interpretStructure (structure: StructureStatement) (tabLevel: TabLev
                 ImportingJsModule: string; 
                 FsStatementReader: FsStatementReader; 
                 Interpreters: Interpreters
-            |}
+            |},
+            tabLevel
         ) = Interpreter.ask
 
         match structure with
         | FunctionDefinition (FunctionDefinition.Plain (identifier, parameters, returnType)) ->
             let! fnInterpretation = 
                 interpretFn "let" identifier parameters returnType 
-                |> Interpreter.withEnv (fun cfg -> cfg.FsStatementReader)
+                |> Interpreter.withEnv (fun (cfg, tabLevel) -> cfg.FsStatementReader, tabLevel)
 
             let display =
                 [
@@ -58,21 +59,21 @@ let private interpretStructure (structure: StructureStatement) (tabLevel: TabLev
 
             let! signature = 
                 interpretFnType parameters returnType 
-                |> Interpreter.withEnv (fun cfg -> cfg.FsStatementReader)
+                |> Interpreter.withEnv (fun (cfg, tabLevel) -> cfg.FsStatementReader, tabLevel)
 
             return FsStatement.Let (identifier, display, signature)
 
         | InterfaceDefinition (InterfaceDefinition.Plain (identifier, fl)) ->
             let! (display, body) = 
                 config.Interpreters.InterpretPlainFableInterface identifier fl tabLevel
-                |> Interpreter.withEnv (fun config -> config.FsStatementReader)
+                |> Interpreter.withEnv (fun (config, tabLevel) -> config.FsStatementReader, tabLevel)
 
             return FsStatement.Typed (identifier, display, body)
 
         | ConstDefinition (DeclareConst (identifier, tdef)) ->
             let! typeInterpretation = 
                 interpretTypeDefinition tdef
-                |> Interpreter.withEnv (fun config -> config.FsStatementReader)
+                |> Interpreter.withEnv (fun (config, tabLevel) -> config.FsStatementReader, tabLevel)
 
             match typeInterpretation with
             | Choice1Of2 l -> return FsStatement.Named (identifier, l)
@@ -112,20 +113,20 @@ let internal toDocumentSegmentViewModelList (fsList: FsStatement list) : CodeIte
 
 let inline logDebug category formatMessage formatParameters =
     interpreter {
-        let! (loggerFactory: ILoggerFactory) = Interpreter.ask
+        let! (loggerFactory: ILoggerFactory, _) = Interpreter.ask
         let logger = loggerFactory.CreateLogger(category)
         logger.LogDebug(formatMessage, formatParameters)
     }
-    |> Interpreter.withEnv (fun config -> (^a: (member LoggerFactory: ILoggerFactory) config))
+    |> Interpreter.withEnv (fun (config, tabLevel) -> (^a: (member LoggerFactory: ILoggerFactory) config), tabLevel)
 
 
 let inline logInfo category message =
     interpreter {
-        let! (loggerFactory: ILoggerFactory) = Interpreter.ask
+        let! (loggerFactory: ILoggerFactory, _) = Interpreter.ask
         let logger = loggerFactory.CreateLogger(category)
         logger.LogInformation(message)
     }
-    |> Interpreter.withEnv (fun config -> (^a: (member LoggerFactory: ILoggerFactory) config))
+    |> Interpreter.withEnv (fun (config, tabLevel) -> (^a: (member LoggerFactory: ILoggerFactory) config), tabLevel)
 
 
 let inline private storeFsStatement fsStatement =
@@ -138,7 +139,8 @@ let inline private storeFsStatement fsStatement =
                     Store: FsStatementStore 
                     LoggerFactory: ILoggerFactory
                     ModulePath: ModulePath 
-                |}
+                |}, 
+            tabLevel
         ) = Interpreter.ask
 
         match fsStatement |> FsStatement.name with
@@ -148,12 +150,12 @@ let inline private storeFsStatement fsStatement =
         | None -> 
             do! logDebug category "There is no structure for storing." [||]
     }
-    |> Interpreter.withEnv (fun config -> 
-        {| 
+    |> Interpreter.withEnv (fun (config, tabLevel) -> 
+        ({| 
             Store = (^a: (member Store: FsStatementStore) config);
             LoggerFactory = (^a: (member LoggerFactory: ILoggerFactory) config) 
             ModulePath = (^a: (member ModulePath: ModulePath) config) 
-        |}
+        |}, tabLevel)
     )
 
 
@@ -174,7 +176,7 @@ let rec private _interpret statements tabLevel ind (result: FsStatementDto list)
     let category = "FsInterpreter.Facade._interpret"
 
     interpreter {
-        let! (config: InterpretConfig') = Interpreter.ask
+        let! (config: InterpretConfig', _) = Interpreter.ask
     
         /// append generated view models to the result and invokes interpret
         let continueInterpret tail vm =
@@ -191,40 +193,40 @@ let rec private _interpret statements tabLevel ind (result: FsStatementDto list)
                 FsStatementDto.create (statement |> Some) ind fsCodeStyle vm
 
             match statement with
-            | Statement.Import (importingEntities, Relative dtsModule) ->
-                if config.FsStatementReader.ImportedModules |> Map.values |> Seq.contains dtsModule |> not then
-                    match config.TryFindModule dtsModule with
-                    | Some statements' ->
-                        do! 
-                            interpret config.Namespace dtsModule statements' 
-                            |> Interpreter.withEnv (fun (c: InterpretConfig') ->
-                                {
-                                    Store = c.Store
-                                    Interpreters = c.Interpreters
-                                    LoggerFactory = c.LoggerFactory
-                                    TryFindModule = c.TryFindModule
-                                }
-                            )
-                            |> Interpreter.map ignore
-                    | None -> ()
+            //| Statement.Import (importingEntities, Relative dtsModule) ->
+            //    if config.FsStatementReader.ImportedModules |> Map.values |> Seq.contains dtsModule |> not then
+            //        match config.TryFindModule dtsModule with
+            //        | Some statements' ->
+            //            do! 
+            //                interpret config.Namespace dtsModule statements' 
+            //                |> Interpreter.withEnv (fun (c: InterpretConfig', tabLevel) ->
+            //                    {
+            //                        Store = c.Store
+            //                        Interpreters = c.Interpreters
+            //                        LoggerFactory = c.LoggerFactory
+            //                        TryFindModule = c.TryFindModule
+            //                    }, tabLevel
+            //                )
+            //                |> Interpreter.map ignore
+            //        | None -> ()
 
-                return! _interpret tail tabLevel ind result
+            //    return! _interpret tail tabLevel ind result
                 
             | Statement.Export (ExportStatement.Structure structure)
             | Statement.Structure structure ->
-                do! logDebug category "Interpreting structure:\n {structure}..." [|structure|]
+                //do! logDebug category "Interpreting structure:\n {structure}..." [|structure|]
                 
                 let! (fsStatement: FsStatement) = 
                     interpretStructure structure tabLevel
-                    |> Interpreter.withEnv (fun (config: InterpretConfig') ->
+                    |> Interpreter.withEnv (fun (config: InterpretConfig', tabLevel) ->
                         {|
                             ImportingJsModule = config.ImportingJsModule
                             FsStatementReader = config.FsStatementReader
                             Interpreters = config.Interpreters
-                        |}
+                        |}, tabLevel
                     )
                             
-                do! storeFsStatement fsStatement
+               // do! storeFsStatement fsStatement
 
                 return! continueInterpret tail (fsStatement |> createDto)
 
@@ -302,12 +304,51 @@ let internal interpret libLocation modulePath statements : Interpreter<Interpret
 
         return! 
             _interpret statements (TabLevel 0) 0 initialResult
-            |> Interpreter.withEnv (fun config -> 
+            |> Interpreter.withEnv (fun (config, tabLevel) -> 
                 {| 
                     config with 
                         FsStatementReader = config.Store.InitReader modulePath
                         ModulePath = modulePath
                         ImportingJsModule = jsModuleName
                         Namespace = libLocation
-                |})
+                |}, tabLevel)
     }
+
+
+type internal InterpretStrategy =
+    {
+        InterpretInterface: InterfaceDefinition -> Interpreter<React.Config, FsStatementV2>
+    }
+
+
+/// <summary>
+/// 
+/// </summary>
+/// <param name="strategy"></param>
+/// <param name="rootFullPath"> Path to root folder. </param>
+/// <param name="moduleFullPath"></param>
+/// <param name="statement"></param>
+let internal toFsStatement strategy rootFullPath moduleFullPath statement =
+    match statement with
+    | Statement.Export (ExportStatement.Structure (StructureStatement.InterfaceDefinition interfaceDefinition)) ->
+        let config : React.Config = 
+            {
+                Namespace =
+                    lazy (
+                        let rootPath = rootFullPath |> FullPath.Value
+                        let modulePath = moduleFullPath |> FullPath.Value
+                        String.Join('.',
+                            seq {
+                                Path.GetFileName(rootPath)
+                                yield! Path.GetRelativePath(rootPath, modulePath).Split(Path.DirectorySeparatorChar)[..^1]
+                                Path.GetFileName(modulePath)[..^5]
+                            }
+                        )
+                        |> Scope.Namespace
+                    )
+            }
+
+        strategy.InterpretInterface interfaceDefinition
+        |> Interpreter.run (config, TabLevel 0)
+
+    | _ -> failwith "Not implemented"

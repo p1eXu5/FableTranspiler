@@ -4,20 +4,34 @@ open Elmish
 open Feliz
 open Feliz.MaterialUI
 open Fable.MaterialUI.Icons
+open Router
+open Fable.Core.JS
+open Elmish.Navigation
 
 type Model =
     {
+        Page: Page
         TestEntities: Components.TestEntity.TestEntityProps list
     }
-    with
-        static member Init() =
-            {
-                TestEntities = []
-            }
-            , Cmd.none
 
 type Msg =
     | No
+
+
+
+
+let urlUpdate (result: Page option) model =
+    match result with
+    | Some page ->
+        { model with Page = page; }, Cmd.none
+
+    | None ->
+        console.error("Error parsing url")  
+        ( model, Navigation.modifyUrl (toHash model.Page) )
+
+
+let init result =
+    urlUpdate result { Page = Home; TestEntities = [] }
 
 
 let update msg model =
@@ -61,6 +75,24 @@ let useStyles : unit -> _ = Styles.makeStyles (fun styles theme ->
 )
 
 
+let viewPage model dispatch =
+    match model.Page with
+    | Home ->
+        Mui.typography [
+            typography.variant.h1
+            typography.children "Fable Transpiler"
+        ]
+    
+    | ReactScroll Fable ->
+        Components.Fable.ReactScroll.view ()
+    
+    | ReactScroll Feliz ->
+        Mui.typography [
+            typography.variant.h1
+            typography.children "NotImplemented"
+        ]
+
+
 let app =
     React.functionComponent(
         "App",
@@ -102,17 +134,20 @@ let app =
                             Mui.list [
                                 list.children
                                     (
-                                        ["Inbox"; "Starred"; "Send email"; "Drafts"]
+                                        [Page.Home; Page.ReactScroll Fable;]
                                         |> List.map (fun n ->
+                                            let key = sprintf "%A" n
                                             Mui.listItem [
                                                 listItem.button true
-                                                prop.key n
+                                                listItem.component' "a"
+                                                prop.href (Router.toHash n)
+                                                prop.key key
                                                 listItem.children [
                                                     Mui.listItemIcon [
                                                         mailIcon []
                                                     ]
                                                     Mui.listItemText [
-                                                        listItemText.primary n
+                                                        listItemText.primary key
                                                     ]
                                                 ]
                                             ]
@@ -130,13 +165,9 @@ let app =
                                 prop.children [
                                 ]
                             ]
-                            Mui.typography [
-                                typography.variant.h1
-                                typography.children "Fable Transpiler"
-                            ]
+                            viewPage props.Model props.Dispatch
                         ]
                     ]
                 ]
             ]
-
     )

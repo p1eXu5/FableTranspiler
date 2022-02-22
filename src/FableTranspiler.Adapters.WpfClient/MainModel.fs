@@ -68,9 +68,13 @@ module internal MainModel =
                     return
                         fd.FileName 
                         |> FullPath.Create
-                        |> Result.map (fun fp -> ({model with ProcessingFile = fp |> Some}, Cmd.ofMsg (Start fp |> ParseFile)))
+                        |> Result.map (fun fp -> 
+                            ( { model with ProcessingFile = fp |> Some },
+                              Cmd.ofMsg (Start fp |> ParseFile) )
+                        )
                         |> Result.defaultValue (model, Cmd.none)
-                else return (model, Cmd.none)
+                else 
+                    return (model, Cmd.none)
 
             | ParseFile (Operation.Start fp) ->
                 let! (config: StatementStore * ReadFileAsync) = Ports.ask
@@ -81,10 +85,10 @@ module internal MainModel =
                     },
                     Cmd.OfTask.perform (AsyncPorts.run config) (parseFile fp) (Operation.Finish >> ParseFile)
     
-            | ParseFile (Operation.Finish uriGraph) ->
+            | ParseFile (Operation.Finish fullPathTree) ->
                 return
                     {model with ProcessingFile = None}
-                    , Cmd.ofMsg (uriGraph |> ModuleTreeList.Msg.AppendNewModuleTree |> ModuleTreeListMsg )
+                    , Cmd.ofMsg (fullPathTree |> ModuleTreeList.Msg.AppendNewModuleTree |> ModuleTreeListMsg )
     
     
             | ModuleTreeListMsg msg ->

@@ -26,6 +26,7 @@ type DTsType =
 
 
 type TypeCombination =
+    /// "type & type"
     | Composition of DTsType list
     /// "type | type"
     | Union of DTsType list
@@ -181,7 +182,7 @@ module StructureStatement =
 
 module Statement =
 
-    let name = function
+    let identifier = function
         | NamespaceDeclaration (identifier, _) -> identifier |> Some
         | Structure ss -> ss |> StructureStatement.name
         | Export (ExportStatement.Structure ss)

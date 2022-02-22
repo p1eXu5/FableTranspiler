@@ -10,6 +10,11 @@ type CodeItem =
     with
         member this.GetContent() =
             this.Content
+        override this.ToString() =
+            match this.Tag with
+            | Tag.EndOfLine when this.Content = null -> System.Environment.NewLine
+            | Tag.EndOfLine -> this.Content + System.Environment.NewLine
+            | _ -> this.Content
 and
     Tag =
         | NoContent = 0

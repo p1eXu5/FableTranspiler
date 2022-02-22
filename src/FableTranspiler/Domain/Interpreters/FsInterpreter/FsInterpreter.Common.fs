@@ -9,8 +9,8 @@ open FableTranspiler.SimpleTypes
 
 
 
-let interpretQualifiers l : CodeItem list =
-    l
+let interpretQualifiers identifiers : CodeItem list =
+    identifiers
     |> List.map (fun t -> [ Identifier.Value(t) |> vmType ])
     |> List.reduce (fun t1 t2 -> 
         [
@@ -24,7 +24,7 @@ let interpretQualifiers l : CodeItem list =
 
 let rec interpretSingleType (type': DTsType)  =
     interpreter {
-        let! (fsStatementReader: FsStatementReader) = Interpreter.ask
+        let! (fsStatementReader: FsStatementReader, _) = Interpreter.ask
 
         match type' with
         | DTsType.Plain is -> 
@@ -72,7 +72,7 @@ let rec interpretSingleType (type': DTsType)  =
 
 let interpretTypeDefinition (tdef: TypeDefinition) =
     interpreter {
-        let! (fsStatementReader: FsStatementReader) = Interpreter.ask
+        let! (fsStatementReader: FsStatementReader, tabLevel) = Interpreter.ask
 
         match tdef with
         | TypeDefinition.Single tn -> return! interpretSingleType tn
@@ -80,7 +80,7 @@ let interpretTypeDefinition (tdef: TypeDefinition) =
             let l = 
                 union 
                 |> List.filter (function DTsType.Undefined -> false | _ -> true)
-                |> List.map (fun dtsType -> interpretSingleType dtsType |> Interpreter.run fsStatementReader)
+                |> List.map (fun dtsType -> interpretSingleType dtsType |> Interpreter.run (fsStatementReader, tabLevel))
                 |> List.map (fun t ->
                     match t with
                     | Choice1Of2 l -> l
@@ -109,7 +109,7 @@ let interpretTypeDefinition (tdef: TypeDefinition) =
         | TypeDefinition.Combination (TypeCombination.Composition dtsTypeList) ->
             let l = 
                 dtsTypeList 
-                |> List.map (fun dtsType -> interpretSingleType dtsType |> Interpreter.run fsStatementReader)
+                |> List.map (fun dtsType -> interpretSingleType dtsType |> Interpreter.run (fsStatementReader, tabLevel))
                 |> List.map (fun t ->
                     match t with
                     | Choice1Of2 l -> l @ [vmEndLineNull]

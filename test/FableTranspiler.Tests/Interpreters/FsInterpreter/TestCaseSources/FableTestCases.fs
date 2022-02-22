@@ -1,51 +1,39 @@
-﻿module FableTranspiler.Tests.VmAdapters.TestCaseSources.InterfaceTestCaseSources
+﻿namespace FableTranspiler.Tests.Domain.Interpreters.FsInterpreter
 
 open System.Collections
 open NUnit.Framework
 
-let private exportedInterfaceFormatted =
-    """
-        export interface Foo {
-            {field}
-        }
-    """
+type FableTestCases () =
 
-let exportedInterface field =
-    exportedInterfaceFormatted.Replace("{field}", field)
-
-
-type TestCases () =
-
-    static member ExportCases : IEnumerable =
+    static member FieldTests : IEnumerable =
         seq {
-
             TestCaseData(
-                exportedInterface "to: string;" |> box,
+                exportedInterfaceWith "to: string;" |> box,
                 "abstract to : string"
             ).SetName("Field: 'to: string;'")
 
             TestCaseData(
-                exportedInterface "spy?: boolean | undefined;" |> box,
+                exportedInterfaceWith "spy?: boolean | undefined;" |> box,
                 "abstract spy : bool option"
             ).SetName("Field: 'spy?: boolean | undefined;'")
 
             TestCaseData(
-                exportedInterface "smooth?: boolean | string | undefined;" |> box,
+                exportedInterfaceWith "smooth?: boolean | string | undefined;" |> box,
                 "abstract smooth : U2<bool, string> option"
             ).SetName("Field: 'smooth?: boolean | string | undefined;'")
 
             TestCaseData(
-                exportedInterface "onClick?(): void;" |> box,
+                exportedInterfaceWith "onClick?(): void;" |> box,
                 "abstract onClick : (unit -> unit) option"
             ).SetName("Field: 'onClick?(): void;'")
 
             TestCaseData(
-                exportedInterface "onSetActive?(to: string): void;" |> box,
+                exportedInterfaceWith "onSetActive?(to: string): void;" |> box,
                 "abstract onSetActive : (string -> unit) option"
             ).SetName("Field: 'onSetActive?(to: string): void;'")
 
             TestCaseData(
-                exportedInterface "duration?: number | string | ((distance: number) => number) | undefined;" |> box,
+                exportedInterfaceWith "duration?: number | string | ((distance: number) => number) | undefined;" |> box,
                 "abstract duration : U3<float, string, (float -> float)> option"
             ).SetName("Field: 'duration?: number | string | ((distance: number) => number) | undefined;'")
         }
