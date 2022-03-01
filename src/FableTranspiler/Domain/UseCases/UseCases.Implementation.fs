@@ -11,11 +11,11 @@ open FableTranspiler.Parsers.Types
 open System.Threading.Tasks
 
 
-let parseFile fullPath : AsyncPorts<(StatementStore * ReadFileAsync), FullPathTree> =
+let parseFile fullPath : AsyncPorts<(StatementStore<Statement> * ReadFileAsync), FullPathTree> =
 
-    let importingFullPaths fullPath : AsyncPorts<(StatementStore * ReadFileAsync), FullPath list>  =
+    let importingFullPaths fullPath : AsyncPorts<(StatementStore<Statement> * ReadFileAsync), FullPath list>  =
         taskPorts {
-            let! (store: StatementStore, readFileAsync: ReadFileAsync) = AsyncPorts.ask
+            let! (store: StatementStore<Statement>, readFileAsync: ReadFileAsync) = AsyncPorts.ask
             use! sr = readFileAsync fullPath
             let! content = sr.ReadToEndAsync()
             let presult = 
@@ -46,7 +46,7 @@ let parseFile fullPath : AsyncPorts<(StatementStore * ReadFileAsync), FullPathTr
     let rec parseFile' fullPath  =
         taskPorts {
             let! importingFullPaths = importingFullPaths fullPath
-            let! (store: StatementStore, readFileAsync: ReadFileAsync) = AsyncPorts.ask
+            let! (store: StatementStore<Statement>, readFileAsync: ReadFileAsync) = AsyncPorts.ask
 
             let! nodes =
                 importingFullPaths

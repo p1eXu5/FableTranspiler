@@ -9,11 +9,12 @@ module Persistence =
 
     type ReadFileAsync = FullPath -> Task<TextReader>
 
-    type StatementStore =
+    type StatementStore<'TStatement> =
         {
             ContainsKey : FullPath -> bool
-            TryAdd : FullPath -> Result<StatementList, string> -> bool
-            GetOrAdd: FullPath -> (unit -> Result<StatementList, string>) -> Result<StatementList, string>
-            TryGetStatementList: FullPath -> Result<StatementList, string> option
-            TryGetStatement : FullPath -> Identifier -> Statement option 
+            TryAdd : FullPath -> Result<'TStatement list, string> -> bool
+            AddOrUpdate : FullPath -> Result<'TStatement list, string> -> Result<'TStatement list, string>
+            GetOrAdd: FullPath -> (unit -> Result<'TStatement list, string>) -> Result<'TStatement list, string>
+            TryGetStatementList: FullPath -> Result<'TStatement list, string> option
+            TryGetStatement : FullPath -> Identifier -> 'TStatement option 
         }

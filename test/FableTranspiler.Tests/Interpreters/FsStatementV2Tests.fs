@@ -15,7 +15,7 @@ module FsStatementV2Tests =
     let ``addition of someType and zeroType equals to someType`` () =
         let someType =
             {
-                Identifier = FsStatmentKind.Type
+                Identifier = FsStatmentKind.Type FsStatementType.Primitive
                 Scope = Inherit
                 Open = []
                 CodeItems = [vmType "bool"]

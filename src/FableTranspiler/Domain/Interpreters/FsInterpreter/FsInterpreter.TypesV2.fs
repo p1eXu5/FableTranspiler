@@ -12,13 +12,24 @@ type Scope =
     | Namespace of string
     | Inherit
 
+type FsStatementType =
+    | No
+    | Primitive
+    | Array of FsStatementType
+    | Func
+    | Unit
+    | FieldList of Qualifiers: Identifier list
+    | Union
+    | Composition
+    | Unknown of string
 
 type FsStatmentKind =
-    | Type
+    | Type of FsStatementType
     | Interface of Identifier
     | Field of Identifier
     | Parameter of Identifier
-    | Union
+
+
 
 type FsStatementV2 =
     {
@@ -50,7 +61,7 @@ module internal FsStatementV2 =
 
     let zeroType =
         {
-            Identifier = FsStatmentKind.Type
+            Identifier = FsStatmentKind.Type FsStatementType.No
             Scope = Inherit
             Open = []
             CodeItems = []
@@ -59,15 +70,32 @@ module internal FsStatementV2 =
 
     let unitType =
         {
-            Identifier = FsStatmentKind.Type
+            Identifier = FsStatmentKind.Type FsStatementType.Unit
             Scope = Inherit
             Open = []
             CodeItems = [vmType "unit"]
             NestedStatements = []
         }
 
+    let arrayType =
+        {
+            Identifier = FsStatmentKind.Type FsStatementType.No
+            Scope = Inherit
+            Open = []
+            CodeItems = [vmPrn " []"]
+            NestedStatements = []
+        }
+
 
     let notZeroType = (<>) zeroType
+
+    let toArray statement =
+        match statement.Identifier with
+        | FsStatmentKind.Type t ->
+            {statement with 
+                Identifier = FsStatmentKind.Type (FsStatementType.Array t)
+                NestedStatements = statement.NestedStatements @ [arrayType]}
+        | _ -> statement
 
 
     let rec codeItems statement =
@@ -87,14 +115,14 @@ module internal FsStatementV2 =
         | a, b when a = zeroType && b = zeroType -> zeroType
         | _, b when b = zeroType -> statementA
         | a, _ when a = zeroType -> statementB
-        | {Identifier = FsStatmentKind.Type}, {Identifier = FsStatmentKind.Type} ->
-            {
-                Identifier = FsStatmentKind.Type
-                Scope = Inherit
-                Open = statementA.Open @ statementB.Open
-                CodeItems = statementA.CodeItems @ space @ statementB.CodeItems
-                NestedStatements = statementA.NestedStatements @ statementB.NestedStatements
-            }
+        //| {Identifier = FsStatmentKind.Type }, {Identifier = FsStatmentKind.Type} ->
+        //    {
+        //        Identifier = FsStatmentKind.Type
+        //        Scope = Inherit
+        //        Open = statementA.Open @ statementB.Open
+        //        CodeItems = statementA.CodeItems @ space @ statementB.CodeItems
+        //        NestedStatements = statementA.NestedStatements @ statementB.NestedStatements
+        //    }
         | _ -> failwith "Not implemented"
         
 

@@ -22,6 +22,8 @@
     <Compile Include="Domain\Parsers\Export.fs" />
     <Compile Include="Domain\Parsers\Parser.fs" />
     <Compile Include="Domain\Types.fs" />
+    <Compile Include="Domain\Ports\Ports.Types.fs" />
+    <Compile Include="Domain\Ports\Ports.PortsBuilder.fs" />
     <Compile Include="Domain\Interpreters\Interpreters.Types.fs" />
     <Compile Include="Domain\Interpreters\DtsInterpreter.fs" />
     <Compile Include="Domain\Interpreters\FsInterpreter\FsInterpreter.Interpreter.fs" />
@@ -31,8 +33,6 @@
     <Compile Include="Domain\Interpreters\FsInterpreter\FsInterpreter.React.fs" />
     <Compile Include="Domain\Interpreters\FsInterpreter\FsInterpreter.Fable.fs" />
     <Compile Include="Domain\Interpreters\FsInterpreter\FsInterpreter.Facade.fs" />
-    <Compile Include="Domain\Ports\Ports.Types.fs" />
-    <Compile Include="Domain\Ports\Ports.PortsBuilder.fs" />
     <Compile Include="Domain\UseCases\UseCases.Types.fs" />
     <Compile Include="Domain\UseCases\UseCases.Implementation.fs" />
     <Compile Include="Infrastruture.fs" />

@@ -9,6 +9,8 @@ open System.IO
 open FableTranspiler.Interpreters.FsInterpreter.InterpreterBuilder
 open Microsoft.Extensions.Logging
 open System.Text
+open FableTranspiler.Ports.PortsBuilder
+open FsToolkit.ErrorHandling
 
 let importAttribute name source =
     [
@@ -315,40 +317,165 @@ let internal interpret libLocation modulePath statements : Interpreter<Interpret
     }
 
 
+
+
 type internal InterpretStrategy =
     {
-        InterpretInterface: InterfaceDefinition -> Interpreter<React.Config, FsStatementV2>
+        InterpretInterface: InterfaceDefinition -> Interpreter<React.InnerInterpretConfig, FsStatementV2>
+        InterpretTypeAlias: TypeAlias -> Interpreter<React.InnerInterpretConfig, FsStatementV2>
     }
 
+type internal InterpretConfigV2 =
+    {
+        InterpretStrategy: InterpretStrategy
+        StatementStore: FableTranspiler.Ports.Persistence.StatementStore< Statement >
+        FsStatementStore: FableTranspiler.Ports.Persistence.StatementStore< FsStatementV2 >
+    }
 
 /// <summary>
 /// 
 /// </summary>
-/// <param name="strategy"></param>
 /// <param name="rootFullPath"> Path to root folder. </param>
 /// <param name="moduleFullPath"></param>
 /// <param name="statement"></param>
-let internal toFsStatement strategy rootFullPath moduleFullPath statement =
-    match statement with
-    | Statement.Export (ExportStatement.Structure (StructureStatement.InterfaceDefinition interfaceDefinition)) ->
-        let config : React.Config = 
-            {
-                Namespace =
-                    lazy (
-                        let rootPath = rootFullPath |> FullPath.Value
-                        let modulePath = moduleFullPath |> FullPath.Value
-                        String.Join('.',
-                            seq {
-                                Path.GetFileName(rootPath)
-                                yield! Path.GetRelativePath(rootPath, modulePath).Split(Path.DirectorySeparatorChar)[..^1]
-                                Path.GetFileName(modulePath)[..^5]
-                            }
+/// <param name="interpretConfig"></param>
+let rec internal toFsStatement rootFullPath moduleFullPath statement interpretConfig : Ports<InterpretConfigV2, (FsStatementV2 option * React.InnerInterpretConfig option)> =
+    let storeFsStatment (fsStatement: FsStatementV2) =
+        ports {
+            let! config = Ports.ask
+            let fsResult = 
+                config.FsStatementStore.TryGetStatementList moduleFullPath
+                |> Option.map (fun r ->
+                    r 
+                    |> Result.map (fun l -> l @ [fsStatement])
+                    |> Result.orElseWith (fun _ -> Ok [fsStatement])
+                )
+                |> Option.defaultWith (fun () -> Ok [fsStatement])
+            do
+                config.FsStatementStore.AddOrUpdate moduleFullPath fsResult |> ignore
+        }
+
+    ports {
+        let! config = Ports.ask
+        let {InterpretStrategy = strategy; StatementStore = store; FsStatementStore = fsStore} = config
+
+        let reactConfig' : React.InnerInterpretConfig = 
+            interpretConfig
+            |> Option.defaultValue
+                {
+                    Namespace =
+                        lazy (
+                            let rootPath = rootFullPath |> FullPath.Value
+                            let modulePath = moduleFullPath |> FullPath.Value
+                            String.Join('.',
+                                seq {
+                                    Path.GetFileName(rootPath)
+                                    yield! Path.GetRelativePath(rootPath, modulePath).Split(Path.DirectorySeparatorChar)[..^1]
+                                    Path.GetFileName(modulePath)[..^5]
+                                }
+                            )
+                            |> Scope.Namespace
                         )
-                        |> Scope.Namespace
-                    )
-            }
+                    TryGetLocal =
+                        fun identifier ->
+                            fsStore.TryGetStatement moduleFullPath identifier
+                    TryGetStatement =
+                        fun identifierList -> None
+                }
 
-        strategy.InterpretInterface interfaceDefinition
-        |> Interpreter.run (config, TabLevel 0)
+        
+        match statement with
+        | Statement.Import (importEntityList, DtsModule.Relative (ModulePath relativePath) ) ->
+            (*
+                1а. Модуль разобран
+                1b. Модуль не разобран
+                    1. Разобрать модуль
+            *)
 
-    | _ -> failwith "Not implemented"
+            let tryGetLocal modulePath =
+                fun identifier ->
+                    let rec running importEntityList =
+                        match importEntityList with
+                        | head :: tail ->
+                            match head with
+                            | ImportEntity.Named identifier' when identifier = identifier' ->
+                                fsStore.TryGetStatement modulePath identifier
+                            | ImportEntity.Aliased (identifier', alias') when identifier = alias' ->
+                                fsStore.TryGetStatement modulePath identifier
+                            | _ -> running tail
+                        | _ -> None
+
+                    running importEntityList
+
+            return
+                None, // there is no fs statement
+                Path.GetFullPath(Path.Combine(rootFullPath |> FullPath.Value, relativePath + ".d.ts"))
+                |> FullPath.CreateOption
+                |> Option.bind (fun modulePath' ->
+                    if not (fsStore.ContainsKey modulePath') then
+                        match store.TryGetStatementList modulePath' with
+                        | Some (Result.Ok xs) -> 
+                            interpretV2 rootFullPath modulePath' xs
+                            |> Ports.run config
+                            |> ignore
+                            Some modulePath'
+                        | _ -> None
+                    else
+                        Some modulePath'
+                )
+                |> Option.map (fun modulePath' ->
+                    {reactConfig' with
+                        TryGetLocal =
+                            fun identifier ->
+                                tryGetLocal modulePath' identifier
+                                |> Option.orElseWith (fun () -> reactConfig'.TryGetLocal identifier)
+                    }
+                )
+                |> Option.orElse interpretConfig
+
+        | Statement.Export (ExportStatement.Structure (StructureStatement.InterfaceDefinition interfaceDefinition)) ->
+            let fsStatement =
+                strategy.InterpretInterface interfaceDefinition
+                |> Interpreter.run (reactConfig', TabLevel 0)
+
+            do!
+                storeFsStatment fsStatement
+
+            return
+                fsStatement |> Some
+                , reactConfig' |> Some
+
+        | Statement.Export (ExportStatement.Structure (StructureStatement.TypeAlias typeAlias)) ->
+            let fsStatement =
+                strategy.InterpretTypeAlias typeAlias
+                |> Interpreter.run (reactConfig', TabLevel 0)
+
+            do!
+                storeFsStatment fsStatement
+
+            return
+                fsStatement |> Some
+                , reactConfig' |> Some
+
+        | _ -> return failwith "Not implemented"
+    }
+
+
+
+
+let internal interpretV2 rootFullPath moduleFullPath statementList : Ports<InterpretConfigV2, FsStatementV2 list> =
+    
+
+    let rec running statementList reactInterpretConfig res =
+        ports {
+            match statementList with
+            | [] -> return res |> List.choose id |> List.rev
+            | statement :: tail ->
+                let! (fsStatement, conf) = toFsStatement rootFullPath moduleFullPath statement reactInterpretConfig
+                return! running tail conf (fsStatement::res)
+        }
+
+    ports {
+        let! fsStatements = running statementList None []
+        return fsStatements
+    }

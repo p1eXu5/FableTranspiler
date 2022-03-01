@@ -10,133 +10,159 @@ open System
 open FableTranspiler.Interpreters.FsInterpreter.FsStatementV2
 
 
-type Config =
+type InnerInterpretConfig =
     {
         Namespace: Lazy<Scope>
+        TryGetLocal: Identifier -> FsStatementV2 option
+        TryGetStatement: Identifier list -> FsStatementV2 option
     }
 
 
-let private arrayType =
-    {
-        Identifier = FsStatmentKind.Type
-        Scope = Inherit
-        Open = []
-        CodeItems = [vmPrn "[]"]
-        NestedStatements = []
-    }
+let runFnParameterInterpretation (config, tabLevel)=
+    fun (f, td) -> Interpreter.run (config, tabLevel) (interpretFnParameter (f, td))
 
-let private optionType =
-    {
-        Identifier = FsStatmentKind.Type
-        Scope = Inherit
-        Open = []
-        CodeItems = [vmType " option"]
-        NestedStatements = []
-    }
+let runDTsTypeInterpretation (config, tabLevel)=
+    fun dtsType -> Interpreter.run (config, tabLevel) (interpretDTsType dtsType)
 
-
-let rec interpretSingleType (type': DTsType) =
-    
-    let fsStatement codeItems =
+let rec interpretDTsType (type': DTsType) =
+    let fsStatement fsStatmementType codeItems =
         {
-            Identifier = FsStatmentKind.Type
+            Identifier = FsStatmentKind.Type fsStatmementType
             Scope = Inherit
             Open = []
             CodeItems = codeItems
             NestedStatements = []
         }
 
-    match type' with
-    | DTsType.Plain identifiers ->
-        let codeItems =
+
+    interpreter {
+        let! (config: InnerInterpretConfig, tabLevel) = Interpreter.ask
+
+        match type' with
+        | DTsType.Plain identifiers ->
+
             match identifiers with
             | [identifier] ->
                 match identifier |> Identifier.Value with
-                | "boolean" -> [vmType "bool"]
-                | "number" -> [vmType "float"]
-                | typeName -> [vmType typeName]
-            | _ -> interpretQualifiers identifiers
-
-        fsStatement codeItems
-
-    | DTsType.Generic (qualifiers, types) ->
-        failwith "Not implemented"
-
-    | DTsType.Any -> 
-        fsStatement [vmType "obj"]
-    | DTsType.Void -> fsStatement [vmType "unit"]
-
-    | DTsType.Typeof qualifiers ->
-        failwith "Not implemented"
-
-    | DTsType.Array t ->
-        interpretSingleType t + arrayType
-
-    | DTsType.Func (fl, typeDefinition) ->
-        let returnType = interpretTypeDefinition typeDefinition
-        let parameters = 
-            if fl |> List.isEmpty then [FsStatementV2.unitType]
-            else fl |> List.map interpretFnParameter
-        {
-            Identifier = FsStatmentKind.Type
-            Scope = Inherit
-            Open = returnType.Open @ (parameters |> List.map (fun ns -> ns.Open) |> List.concat)
-            CodeItems =
-                [
-                    vmPrn "("
-                    yield!
-                        parameters
-                        |> List.map (fun ns -> ns |> codeItems)
-                        |> List.reduce (fun t1 t2 -> t1 @ [vmPrn " -> "] @ t2)
-                    vmPrn " -> "
-                    yield! returnType.CodeItems
-                    vmPrn ")"
-                ]
-            
-            NestedStatements = []
-        }
-
-    | DTsType.Undefined -> FsStatementV2.zeroType
-    
-    | _ -> failwith "Not implemented"
+                | "boolean" -> return fsStatement FsStatementType.Primitive [vmType "bool"]
+                | "number" -> return fsStatement FsStatementType.Primitive [vmType "float"]
+                | typeName ->
+                    match config.TryGetLocal identifier with
+                    | Some statement ->
+                        return fsStatement (FsStatementType.FieldList identifiers) (statement.NestedStatements |> List.map codeItems |> List.concat)
+                    | None -> 
+                        return fsStatement (FsStatementType.Unknown typeName) [vmType typeName]
+            | _ -> 
+                match config.TryGetStatement identifiers with
+                | Some statement ->
+                    return fsStatement (FsStatementType.FieldList identifiers) (statement.NestedStatements |> List.map codeItems |> List.concat)
+                | None -> 
+                    let codeItems = interpretQualifiers identifiers
+                    return fsStatement (FsStatementType.Unknown ($"%O{codeItems}")) (codeItems)
 
 
-let interpretTypeDefinition (tdef: TypeDefinition) =
-    match tdef with
-    | TypeDefinition.Single tn -> interpretSingleType tn
-        
-    | TypeDefinition.Combination (TypeCombination.Union union) ->
-        let types =
-            union
-            |> List.map interpretSingleType
-            |> List.filter FsStatementV2.notZeroType
+        | DTsType.Generic (qualifiers, types) ->
+            return failwith "Not implemented"
 
-        if types.Length = 1 then types.Head
-        else
-            {
-                Identifier = FsStatmentKind.Type
-                Scope = Inherit
-                Open = "Fable.Core" :: (types |> List.map (fun ns -> ns.Open) |> List.concat)
+        | DTsType.Any -> 
+            return fsStatement FsStatementType.Primitive [vmType "obj"]
+        | DTsType.Void -> return unitType
+
+        | DTsType.Typeof qualifiers ->
+            return failwith "Not implemented"
+
+        | DTsType.Array t ->
+            let! t = interpretDTsType t 
+            return t |> FsStatementV2.toArray
+
+        | DTsType.Func (fl, typeDefinition) ->
+            let! returnType = interpretTypeDefinition typeDefinition
+            let parameters = 
+                if fl |> List.isEmpty then [FsStatementV2.unitType]
+                else fl |> List.map (runFnParameterInterpretation (config, tabLevel))
+            return {
+                Identifier = FsStatmentKind.Type FsStatementType.Func
+                Scope = Inherit 
+                Open = returnType.Open @ (parameters |> List.map (fun ns -> ns.Open) |> List.concat)
                 CodeItems =
                     [
-                        vmType $"U{types.Length}"
-                        vmPrn "<"
-                        yield! 
-                            types
+                        vmPrn "("
+                        yield!
+                            parameters
                             |> List.map (fun ns -> ns |> codeItems)
-                            |> List.reduce (fun t1 t2 -> t1 @ [vmPrn ", "] @ t2)
-                        vmPrn ">"
+                            |> List.reduce (fun t1 t2 -> t1 @ [vmPrn " -> "] @ t2)
+                        vmPrn " -> "
+                        yield! returnType.CodeItems
+                        vmPrn ")"
                     ]
             
                 NestedStatements = []
             }
 
-    | TypeDefinition.Combination (TypeCombination.Composition dtsTypeList) ->
-        failwith "Not implemented"
+        | DTsType.Undefined -> return FsStatementV2.zeroType
+    
+        | _ -> return failwith "Not implemented"
+    }
 
 
-let rec interpretFnParameter (field, typeDefinition) =
+let interpretTypeCombination combination =
+    interpreter {
+        let! (config: InnerInterpretConfig, tabLevel) = Interpreter.ask
 
+        match combination with
+        | TypeCombination.Union union ->
+            let types =
+                union
+                |> List.map (fun t -> Interpreter.run (config, tabLevel) (interpretDTsType t))
+                |> List.filter FsStatementV2.notZeroType
+
+            if types.Length = 1 then return types.Head
+            else
+                return
+                    {
+                        Identifier = FsStatmentKind.Type FsStatementType.Union
+                        Scope = Inherit
+                        Open = "Fable.Core" :: (types |> List.map (fun ns -> ns.Open) |> List.concat)
+                        CodeItems =
+                            [
+                                vmType $"U{types.Length}"
+                                vmPrn "<"
+                                yield! 
+                                    types
+                                    |> List.map (fun ns -> ns |> codeItems)
+                                    |> List.reduce (fun t1 t2 -> t1 @ [vmPrn ", "] @ t2)
+                                vmPrn ">"
+                            ]
+            
+                        NestedStatements = []
+                    }
+
+        | TypeCombination.Composition dtsTypeList ->
+            let types = 
+                dtsTypeList 
+                |> List.map (runDTsTypeInterpretation (config, tabLevel))
+
+            return
+                {
+                    Identifier = FsStatmentKind.Type FsStatementType.Composition
+                    Scope = Inherit
+                    Open = (types |> List.map (fun ns -> ns.Open) |> List.concat)
+                    CodeItems = []
+                    NestedStatements = types
+                }
+    }
+
+
+let interpretTypeDefinition (tdef: TypeDefinition) : Interpreter<InnerInterpretConfig, FsStatementV2> =
+    interpreter {
+        match tdef with
+        | TypeDefinition.Single tn -> return! interpretDTsType tn
+        | TypeDefinition.Combination combination -> return! interpretTypeCombination combination 
+    }
+
+
+let rec interpretFnParameter (field, typeDefinition) : Interpreter<InnerInterpretConfig, FsStatementV2> =
+    
     let fsStatement identifier nested =
         {
             Identifier = FsStatmentKind.Parameter identifier
@@ -146,39 +172,45 @@ let rec interpretFnParameter (field, typeDefinition) =
             NestedStatements = nested
         }
 
-    match field with
-    | Field.Required identifier
-    | Field.Optional identifier ->
-        fsStatement identifier [interpretTypeDefinition typeDefinition]
-    | Field.FuncReq (identifier, fl)
-    | Field.FuncOpt (identifier, fl) ->
-        let returnType = interpretTypeDefinition typeDefinition
-        let parameters = 
-            if fl |> List.isEmpty then [FsStatementV2.unitType]
-            else fl |> List.map interpretFnParameter
-        {
-            Identifier = FsStatmentKind.Parameter identifier
-            Scope = Inherit
-            Open = returnType.Open @ (parameters |> List.map (fun ns -> ns.Open) |> List.concat)
-            CodeItems =
-                [
-                    vmPrn "("
-                    yield!
-                        parameters
-                        |> List.map (fun ns -> ns |> codeItems)
-                        |> List.reduce (fun t1 t2 -> t1 @ [vmPrn " -> "] @ t2)
-                    vmPrn " -> "
-                    yield! returnType.CodeItems
-                    vmPrn ")"
-                ]
+    interpreter {
+        let! (config: InnerInterpretConfig, tabLevel) = Interpreter.ask
+
+        match field with
+        | Field.Required identifier
+        | Field.Optional identifier ->
+            let! typeDef = interpretTypeDefinition typeDefinition
+            return fsStatement identifier [typeDef]
+        | Field.FuncReq (identifier, fl)
+        | Field.FuncOpt (identifier, fl) ->
+            let! returnType = interpretTypeDefinition typeDefinition
+            let parameters = 
+                if fl |> List.isEmpty then [FsStatementV2.unitType]
+                else fl |> List.map (runFnParameterInterpretation (config, tabLevel))
+            return 
+                {
+                    Identifier = FsStatmentKind.Parameter identifier
+                    Scope = Inherit
+                    Open = returnType.Open @ (parameters |> List.map (fun ns -> ns.Open) |> List.concat)
+                    CodeItems =
+                        [
+                            vmPrn "("
+                            yield!
+                                parameters
+                                |> List.map (fun ns -> ns |> codeItems)
+                                |> List.reduce (fun t1 t2 -> t1 @ [vmPrn " -> "] @ t2)
+                            vmPrn " -> "
+                            yield! returnType.CodeItems
+                            vmPrn ")"
+                        ]
             
-            NestedStatements = []
-        }
+                    NestedStatements = []
+                }
+    }
 
 
 let rec internal interpretField (field, typeDefinition) =
     interpreter {
-        let! (config: Config, tabLevel) = Interpreter.ask
+        let! (config: InnerInterpretConfig, tabLevel) = Interpreter.ask
 
         let fieldCodeItems identifier =
             [
@@ -199,15 +231,16 @@ let rec internal interpretField (field, typeDefinition) =
         match field with
         | Field.Required identifier
         | Field.Optional identifier ->
+            let! td = interpretTypeDefinition typeDefinition
             return
-                fsStatement identifier [interpretTypeDefinition typeDefinition |> addLineBreak]
+                fsStatement identifier [td |> addLineBreak]
 
         | Field.FuncReq (identifier, fl)
         | Field.FuncOpt (identifier, fl) ->
-            let returnType = interpretTypeDefinition typeDefinition
+            let! returnType = interpretTypeDefinition typeDefinition
             let parameters = 
                 if fl |> List.isEmpty then [FsStatementV2.unitType]
-                else fl |> List.map interpretFnParameter
+                else fl |> List.map (runFnParameterInterpretation (config, tabLevel))
             return
                 {
                     Identifier = FsStatmentKind.Field identifier
@@ -234,7 +267,7 @@ let rec internal interpretField (field, typeDefinition) =
 
 let internal interpretInterface (interfaceDefinition: InterfaceDefinition) =
     interpreter {
-        let! (config: Config, tabLevel) = Interpreter.ask
+        let! (config: InnerInterpretConfig, tabLevel) = Interpreter.ask
 
         match interfaceDefinition with
         | InterfaceDefinition.Plain (identifier, fieldList) ->
@@ -257,4 +290,29 @@ let internal interpretInterface (interfaceDefinition: InterfaceDefinition) =
                 }
 
         | InterfaceDefinition.Extends _ -> return failwith "Not implemented"
+    }
+
+
+let internal interpretTypeAlias (typeAlias: TypeAlias) =
+    interpreter {
+        let! (config: InnerInterpretConfig, tabLevel) = Interpreter.ask
+        
+        match typeAlias with
+        | TypeAlias.Plain (identifier, combination) ->
+            let! comb = interpretTypeCombination combination
+            return
+                {
+                    Identifier = identifier |> FsStatmentKind.Interface
+                    Scope = config.Namespace.Value
+                    Open = []
+                    CodeItems = [
+                        tab tabLevel
+                        vmKeyword "type "
+                        vmTextS (identifier |> Identifier.Value)
+                        vmText "="
+                        vmEndLineNull
+                    ]
+                    NestedStatements = [comb]
+                }
+        | TypeAlias.Generic (identifier, types, combination) -> return failwith "Not implemented"
     }

@@ -50,6 +50,8 @@ module PortsBuilder =
         member _.Combine(expr1, expr2) = Ports.combine expr1 expr2
         member _.Delay(func) = Ports.delay func
         member _.Using(v, f) = Ports.using f v
+        member this.For(m: Ports<_,_> seq, f) =
+            m |> Seq.map (fun m' -> this.Bind(m', f))
 
 
     let ports = PortsBuilder()

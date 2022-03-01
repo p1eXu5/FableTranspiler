@@ -30,4 +30,8 @@ type FullPath = private FullPath of string with
             else
                 Error $"{s} is not full path"
         )
+    static member CreateOption(v: string) =
+        match FullPath.Create(v) with
+        | Ok fp -> fp |> Some
+        | _ -> None
     static member Value(FullPath v) = v
