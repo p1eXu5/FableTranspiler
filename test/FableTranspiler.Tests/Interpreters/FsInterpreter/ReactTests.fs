@@ -20,11 +20,7 @@ open System.IO
 
 module ReactTests =
 
-    let private strategy : InterpretStrategy = 
-        { 
-            InterpretInterface = React.interpretInterface 
-            InterpretTypeAlias = React.interpretTypeAlias
-        }
+    let private strategy : InterpretStrategy = React.strategy
 
     let private config : InterpretConfigV2 =
         {
@@ -122,7 +118,7 @@ module ReactTests =
             fsStatements[0]
             |> FsStatementV2.codeItems
             |> List.filter ((=) vmEndLineNull)
-            |> shouldL haveLength 4 "Wrong count of vmEndLineNull"
+            |> shouldL haveLength 5 "Wrong count of vmEndLineNull"
         } 
         |> Result.runTest
 
@@ -355,6 +351,49 @@ module ReactTests =
     [<Test>]
     let ``when export class with React.Component<FooProps> then adds open items`` () =
         ()
+
+
+    [<Test>]
+    let ``when export class with React Component then adds module with fs let statement`` () =
+        result {
+            let statementsResultB =
+                """
+                    import * as React from 'react';
+
+                    export interface FooProps {
+                        onSetActive?(to: string): void;
+                        duration?: number | string | ((distance: number) => number) | undefined;
+                    }
+
+                    export type BarProps = FooProps & Foo.FooProps<FooElement>;
+
+                    export default class Bar extends React.Component<BarProps> {}
+                """
+                |> Parser.run
+
+            let! moduleFullPath = fullPath testRelativePath
+            config.StatementStore.TryAdd moduleFullPath statementsResultB |> ignore
+
+            let! statements = statementsResultB
+
+            let! fsStatements =
+                statements
+                |> interpretV2' testRelativePath
+
+            fsStatements 
+            |> shouldL haveLength 4 "Wrong count of fs statements"
+
+            let bar = fsStatements |> List.last
+            bar.Open |> should contain "Fable.React"
+            bar.Open |> should contain "Fable.Core.JsInterop"
+            bar.Scope |> should equal (Scope.Module "Bar")
+
+            let present = bar.ToString()
+            // present |> should contain "module Bar ="
+            present |> should contain "let inline Bar props children ="
+            present |> should contain "domEl (importDefault \"react-scroll\\modules\\components\\Link\") props children"
+        } 
+        |> Result.runTest
 
     //[<Test>]
     //let ``uses existing statement when there is an reference in type alias`` () =

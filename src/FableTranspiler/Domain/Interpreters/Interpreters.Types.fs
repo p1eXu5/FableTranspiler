@@ -25,6 +25,7 @@ and
         | Modifier = 5
         | Parentheses = 6
         | EndOfLine = 7
+        | Tab = 8
 
 
 type TabLevel = TabLevel of int with
@@ -79,7 +80,7 @@ module CodeItem =
         { Tag = Tag.Parentheses; Content = content }
 
     let internal tab (TabLevel tabLevel) =
-        { Tag = Tag.Text; Content = String.replicate (4 * tabLevel) " " }
+        { Tag = Tag.Tab; Content = String.replicate (4 * tabLevel) " " }
 
     let internal vmIdentifier (Identifier identifier) =
         { Tag = Tag.Text; Content = identifier }

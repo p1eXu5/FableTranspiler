@@ -20,6 +20,7 @@ module FsStatementV2Tests =
                 Open = []
                 CodeItems = [vmType "bool"]
                 NestedStatements = []
+                PostCodeItems = []
                 Summary = []
             }
         someType + FsStatementV2.zeroType |> should equal someType

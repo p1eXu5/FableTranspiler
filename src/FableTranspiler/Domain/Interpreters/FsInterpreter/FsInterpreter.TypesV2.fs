@@ -9,8 +9,9 @@ open System.Text
 
 
 type Scope =
-    | Namespace of string
+    | Namespace
     | Inherit
+    | Module of string
 
 type FsStatementType =
     | No
@@ -29,6 +30,9 @@ type FsStatmentKind =
     | Interface of Identifier
     | Field of Identifier
     | Parameter of Identifier
+    | ReactComponent of Identifier
+    | Namespace of string
+    | Module of string
 
 
 
@@ -39,10 +43,12 @@ type FsStatementV2 =
         Open: string list
         CodeItems: CodeItem list
         NestedStatements: FsStatementV2 list
+        /// make sense only on root level
+        PostCodeItems: CodeItem list
         Summary: CodeItem list
     }
     with
-        override this.ToString() =
+        member private this.ToStringInner() =
             let sb = StringBuilder()
             
             this.Summary
@@ -54,12 +60,20 @@ type FsStatementV2 =
             this.NestedStatements
             |> List.iter (fun s -> sb.Append(s.ToString()) |> ignore)
 
+            sb
+
+        override this.ToString() =
+            let sb = this.ToStringInner()
+
+            this.PostCodeItems
+            |> List.iter (fun s -> sb.Append(s.ToString()) |> ignore)
+
             sb.ToString()
 
 
 type internal InnerInterpretConfig =
     {
-        Namespace: Lazy<Scope>
+        LibRelativePath: Lazy<string>
         TryGetLocal: Identifier -> FsStatementV2 option
         TryGetStatement: Identifier list -> FsStatementV2 option
     }
@@ -69,6 +83,7 @@ type internal InterpretStrategy =
     {
         InterpretInterface: InterfaceDefinition -> Interpreter<InnerInterpretConfig, FsStatementV2>
         InterpretTypeAlias: TypeAlias -> Interpreter<InnerInterpretConfig, FsStatementV2>
+        InterpretReactComponent: Identifier (* -> DtsType *) -> Interpreter<InnerInterpretConfig, FsStatementV2>
     }
 
 type internal InterpretConfigV2 =
@@ -93,6 +108,7 @@ module internal FsStatementV2 =
             Open = []
             CodeItems = []
             NestedStatements = []
+            PostCodeItems = []
             Summary = []
         }
 
@@ -103,6 +119,7 @@ module internal FsStatementV2 =
             Open = []
             CodeItems = [vmType "unit"]
             NestedStatements = []
+            PostCodeItems = []
             Summary = []
         }
 
@@ -113,6 +130,7 @@ module internal FsStatementV2 =
             Open = []
             CodeItems = [vmPrn " []"]
             NestedStatements = []
+            PostCodeItems = []
             Summary = []
         }
 
@@ -123,6 +141,7 @@ module internal FsStatementV2 =
             Open = []
             CodeItems = []
             NestedStatements = []
+            PostCodeItems = []
             Summary = []
         }
 
@@ -133,6 +152,7 @@ module internal FsStatementV2 =
             Open = []
             CodeItems = [vmType "obj"]
             NestedStatements = []
+            PostCodeItems = []
             Summary = []
         }
 
@@ -146,8 +166,19 @@ module internal FsStatementV2 =
                 vmEndLineNull
             ]
             NestedStatements = []
+            PostCodeItems = []
             Summary = [] 
         }
+
+    let htmlPropsInheritance tabLevel =
+        [
+            tab tabLevel
+            vmKeyword "interface "
+            vmType "IHTMLProp"
+            vmEndLineNull
+        ]
+            
+
 
     let notZeroType = (<>) zeroType
 
@@ -160,8 +191,38 @@ module internal FsStatementV2 =
         | _ -> statement
 
 
-    let rec codeItems statement =
-        statement.Summary @ statement.CodeItems @ (statement.NestedStatements |> List.map (fun ns -> ns |> codeItems) |> List.concat)
+    let codeItems statement =
+        let rec codeItems statement =
+            statement.Summary @ statement.CodeItems @ (statement.NestedStatements |> List.map (fun ns -> ns |> codeItems) |> List.concat)
+
+        codeItems statement @ statement.PostCodeItems
+
+
+    let rec opens statements : string list =
+        statements
+        |> List.map (fun s -> s.Open @ (s.NestedStatements |> opens)) 
+        |> List.concat
+        |> List.distinct
+
+
+    let rec openCodeItems statements (except: #seq<_>) =
+        let rec opens statement =
+            statement.Open @ (statement.NestedStatements |> List.map (fun n -> opens n) |> List.concat)
+
+        statements
+        |> List.map opens
+        |> List.concat
+        |> List.except except
+        |> List.distinct
+        |> List.map (fun o ->
+            [
+                vmKeyword "open "
+                vmText o
+                vmEndLineNull
+            ]
+        )
+        |> List.concat
+
 
     let rec addLineBreak statement =
         match statement.NestedStatements with
@@ -169,6 +230,9 @@ module internal FsStatementV2 =
             {statement with CodeItems = statement.CodeItems @ [vmEndLineNull]}
         | _ ->
             {statement with NestedStatements = statement.NestedStatements[..^1] @ [(addLineBreak (statement.NestedStatements |> List.last))]}
+
+
+
 
     let add statementA statementB =
         let space = [vmText " "]

@@ -1,8 +1,6 @@
 ﻿namespace Fable.ReactScroll
 
 open Fable.Core
-open Fable.Core.JS
-open Fable.Core.JsInterop
 open Fable.React.Props
 
 type ReactScrollLinkProps =
@@ -21,9 +19,10 @@ type LinkProps =
 
 module Link =
     open Fable.React
+    open Fable.Core.JsInterop
 
     // or domEl (import "Link" "react-scroll") props children
-    let inline link props children = 
+    let inline link props children =
         //let foo = importDefault "react-scroll/modules/components/Link"
         //console.log(sprintf "%A" foo)
         //console.log(foo.GetType())

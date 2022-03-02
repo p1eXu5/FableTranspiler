@@ -30,6 +30,7 @@ let rec interpretDTsType (type': DTsType)  : Interpreter< InnerInterpretConfig, 
             Open = []
             CodeItems = codeItems
             NestedStatements = []
+            PostCodeItems = []
             Summary = []
         }
 
@@ -133,6 +134,7 @@ let interpretTypeCombination combination : Interpreter< InnerInterpretConfig, Fs
                             ]
             
                         NestedStatements = []
+                        PostCodeItems = []
                         Summary = []
                     } |> Some
                     , summary 
@@ -148,6 +150,7 @@ let interpretTypeCombination combination : Interpreter< InnerInterpretConfig, Fs
                         Open = (types |> List.map (fun ns -> ns.Open) |> List.concat)
                         CodeItems = []
                         NestedStatements = types
+                        PostCodeItems = []
                         Summary = []
                     } |> Some
                     , summary
@@ -202,6 +205,7 @@ let interpretFuncSignature fl typeDefinition identifier codeItemPrependix codeIt
                     ]
         
                 NestedStatements = []
+                PostCodeItems = []
                 Summary = []
             }, summary @ summary2
     }
@@ -215,6 +219,7 @@ let rec interpretFnParameter (field, typeDefinition) : Interpreter<InnerInterpre
             Open = []
             CodeItems = []
             NestedStatements = nested
+            PostCodeItems = []
             Summary = []
         }
 
@@ -253,6 +258,7 @@ let rec internal interpretField (field, typeDefinition) =
                 Open = []
                 CodeItems = fieldCodeItems identifier
                 NestedStatements = nested
+                PostCodeItems = []
                 Summary = []
             }
 
@@ -311,7 +317,7 @@ let internal interpretInterface (interfaceDefinition: InterfaceDefinition) =
             return
                 {
                     Identifier = identifier |> FsStatmentKind.Interface
-                    Scope = config.Namespace.Value
+                    Scope = Scope.Namespace
                     Open = []
                     CodeItems = [
                         tab tabLevel
@@ -321,6 +327,7 @@ let internal interpretInterface (interfaceDefinition: InterfaceDefinition) =
                         vmEndLineNull
                     ]
                     NestedStatements = nestedStatements |> List.map fst
+                    PostCodeItems = htmlPropsInheritance (tabLevel + 1)
                     Summary = nestedStatements |> List.map snd |> List.concat
                 }
 
@@ -338,7 +345,7 @@ let internal interpretTypeAlias (typeAlias: TypeAlias) =
             return
                 {
                     Identifier = identifier |> FsStatmentKind.Interface
-                    Scope = config.Namespace.Value
+                    Scope = Scope.Namespace
                     Open = []
                     CodeItems = [
                         tab tabLevel
@@ -349,16 +356,41 @@ let internal interpretTypeAlias (typeAlias: TypeAlias) =
                     ]
                     NestedStatements =
                         match fst comb with
-                        | Some s -> [s]
+                        | Some s -> [s; ]
                         | None -> []
+                    PostCodeItems = htmlPropsInheritance (tabLevel + 1)
                     Summary = snd comb
                 }
         | TypeAlias.Generic (identifier, types, combination) -> return failwith "Not implemented"
     }
 
 
+let interpretReactComponent identifier =
+    interpreter {
+        let! (config: InnerInterpretConfig, tabLevel) = Interpreter.ask
+        return
+            {
+                Identifier = identifier |> FsStatmentKind.ReactComponent
+                Scope = Scope.Module (Identifier.Value(identifier))
+                Open = [
+                    "Fable.React"
+                    "Fable.Core.JsInterop"
+                ]
+                CodeItems = [
+                    tab tabLevel
+                    vmKeyword "let inline "; vmIdentifier identifier; vmText " props children ="; vmEndLineNull
+                    tab (tabLevel + 1)
+                    vmText "domEl "; vmPrn "("; vmText "importDefault "; vmPrn "\""; vmText config.LibRelativePath.Value; vmPrn "\")"; vmText " props children"; vmEndLineNull
+                ]
+                NestedStatements = []
+                PostCodeItems = []
+                Summary = []
+            }
+    }
+
 let internal strategy =
     {
         InterpretInterface = interpretInterface
         InterpretTypeAlias = interpretTypeAlias
+        InterpretReactComponent = interpretReactComponent
     }

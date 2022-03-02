@@ -340,30 +340,40 @@ let rec internal toFsStatement rootFullPath moduleFullPath statement interpretCo
                 config.FsStatementStore.AddOrUpdate moduleFullPath fsResult |> ignore
         }
 
+    let interpretFsStatement innerConfig interpreter =
+        ports {
+            
+            let fsStatement =
+                interpreter
+                |> Interpreter.run (innerConfig, TabLevel 0)
+
+            do!
+                storeFsStatment fsStatement
+
+            return
+                fsStatement |> Some
+                , innerConfig |> Some
+        }
+
     ports {
         let! config = Ports.ask
         let {InterpretStrategy = strategy; StatementStore = store; FsStatementStore = fsStore} = config
 
-        let reactConfig' : InnerInterpretConfig = 
+        let innerConfig : InnerInterpretConfig = 
             interpretConfig
             |> Option.defaultValue
                 {
-                    Namespace =
+                    LibRelativePath =
                         lazy (
                             let rootPath = rootFullPath |> FullPath.Value
                             let modulePath = moduleFullPath |> FullPath.Value
-                            String.Join('.',
-                                seq {
-                                    Path.GetFileName(rootPath)
-                                    yield! Path.GetRelativePath(rootPath, modulePath).Split(Path.DirectorySeparatorChar)[..^1]
-                                    Path.GetFileName(modulePath)[..^5]
-                                }
-                            )
-                            |> Scope.Namespace
+                            Path.Combine(Path.GetFileName(rootPath), Path.GetRelativePath(rootPath, modulePath)[..^5])
                         )
+
                     TryGetLocal =
                         fun identifier ->
                             fsStore.TryGetStatement moduleFullPath identifier
+
                     TryGetStatement =
                         fun identifierList -> None
                 }
@@ -373,7 +383,7 @@ let rec internal toFsStatement rootFullPath moduleFullPath statement interpretCo
         | Statement.Import (_, DtsModule.NodeModule _ ) ->
             return
                 FsStatementV2.comment $"// outer lib is not processed yet - %O{statement}" |> Some
-                , reactConfig' |> Some
+                , innerConfig |> Some
 
         | Statement.Import (importEntityList, DtsModule.Relative (ModulePath relativePath) ) ->
             (*
@@ -414,44 +424,33 @@ let rec internal toFsStatement rootFullPath moduleFullPath statement interpretCo
                         Some modulePath'
                 )
                 |> Option.map (fun modulePath' ->
-                    {reactConfig' with
+                    {innerConfig with
                         TryGetLocal =
                             fun identifier ->
                                 tryGetLocal modulePath' identifier
-                                |> Option.orElseWith (fun () -> reactConfig'.TryGetLocal identifier)
+                                |> Option.orElseWith (fun () -> innerConfig.TryGetLocal identifier)
                     }
                 )
                 |> Option.orElse interpretConfig
 
         | Statement.Export (ExportStatement.Structure (StructureStatement.InterfaceDefinition interfaceDefinition)) ->
-            let fsStatement =
-                strategy.InterpretInterface interfaceDefinition
-                |> Interpreter.run (reactConfig', TabLevel 0)
-
-            do!
-                storeFsStatment fsStatement
-
-            return
-                fsStatement |> Some
-                , reactConfig' |> Some
+            return! interpretFsStatement innerConfig (strategy.InterpretInterface interfaceDefinition)
 
         | Statement.Export (ExportStatement.Structure (StructureStatement.TypeAlias typeAlias)) ->
-            let fsStatement =
-                strategy.InterpretTypeAlias typeAlias
-                |> Interpreter.run (reactConfig', TabLevel 0)
+            return! interpretFsStatement innerConfig (strategy.InterpretTypeAlias typeAlias)
 
-            do!
-                storeFsStatment fsStatement
+        | Statement.Export 
+            (ExportStatement.StructureDefault 
+                (StructureStatement.ClassDefinition (ClassDefinition.ExtendsEmpty (identifier, dtsType))))
+                    when dtsType.ToString().StartsWith("React.Component") ->
 
-            return
-                fsStatement |> Some
-                , reactConfig' |> Some
+            return! interpretFsStatement innerConfig (strategy.InterpretReactComponent identifier)
 
         | _ ->
             let statementString = $"{statement}".Replace(Environment.NewLine, "")
             return
                 FsStatementV2.comment $"(*\n {statementString} is not processed\n*)" |> Some,
-                reactConfig' |> Some
+                innerConfig |> Some
     }
 
 
@@ -459,7 +458,6 @@ let rec internal toFsStatement rootFullPath moduleFullPath statement interpretCo
 
 let internal interpretV2 rootFullPath moduleFullPath statementList : Ports<InterpretConfigV2, FsStatementV2 list> =
     
-
     let rec running statementList reactInterpretConfig res =
         ports {
             match statementList with
@@ -470,6 +468,69 @@ let internal interpretV2 rootFullPath moduleFullPath statementList : Ports<Inter
         }
 
     ports {
-        let! fsStatements = running statementList None []
-        return fsStatements
+        return! running statementList None []
     }
+
+
+let internal appendNamespaceAndModules rootFullPath moduleFullPath fsStatements =
+    let (namespaceStatements, moduleStatements) =
+        fsStatements
+        |> List.foldBack (fun s state ->
+            match s.Scope with
+            | Scope.Module moduleName -> (fst state, (moduleName, s) :: snd state)
+            | _ -> (s :: fst state, snd state)
+        ) <| ([], [])
+        |> (fun (ns, ms) ->
+            ns
+            ,
+            (ms 
+            |> List.groupBy (fun (t: (string * FsStatementV2)) -> fst t)
+            |> List.map (fun (key, t) -> (key, t |> List.map snd))
+            |> List.map (fun (moduleName, xs) ->
+                {
+                    Identifier = FsStatmentKind.Module moduleName
+                    Scope = Scope.Namespace
+                    Open = []
+                    CodeItems = [
+                        vmKeyword "module "
+                        vmType moduleName
+                        vmPrn " ="
+                        vmEndLineNull
+                        vmEndLineNull
+                        yield! xs |> FsStatementV2.openCodeItems <| (ns |> FsStatementV2.opens)
+                    ]
+                    NestedStatements = []
+                    PostCodeItems = []
+                    Summary = []
+                } :: xs // TODO: add tab
+            )
+            |> List.concat )
+        )
+
+    let namespaceName =
+        let rootPath = rootFullPath |> FullPath.Value
+        let modulePath = moduleFullPath |> FullPath.Value
+        String.Join('.',
+            seq {
+                Path.GetFileName(rootPath)
+                yield! Path.GetRelativePath(rootPath, modulePath).Split(Path.DirectorySeparatorChar)[..^1]
+                Path.GetFileName(modulePath)[..^5]
+            }
+        )
+
+    {
+        Identifier = FsStatmentKind.Namespace namespaceName
+        Scope = Scope.Inherit
+        Open = []
+        CodeItems = [
+            vmKeyword "namespace "
+            vmText namespaceName
+            vmEndLineNull
+            vmEndLineNull
+            yield! namespaceStatements |> FsStatementV2.openCodeItems <| []
+        ]
+        NestedStatements = []
+        PostCodeItems = []
+        Summary = []
+    } :: (namespaceStatements @ moduleStatements)
+    

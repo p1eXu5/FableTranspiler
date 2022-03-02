@@ -49,7 +49,7 @@ module internal FsModule =
                 | Some result ->
                     {
                         model with
-                            FsStatements = result |> Result.mapError (CodeItem.interpretError)
+                            FsStatements = result |> Result.map (fun fsStatements -> fsStatements |> appendNamespaceAndModules rootFullPath moduleFullPath) |> Result.mapError (CodeItem.interpretError)
                             SelectedFsStatement = None
                     },
                     Cmd.none
@@ -63,6 +63,7 @@ module internal FsModule =
                                     |> Result.map (fun statements ->
                                         interpretV2 rootFullPath moduleFullPath statements
                                         |> Ports.run model.InterpretConfigV2
+                                        |> appendNamespaceAndModules rootFullPath moduleFullPath
                                     )
                                     |> Result.mapError (CodeItem.interpretError)
                                 SelectedFsStatement = None
