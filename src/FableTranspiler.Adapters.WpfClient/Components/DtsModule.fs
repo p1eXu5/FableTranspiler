@@ -5,11 +5,15 @@ open FableTranspiler.Interpreters
 open FableTranspiler.Interpreters.DtsInterpreter
 open FableTranspiler.Ports.Persistence
 open FableTranspiler.Ports.PortsBuilder
+open FableTranspiler.Parsers.Types
+
+type ErrorDescription = CodeItem list
 
 [<ReferenceEquality>]
 type DtsModule =
     {
-        DtsStatements: Result<DtsStatement list, CodeItem list>
+        StatementsStore: StatementStore<Statement>
+        DtsStatements: Result<DtsStatement list, ErrorDescription>
         SelectedDtsStatement: int option
     }
 
@@ -21,55 +25,51 @@ module internal DtsModule =
 
     open Elmish
 
-    let init () =
+    let init store =
         {
-            DtsStatements = Result.Error []
+            StatementsStore = store
+            DtsStatements = Result.Ok []
             SelectedDtsStatement = None
         },
         Cmd.none
 
 
     let update msg model =
-        ports {
-            match msg with
-            | Interpret fullPath ->
-                let! (store: StatementStore) = Ports.ask
-                match store.TryGetStatementList fullPath with
-                | Some result ->
-                    return
-                        {
-                            model with
-                                DtsStatements =
-                                    result
-                                    |> Result.map (fun statements ->
-                                        interpret statements
-                                    )
-                                    |> Result.mapError (CodeItem.interpretError)
-                                SelectedDtsStatement = None
-                        },
-                        Cmd.none
-                | None -> 
-                    return
-                        {   
-                            model with
-                                DtsStatements = Result.Error (CodeItem.interpretError $"Could not find {fullPath} module statements")
-                                SelectedDtsStatement = None
-                        },
-                        Cmd.none
-        }
+        match msg with
+        | Interpret fullPath ->
+            match model.StatementsStore.TryGetStatementList fullPath with
+            | Some result ->
+                {
+                    model with
+                        DtsStatements =
+                            result
+                            |> Result.map (fun statements ->
+                                interpret statements
+                            )
+                            |> Result.mapError (CodeItem.interpretError)
+                        SelectedDtsStatement = None
+                },
+                Cmd.none
+            | None -> 
+                {   
+                    model with
+                        DtsStatements = Result.Error (CodeItem.interpretError $"Could not find {fullPath} module statements")
+                        SelectedDtsStatement = None
+                },
+                Cmd.none
 
 
     open Elmish.WPF
 
     let bindings () = [
-        "SelectedDtsStatements" 
+        "DtsStatements" 
         |> Binding.oneWayOpt (fun m -> 
             match m.DtsStatements with
             | Ok statements -> statements |> Some
             | _ -> None
         )
 
-        "SelectedDtsStatementsError" 
+        "DtsStatementsError" 
         |> Binding.oneWayOpt(fun m -> 
             match m.DtsStatements with
             | Error err -> err |> Some

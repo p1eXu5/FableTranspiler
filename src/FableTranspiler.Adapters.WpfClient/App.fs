@@ -8,6 +8,8 @@ open FableTranspiler.Ports.Persistence
 open FableTranspiler.Ports.PortsBuilder
 open FableTranspiler.SimpleTypes
 open System.IO
+open FableTranspiler.Parsers.Types
+open FableTranspiler.Adapters.Persistence
 
 let main window =
     let logger =
@@ -31,12 +33,6 @@ let main window =
             }
         
 
-    let config =
-        (
-            FableTranspiler.Adapters.Persistence.StatementStore.create (),
-            readFile
-        )
-
-    WpfProgram.mkProgram (MainModel.init ()) (fun msg m -> Ports.run config (update msg m)) bindings
+    WpfProgram.mkProgram (fun () -> MainModel.init (StatementStore.create Statement.identifier) readFile) update bindings
     |> WpfProgram.withLogger loggerFactory
     |> WpfProgram.startElmishLoop window

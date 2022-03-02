@@ -24,6 +24,7 @@ type FsStatementType =
     | Unknown of string
 
 type FsStatmentKind =
+    | Comment
     | Type of FsStatementType
     | Interface of Identifier
     | Field of Identifier
@@ -38,11 +39,15 @@ type FsStatementV2 =
         Open: string list
         CodeItems: CodeItem list
         NestedStatements: FsStatementV2 list
+        Summary: CodeItem list
     }
     with
         override this.ToString() =
             let sb = StringBuilder()
             
+            this.Summary
+            |> List.iter (fun s -> sb.Append(s.ToString()) |> ignore)
+
             this.CodeItems
             |> List.iter (fun s -> sb.Append(s.ToString()) |> ignore)
             
@@ -50,6 +55,28 @@ type FsStatementV2 =
             |> List.iter (fun s -> sb.Append(s.ToString()) |> ignore)
 
             sb.ToString()
+
+
+type internal InnerInterpretConfig =
+    {
+        Namespace: Lazy<Scope>
+        TryGetLocal: Identifier -> FsStatementV2 option
+        TryGetStatement: Identifier list -> FsStatementV2 option
+    }
+
+
+type internal InterpretStrategy =
+    {
+        InterpretInterface: InterfaceDefinition -> Interpreter<InnerInterpretConfig, FsStatementV2>
+        InterpretTypeAlias: TypeAlias -> Interpreter<InnerInterpretConfig, FsStatementV2>
+    }
+
+type internal InterpretConfigV2 =
+    {
+        InterpretStrategy: InterpretStrategy
+        StatementStore: FableTranspiler.Ports.Persistence.StatementStore< Statement >
+        FsStatementStore: FableTranspiler.Ports.Persistence.StatementStore< FsStatementV2 >
+    }
 
 
 module internal FsStatementV2 =
@@ -66,6 +93,7 @@ module internal FsStatementV2 =
             Open = []
             CodeItems = []
             NestedStatements = []
+            Summary = []
         }
 
     let unitType =
@@ -75,6 +103,7 @@ module internal FsStatementV2 =
             Open = []
             CodeItems = [vmType "unit"]
             NestedStatements = []
+            Summary = []
         }
 
     let arrayType =
@@ -84,8 +113,41 @@ module internal FsStatementV2 =
             Open = []
             CodeItems = [vmPrn " []"]
             NestedStatements = []
+            Summary = []
         }
 
+    let empty =
+        {
+            Identifier = FsStatmentKind.Comment
+            Scope = Inherit
+            Open = []
+            CodeItems = []
+            NestedStatements = []
+            Summary = []
+        }
+
+    let objType =
+        {
+            Identifier = FsStatmentKind.Type FsStatementType.Primitive
+            Scope = Inherit
+            Open = []
+            CodeItems = [vmType "obj"]
+            NestedStatements = []
+            Summary = []
+        }
+
+    let comment message =
+        {
+            Identifier = FsStatmentKind.Comment
+            Scope = Scope.Inherit
+            Open = []
+            CodeItems = [
+                vmComment message
+                vmEndLineNull
+            ]
+            NestedStatements = []
+            Summary = [] 
+        }
 
     let notZeroType = (<>) zeroType
 
@@ -99,7 +161,7 @@ module internal FsStatementV2 =
 
 
     let rec codeItems statement =
-        statement.CodeItems @ (statement.NestedStatements |> List.map (fun ns -> ns |> codeItems) |> List.concat)
+        statement.Summary @ statement.CodeItems @ (statement.NestedStatements |> List.map (fun ns -> ns |> codeItems) |> List.concat)
 
     let rec addLineBreak statement =
         match statement.NestedStatements with
@@ -129,4 +191,6 @@ module internal FsStatementV2 =
 type FsStatementV2 with
     static member (+) (statementA: FsStatementV2, statementB: FsStatementV2) =
         FsStatementV2.add statementA statementB
+    static member CollectCodeItems(fsStatement) = FsStatementV2.codeItems fsStatement
+        
     

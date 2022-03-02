@@ -6,6 +6,7 @@ using System.Globalization;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Documents;
+using FableTranspiler.Interpreters.FsInterpreter;
 
 namespace FableTranspiler.WpfClient.AttachedProperties
 {
@@ -22,11 +23,11 @@ namespace FableTranspiler.WpfClient.AttachedProperties
         public static readonly DependencyProperty FsDocumentProperty =
             DependencyProperty.RegisterAttached(
                 "FsDocument",
-                typeof(FSharpList<FsStatementViewModel>),
+                typeof(FSharpList< FsStatementV2 >),
                 typeof(FsFlowDocument),
                 new FrameworkPropertyMetadata {
                     BindsTwoWayByDefault = false,
-                    PropertyChangedCallback = FsDocumentChangedCallback<FsStatementViewModel>
+                    PropertyChangedCallback = FsDocumentChangedCallback<FsStatementV2>
                 });
 
 
@@ -35,12 +36,12 @@ namespace FableTranspiler.WpfClient.AttachedProperties
         /// </summary>
         /// <param name="obj"></param>
         /// <returns></returns>
-        public static FSharpList<FsStatementViewModel> GetFsDocument(DependencyObject obj)
+        public static FSharpList<FsStatementV2> GetFsDocument(DependencyObject obj)
         {
-            return (FSharpList<FsStatementViewModel>)obj.GetValue(FsDocumentProperty);
+            return (FSharpList<FsStatementV2>)obj.GetValue(FsDocumentProperty);
         }
 
-        public static void SetFsDocument(DependencyObject obj, FSharpList<FsStatementViewModel> value)
+        public static void SetFsDocument(DependencyObject obj, FSharpList<FsStatementV2> value)
         {
             obj.SetValue(FsDocumentProperty, value);
         }
@@ -134,7 +135,7 @@ namespace FableTranspiler.WpfClient.AttachedProperties
             var richTextBox = (RichTextBox)d;
 
             object? statements = typeof(TViewModel).Name switch {
-                nameof(FsStatementViewModel) => GetFsDocument(richTextBox),
+                nameof(FsStatementV2) => GetFsDocument(richTextBox),
                 nameof(CodeItem) => GetFsDocumentError(richTextBox),
                 _ => null
             };

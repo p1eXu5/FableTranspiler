@@ -317,21 +317,6 @@ let internal interpret libLocation modulePath statements : Interpreter<Interpret
     }
 
 
-
-
-type internal InterpretStrategy =
-    {
-        InterpretInterface: InterfaceDefinition -> Interpreter<React.InnerInterpretConfig, FsStatementV2>
-        InterpretTypeAlias: TypeAlias -> Interpreter<React.InnerInterpretConfig, FsStatementV2>
-    }
-
-type internal InterpretConfigV2 =
-    {
-        InterpretStrategy: InterpretStrategy
-        StatementStore: FableTranspiler.Ports.Persistence.StatementStore< Statement >
-        FsStatementStore: FableTranspiler.Ports.Persistence.StatementStore< FsStatementV2 >
-    }
-
 /// <summary>
 /// 
 /// </summary>
@@ -339,7 +324,7 @@ type internal InterpretConfigV2 =
 /// <param name="moduleFullPath"></param>
 /// <param name="statement"></param>
 /// <param name="interpretConfig"></param>
-let rec internal toFsStatement rootFullPath moduleFullPath statement interpretConfig : Ports<InterpretConfigV2, (FsStatementV2 option * React.InnerInterpretConfig option)> =
+let rec internal toFsStatement rootFullPath moduleFullPath statement interpretConfig : Ports<InterpretConfigV2, (FsStatementV2 option * InnerInterpretConfig option)> =
     let storeFsStatment (fsStatement: FsStatementV2) =
         ports {
             let! config = Ports.ask
@@ -359,7 +344,7 @@ let rec internal toFsStatement rootFullPath moduleFullPath statement interpretCo
         let! config = Ports.ask
         let {InterpretStrategy = strategy; StatementStore = store; FsStatementStore = fsStore} = config
 
-        let reactConfig' : React.InnerInterpretConfig = 
+        let reactConfig' : InnerInterpretConfig = 
             interpretConfig
             |> Option.defaultValue
                 {
@@ -385,6 +370,11 @@ let rec internal toFsStatement rootFullPath moduleFullPath statement interpretCo
 
         
         match statement with
+        | Statement.Import (_, DtsModule.NodeModule _ ) ->
+            return
+                FsStatementV2.comment $"// outer lib is not processed yet - %O{statement}" |> Some
+                , reactConfig' |> Some
+
         | Statement.Import (importEntityList, DtsModule.Relative (ModulePath relativePath) ) ->
             (*
                 1а. Модуль разобран
@@ -457,7 +447,11 @@ let rec internal toFsStatement rootFullPath moduleFullPath statement interpretCo
                 fsStatement |> Some
                 , reactConfig' |> Some
 
-        | _ -> return failwith "Not implemented"
+        | _ ->
+            let statementString = $"{statement}".Replace(Environment.NewLine, "")
+            return
+                FsStatementV2.comment $"(*\n {statementString} is not processed\n*)" |> Some,
+                reactConfig' |> Some
     }
 
 

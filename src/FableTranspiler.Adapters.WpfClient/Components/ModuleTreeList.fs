@@ -150,7 +150,7 @@ module internal ModuleTreeList =
     let (|SelectModule|_|) moduleList = function
         | ChangeSelection (rootFullPath, ChildMsg (key, ToggleModuleSelection v)) when v = true ->
             tryFindModule2 rootFullPath key moduleList
-            |> Option.map (fun mt -> mt.ModulePath)
+            |> Option.map (fun mt -> (mt.RootPath, mt.ModulePath))
         | _ -> None
 
 

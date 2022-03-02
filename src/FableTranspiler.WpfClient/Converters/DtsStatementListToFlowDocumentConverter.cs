@@ -50,18 +50,18 @@ namespace FableTranspiler.WpfClient.Converters
         }
 
 
-        internal object Convert(FSharpList<FsStatementViewModel> vmList)
+        internal object Convert(FSharpList<FsStatementV2> vmList)
         {
             var fd = new FlowDocument();
 
-            foreach (FsStatementViewModel vm in vmList) {
-                Section section = BuildSection(vm.Content());
-                if (vm.FsCodeStyle() != FsCodeStyle.Universal) {
-                    section.MouseEnter += SectionEnter;
-                }
-                else {
-                    section.MouseEnter += SectionLeave;
-                }
+            foreach (FsStatementV2 vm in vmList) {
+                Section section = BuildSection(FsStatementV2.CollectCodeItems(vm), true);
+                //if (vm.FsCodeStyle() != FsCodeStyle.Universal) {
+                //    section.MouseEnter += SectionEnter;
+                //}
+                //else {
+                //    section.MouseEnter += SectionLeave;
+                //}
 
                 fd.Blocks.Add(section);
             }
@@ -80,7 +80,7 @@ namespace FableTranspiler.WpfClient.Converters
         }
 
 
-        private Section BuildSection(FSharpList<CodeItem> vmList)
+        private Section BuildSection(FSharpList<CodeItem> vmList, bool extraLineBreake = false)
         {
             var section = new Section();
             var paragraph = new Paragraph() { Margin = new Thickness(0) };
@@ -111,6 +111,10 @@ namespace FableTranspiler.WpfClient.Converters
                 };
 
                 paragraph.Inlines.Add(new Run(item.Content) { Style = style });
+            }
+
+            if (extraLineBreake) {
+                section.Blocks.Add(paragraph);
             }
 
             return section;

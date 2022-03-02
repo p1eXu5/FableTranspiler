@@ -36,7 +36,7 @@ module ReactTests =
     let [<Literal>] rootFullPath = 
         @"Z:\Projects\Programming\FSharp\_wpf\FableTranspiler\node_modules\@types\react-scroll" 
 
-
+    /// "./modules/components/Link"
     let [<Literal>] testRelativePath = "./modules/components/Link"
 
 
@@ -51,7 +51,7 @@ module ReactTests =
     let private interpretV2' relativePath statementList = 
         result {
             let! rootFullPath' = rootFullPath |> FullPath.Create
-            let! moduleFullPath' = Path.Combine(rootFullPath, relativePath) |> FullPath.Create
+            let! moduleFullPath' = fullPath relativePath
             return Ports.run config (interpretV2 rootFullPath' moduleFullPath' statementList)
         }
 
@@ -303,6 +303,58 @@ module ReactTests =
         } 
         |> Result.runTest
 
+
+    [<Test>]
+    let ``when interpret type combination with outer lib module import then adds comments and summary`` () =
+        result {
+            let statementsResultB =
+                """
+                    import * as Foo from 'foo';
+
+                    export interface Bar {
+                        onSetActive?(to: string): void;
+                        duration?: number | string | ((distance: number) => number) | undefined;
+                    }
+
+                    export type BazProps = Bar & Foo.FooProps<FooElement>;
+                """
+                |> Parser.run
+
+            let! moduleFullPath = fullPath testRelativePath
+            config.StatementStore.TryAdd moduleFullPath statementsResultB |> ignore
+
+
+            let! statements = statementsResultB
+
+            let! fsStatements =
+                statements
+                |> interpretV2' testRelativePath
+
+            fsStatements 
+            |> shouldL haveLength 3 "Wrong count of fs statements"
+
+            fsStatements[0].Identifier |> should be (ofCase <@ FsStatmentKind.Comment @>)
+            fsStatements[0].ToString() |> should contain "// outer lib is not processed yet - import * as Foo from 'foo';"
+
+            let bazProps = fsStatements |> List.last
+            bazProps.NestedStatements[0].Identifier |> should equal (FsStatmentKind.Type FsStatementType.Composition)
+            bazProps.NestedStatements[0].NestedStatements |> shouldL haveLength 1 "Wrong NestedStatements count" // Foo.FooProps<FooElement> is unknown
+            Assert.That(
+                bazProps.NestedStatements[0].NestedStatements, 
+                Has.All.Property("Identifier").Matches( ofCase <@ FsStatmentKind.Type @> ), 
+                fun () -> "type alias assertion fails:" )
+
+            let present = bazProps.ToString()
+            present |> should contain "/// see also Foo.FooProps<FooElement>"
+            present |> should contain "| OnSetActive of (string -> unit)"
+            present |> should contain "| Duration of U3<float, string, (float -> float)>"
+        } 
+        |> Result.runTest
+
+
+    [<Test>]
+    let ``when export class with React.Component<FooProps> then adds open items`` () =
+        ()
 
     //[<Test>]
     //let ``uses existing statement when there is an reference in type alias`` () =

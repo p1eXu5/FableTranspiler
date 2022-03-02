@@ -1,6 +1,7 @@
 ﻿module rec FableTranspiler.Parsers.Types
 
 open FableTranspiler.SimpleTypes
+open System.Text
 
 
 type StringLiteral = StringLiteral of string with
@@ -23,6 +24,38 @@ type DTsType =
             match dtsType with
             | Plain is | Generic (is, _) | Typeof is -> is |> Some 
             | _ -> None
+
+        override this.ToString() =
+            match this with
+            | Generic (idList, typeList) ->
+                let sb =
+                    StringBuilder()
+                        .Append(
+                            idList
+                            |> List.map (Identifier.Value)
+                            |> List.reduce (fun i1 i2 -> i1 + "." + i2)
+                        )
+                        .Append("<")
+
+                typeList 
+                |> List.map (sprintf "%O")
+                |> List.iter (fun s -> sb.Append(s) |> ignore)
+
+                sb.Append(">").ToString()
+
+            | Plain idList ->
+                idList
+                |> List.map (Identifier.Value)
+                |> List.reduce (fun i1 i2 -> i1 + "." + i2)
+
+            | Typeof idList ->
+                (+) 
+                    "typeof "
+                    (idList
+                    |> List.map (Identifier.Value)
+                    |> List.reduce (fun i1 i2 -> i1 + "." + i2))
+
+            | _ -> $"%A{this}".ToLowerInvariant()
 
 
 type TypeCombination =
@@ -98,10 +131,23 @@ type ImportEntity =
     /// <c>* as alias</c>
     /// </summary>
     | AllAliased of alias: Identifier
+    with
+        override this.ToString() =
+            match this with
+            | No -> ""
+            | Named (Identifier id) -> id
+            | Aliased ((Identifier name), (Identifier alias)) -> $"{name} as {alias}"
+            | All -> "*"
+            | AllAliased (Identifier alias) -> $"* as {alias}"
 
 type DtsModule =
     | NodeModule of ModulePath
     | Relative of ModulePath
+    with
+        override this.ToString() =
+            match this with
+            | NodeModule (ModulePath path) 
+            | Relative (ModulePath path) -> $"'{path}'"
 
 
 
@@ -136,7 +182,28 @@ type Statement =
     | Const of Expression
     | Structure of StructureStatement
     | NamespaceDeclaration of Identifier * StatementList
+    with
+        override this.ToString() =
+            match this with
+            | Comment comment -> comment
+            | Import (entities, modulePath) ->
+                let sb = StringBuilder().Append("import ")
 
+                if entities.Length > 1 then
+                    sb.Append("{") |> ignore
+                
+                sb.Append(
+                    entities
+                    |> List.map (fun e -> e.ToString())
+                    |> List.reduce (fun e1 e2 -> $"%O{e1}, %O{e2}")
+                )
+                |> ignore
+
+                if entities.Length > 1 then
+                    sb.Append("}") |> ignore
+
+                sb.Append(" from ").Append(modulePath.ToString()).Append(";").ToString()
+            | _ -> $"%A{this}"
 
 
 and
@@ -189,3 +256,4 @@ module Statement =
         | Export (ExportStatement.StructureDefault ss) -> ss |> StructureStatement.name
         | Export (ExportStatement.Namespace (i, _)) -> i |> Some 
         | _ -> None 
+

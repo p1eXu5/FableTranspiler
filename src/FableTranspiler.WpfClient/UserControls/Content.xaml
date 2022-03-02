@@ -46,8 +46,8 @@
             <StackPanel x:Name="m_ContentContainer" HorizontalAlignment="Stretch" Orientation="Horizontal">
                 <Border DataContext="{Binding DtsModule}">
                     <RichTextBox Visibility="{Binding ElementName=m_ContentToggler, Path=ShowTsContent, Converter={StaticResource conv_BoolToVis}, Mode=OneWay}"
-                                 prop:DtsFlowDocument.DtsDocument="{Binding SelectedDtsStatements, Mode=OneWay}"
-                                 prop:DtsFlowDocument.DtsDocumentError="{Binding SelectedDtsStatementsError, Mode=OneWay}"
+                                 prop:DtsFlowDocument.DtsDocument="{Binding DtsStatements, Mode=OneWay}"
+                                 prop:DtsFlowDocument.DtsDocumentError="{Binding DtsStatementsError, Mode=OneWay}"
                                  materialDesign:HintAssist.Hint="TS Content"
                                  d:Visibility="Visible"
                                  MouseEnter="_MouseEnter"
@@ -59,8 +59,8 @@
                 <Border DataContext="{Binding FsModule}">
                     <RichTextBox x:Name="m_FelizContent"
                                  Visibility="{Binding ElementName=m_ContentToggler, Path=ShowFelizContent, Converter={StaticResource conv_BoolToVis}, Mode=OneWay}"
-                                 prop:FsFlowDocument.FsDocument="{Binding SelectedFsStatements, Mode=OneWay}"
-                                 prop:FsFlowDocument.FsDocumentError="{Binding SelectedFsStatementsError, Mode=OneWay}"
+                                 prop:FsFlowDocument.FsDocument="{Binding FsStatements, Mode=OneWay}"
+                                 prop:FsFlowDocument.FsDocumentError="{Binding FsStatementsError, Mode=OneWay}"
                                  materialDesign:HintAssist.Hint="Feliz Content"
                                  prop:FsFlowDocument.SectionMouseEnter="RichTextBox_MouseEnter"
                                  prop:FsFlowDocument.SectionMouseLeave="RichTextBox_MouseLeave"
