@@ -497,12 +497,12 @@ let internal appendNamespaceAndModules rootFullPath moduleFullPath fsStatements 
                         vmPrn " ="
                         vmEndLineNull
                         vmEndLineNull
-                        yield! xs |> FsStatementV2.openCodeItems <| (ns |> FsStatementV2.opens)
+                        yield! (xs |> FsStatementV2.openCodeItems <| (ns |> FsStatementV2.opens)) |> CodeItem.increaseTab
                     ]
                     NestedStatements = []
                     PostCodeItems = []
                     Summary = []
-                } :: xs // TODO: add tab
+                } :: (xs |> List.map FsStatementV2.increaseTab)
             )
             |> List.concat )
         )

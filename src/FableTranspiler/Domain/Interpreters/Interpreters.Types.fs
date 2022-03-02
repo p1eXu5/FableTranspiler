@@ -98,3 +98,16 @@ module CodeItem =
             ]
         )
         |> List.concat)
+
+    let increaseTab codeItems =
+        let tabLevel = TabLevel 1
+
+        let rec increase codeItems res =
+            match codeItems with
+            | [] -> res
+            | head :: tail ->
+                match head.Tag with
+                | Tag.Tab -> increase tail ([head; tab tabLevel] @ res)
+                | _ -> increase tail (head :: res)
+
+        increase (codeItems |> List.rev) []

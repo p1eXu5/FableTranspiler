@@ -177,7 +177,15 @@ module internal FsStatementV2 =
             vmType "IHTMLProp"
             vmEndLineNull
         ]
-            
+
+
+    let rec increaseTab statement =
+        {
+            statement with
+                CodeItems = CodeItem.increaseTab statement.CodeItems
+                NestedStatements = statement.NestedStatements |> List.map increaseTab
+                PostCodeItems = CodeItem.increaseTab statement.PostCodeItems
+        }
 
 
     let notZeroType = (<>) zeroType
@@ -216,6 +224,7 @@ module internal FsStatementV2 =
         |> List.distinct
         |> List.map (fun o ->
             [
+                tab (TabLevel 0)
                 vmKeyword "open "
                 vmText o
                 vmEndLineNull
