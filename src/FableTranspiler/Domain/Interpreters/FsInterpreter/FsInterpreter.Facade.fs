@@ -513,9 +513,16 @@ let internal appendNamespaceAndModules rootFullPath moduleFullPath fsStatements 
         String.Join('.',
             seq {
                 Path.GetFileName(rootPath)
-                yield! Path.GetRelativePath(rootPath, modulePath).Split(Path.DirectorySeparatorChar)[..^1]
+                yield! 
+                    Path.GetRelativePath(rootPath, modulePath)
+                    .Split(Path.DirectorySeparatorChar)[..^1]
                 Path.GetFileName(modulePath)[..^5]
             }
+            |> Seq.map (fun s ->
+                String.Join("",
+                    s.Split("-") |> Seq.map FableTranspiler.Helpers.capitalizeFirstLetter
+                )
+            )
         )
 
     {
