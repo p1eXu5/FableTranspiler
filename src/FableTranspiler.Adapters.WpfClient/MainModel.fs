@@ -98,7 +98,7 @@ module internal MainModel =
             let model' = {model with ModuleTreeList = mtlModel}
 
             match msg with
-            | ModuleTreeList.SelectModule mtlModel (rootFullPath, moduleFullPath) ->
+            | ModuleTreeList.SelectModule mtlModel (rootFullPath, moduleFullPath) when rootFullPath <> moduleFullPath ->
                 model',
                 Cmd.batch [
                     Cmd.map ModuleTreeListMsg mtlMsg
