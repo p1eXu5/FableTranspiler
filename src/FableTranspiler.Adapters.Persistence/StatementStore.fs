@@ -32,6 +32,9 @@ let create<'TStatement> getIdentifier : FableTranspiler.Ports.Persistence.Statem
                 new Func<FullPath, Result<'TStatement list, string>, Result<'TStatement list, string>>(fun _ _ -> fresult)
         )
 
+    let keys () =
+        dict.Keys |> Seq.toList
+
     {
         ContainsKey = dict.ContainsKey
         TryAdd = fun key value -> dict.TryAdd(key, value)
@@ -39,4 +42,5 @@ let create<'TStatement> getIdentifier : FableTranspiler.Ports.Persistence.Statem
         TryGetStatementList = tryGetStatementList
         GetOrAdd = getOrAdd
         AddOrUpdate = addOrUpdate
+        Keys = keys
     }

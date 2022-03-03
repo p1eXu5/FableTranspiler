@@ -68,6 +68,18 @@ module ReactTests =
         Facade.interpret None modulePath statements
 
 
+    let processDtsModule modulePath content =
+        result {
+            let statementsResult =
+                content
+                |> Parser.run
+
+            let! fullModulePath = fullPath modulePath
+            config.StatementStore.TryAdd fullModulePath statementsResult |> ignore
+            return! statementsResult
+        }
+
+
     [<Test>]
     let ``interpret interface produces statement with expected identifier`` () =
         result {
@@ -246,56 +258,46 @@ module ReactTests =
 
 
     [<Test>]
-    let ``interpret type composition from two interfaces from importing modules produces fulfilled DU`` () =
+    let ``interpret Button_d_ts like module`` () =
         result {
-            let statementsResultA =
-                """
-                    export interface Foo {
-                        to?: string;
-                        smooth?: boolean | string | undefined;
-                        onClick?(): void;
-                    }
-                """
-                |> Parser.run
+            let! _ = 
+                processDtsModule "./Link"
+                    """
+                        import * as React from 'react';
 
-            let! moduleA = fullPath "./Foo"
-            config.StatementStore.TryAdd moduleA statementsResultA |> ignore
+                        export interface ReactScrollLinkProps {
+                            to?: string;
+                        }
 
+                        export type LinkProps = ReactScrollLinkProps & React.HTMLProps<HTMLButtonElement>;
+                        export default class Link extends React.Component<LinkProps> {}
+                    """
 
-            let statementsResultB =
-                """
-                    import {Foo} from './Foo';
+            let! buttonStatements = 
+                processDtsModule "./Button"
+                    """
+                        import * as React from 'react';
+                        import { ReactScrollLinkProps } from './Link';
+                        
+                        export type ButtonProps = ReactScrollLinkProps & React.HTMLProps<HTMLButtonElement>;
+                        
+                        export default class Button extends React.Component<ButtonProps> {}
+                    """
 
-                    export interface Bar {
-                        onSetActive?(to: string): void;
-                        duration?: number | string | ((distance: number) => number) | undefined;
-                    }
-
-                    export type BazProps = Foo & Bar;
-                """
-                |> Parser.run
-
-            let! moduleB = fullPath "./BazProps"
-            config.StatementStore.TryAdd moduleB statementsResultB |> ignore
-
-
-            let! statements = statementsResultB
 
             let! fsStatements =
-                statements
-                |> interpretV2' "./BazProps"
+                buttonStatements
+                |> interpretV2' "./Button"
 
             fsStatements 
-            |> shouldL haveLength 2 "Wrong count of fs statements"
+            |> shouldL haveLength 3 $"Wrong count of fs statements, %A{fsStatements}"
 
-            let bazProps = fsStatements |> List.last
-            bazProps.NestedStatements[0].Identifier |> should equal (FsStatmentKind.Type FsStatementType.Composition)
-            bazProps.NestedStatements[0].NestedStatements |> shouldL haveLength 2 "Wrong NestedStatements count"
-            Assert.That(bazProps.NestedStatements[0].NestedStatements, Has.All.Property("Identifier").Matches( ofCase <@ FsStatmentKind.Type @> ))
+            let buttonProps = fsStatements |> List.item 1
+            buttonProps.NestedStatements[0].Identifier |> should equal (FsStatmentKind.Type FsStatementType.Composition)
+            buttonProps.NestedStatements[0].NestedStatements |> shouldL haveLength 1 "Wrong NestedStatements count"
 
-            let present = bazProps.ToString()
+            let present = buttonProps.ToString()
             present |> should contain "| To of string"
-            present |> should contain "| OnSetActive of (string -> unit)"
         } 
         |> Result.runTest
 

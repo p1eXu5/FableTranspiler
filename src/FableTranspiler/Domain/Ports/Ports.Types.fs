@@ -16,5 +16,6 @@ module Persistence =
             AddOrUpdate : FullPath -> Result<'TStatement list, string> -> Result<'TStatement list, string>
             GetOrAdd: FullPath -> (unit -> Result<'TStatement list, string>) -> Result<'TStatement list, string>
             TryGetStatementList: FullPath -> Result<'TStatement list, string> option
-            TryGetStatement : FullPath -> Identifier -> 'TStatement option 
+            TryGetStatement : FullPath -> Identifier -> 'TStatement option
+            Keys: unit -> FullPath list
         }

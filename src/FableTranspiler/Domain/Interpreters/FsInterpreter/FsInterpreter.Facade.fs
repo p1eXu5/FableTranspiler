@@ -409,7 +409,10 @@ let rec internal toFsStatement rootFullPath moduleFullPath statement interpretCo
 
             return
                 None, // there is no fs statement
-                Path.GetFullPath(Path.Combine(rootFullPath |> FullPath.Value, relativePath + ".d.ts"))
+                Path.GetFullPath(
+                    Path.Combine(
+                        Path.GetDirectoryName(moduleFullPath |> FullPath.Value),
+                        relativePath + ".d.ts"))
                 |> FullPath.CreateOption
                 |> Option.bind (fun modulePath' ->
                     if not (fsStore.ContainsKey modulePath') then
