@@ -367,10 +367,7 @@ let rec internal toFsStatement rootFullPath moduleFullPath statement interpretCo
                         lazy (
                             let rootPath = rootFullPath |> FullPath.Value
                             let modulePath = moduleFullPath |> FullPath.Value
-                            String.Join("",
-                                Path.Combine(Path.GetFileName(rootPath), Path.GetRelativePath(rootPath, modulePath)[..^5])
-                                    .Split("-") |> Seq.map FableTranspiler.Helpers.capitalizeFirstLetter
-                            )
+                            Path.Combine(Path.GetFileName(rootPath), Path.GetRelativePath(rootPath, modulePath)[..^5])
                         )
 
                     TryGetLocal =
@@ -484,7 +481,7 @@ let internal appendNamespaceAndModules rootFullPath moduleFullPath fsStatements 
         fsStatements
         |> List.foldBack (fun s state ->
             match s.Scope with
-            | Scope.Module fsModuleName -> (fst state, (fsModuleName, s) :: snd state)
+            | Scope.Module moduleName -> (fst state, (moduleName, s) :: snd state)
             | _ -> (s :: fst state, snd state)
         ) <| ([], [])
         |> (fun (ns, ms) ->
@@ -492,15 +489,15 @@ let internal appendNamespaceAndModules rootFullPath moduleFullPath fsStatements 
             ,
             (ms 
             |> List.groupBy (fun (t: (string * FsStatementV2)) -> fst t)
-            |> List.map (fun (fsModuleName, t) -> (fsModuleName, t |> List.map snd))
-            |> List.map (fun (fsModuleName, xs) ->
+            |> List.map (fun (key, t) -> (key, t |> List.map snd))
+            |> List.map (fun (moduleName, xs) ->
                 {
-                    Identifier = FsStatmentKind.Module fsModuleName
+                    Identifier = FsStatmentKind.Module moduleName
                     Scope = Scope.Namespace
                     Open = []
                     CodeItems = [
                         vmKeyword "module "
-                        vmType fsModuleName
+                        vmType moduleName
                         vmPrn " ="
                         vmEndLineNull
                         vmEndLineNull
@@ -537,7 +534,9 @@ let internal appendNamespaceAndModules rootFullPath moduleFullPath fsStatements 
         Scope = Scope.Inherit
         Open = []
         CodeItems = [
-            vmKeyword "namespace "; vmText namespaceName; vmEndLineNull
+            vmKeyword "namespace "
+            vmText namespaceName
+            vmEndLineNull
             vmEndLineNull
             yield! namespaceStatements |> FsStatementV2.openCodeItems <| []
         ]
