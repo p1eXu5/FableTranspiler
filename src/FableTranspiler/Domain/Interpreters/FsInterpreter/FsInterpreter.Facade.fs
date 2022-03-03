@@ -385,8 +385,8 @@ let rec internal toFsStatement rootFullPath moduleFullPath statement interpretCo
         match statement with
         | Statement.Import (_, DtsModule.NodeModule _ ) ->
             return
-                FsStatementV2.comment $"// outer lib is not processed yet - %O{statement}" |> Some
-                , innerConfig |> Some
+                ( FsStatementV2.comment $"// outer lib is not processed yet - %O{statement}" |> Some, 
+                  innerConfig |> Some )
 
         | Statement.Import (importEntityList, DtsModule.Relative (ModulePath relativePath) ) ->
             (*
@@ -449,11 +449,15 @@ let rec internal toFsStatement rootFullPath moduleFullPath statement interpretCo
 
             return! interpretFsStatement innerConfig (strategy.InterpretReactComponent identifier)
 
+        | Statement.Comment comment ->
+            return
+                ( FsStatementV2.comment comment |> Some,
+                  innerConfig |> Some )
         | _ ->
             let statementString = $"{statement}".Replace(Environment.NewLine, "")
             return
-                FsStatementV2.comment $"(*\n {statementString} is not processed\n*)" |> Some,
-                innerConfig |> Some
+                ( FsStatementV2.comment $"(*\n {statementString} is not processed\n*)" |> Some,
+                  innerConfig |> Some )
     }
 
 
