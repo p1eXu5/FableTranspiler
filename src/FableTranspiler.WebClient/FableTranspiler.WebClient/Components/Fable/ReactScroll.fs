@@ -3,8 +3,10 @@
 open Fable.Core.JsInterop
 open Fable.React
 open Fable.ReactScroll
+open Fable.ReactScroll.ScrollEvents
 open Feliz
 open Feliz.MaterialUI
+open Fable.Core.JS
 
 
 let useStyles : unit -> _ =
@@ -25,6 +27,13 @@ let view =
     FunctionComponent.Of(
         (fun () ->
             let classes = useStyles ()
+
+            React.useEffectOnce(fun () ->
+                console.log (events)
+                events.scrollEvent.register "begin" (fun to' el ->
+                    console.log ("begin", to')
+                )
+            )
 
             React.strictMode [
                 fragment [] [

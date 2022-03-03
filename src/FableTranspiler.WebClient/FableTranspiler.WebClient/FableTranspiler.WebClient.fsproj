@@ -9,6 +9,7 @@
     <Content Include="assets\index.html" />
     <Compile Include="TranspilerOutput\Fable\ReactScroll\Element.fs" />
     <Compile Include="TranspilerOutput\Fable\ReactScroll\Link.fs" />
+    <Compile Include="TranspilerOutput\Fable\ReactScroll\ScrollEvents.fs" />
     <Compile Include="Components\Fable\ReactScroll.fs" />
     <Compile Include="Components\TestEntity.fs" />
     <Compile Include="Router.fs" />
