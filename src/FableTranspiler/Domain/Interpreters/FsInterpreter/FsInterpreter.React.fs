@@ -210,6 +210,7 @@ let interpretFuncSignature fl typeDefinition identifier codeItemPrependix codeIt
             }, summary @ summary2
     }
 
+
 let rec interpretFnParameter (field, typeDefinition) : Interpreter<InnerInterpretConfig, (FsStatementV2 * Summary)> =
     
     let fsStatement identifier nested =
@@ -331,7 +332,35 @@ let internal interpretInterface (interfaceDefinition: InterfaceDefinition) =
                     Summary = nestedStatements |> List.map snd |> List.concat
                 }
 
-        | InterfaceDefinition.Extends _ -> return failwith "Not implemented"
+        | InterfaceDefinition.Extends (identifier, extendedType, fieldList) -> 
+            let! (extendedTypeInterpretation, extendedSummary) =
+                interpretDTsType extendedType
+
+            let nestedStatements =
+                fieldList
+                |> List.map (interpretField >> Interpreter.run (config, tabLevel + 1))
+
+            return
+                {
+                    Identifier = identifier |> FsStatmentKind.Interface
+                    Scope = Scope.Namespace
+                    Open = []
+                    CodeItems = [
+                        tab tabLevel
+                        vmKeyword "type "
+                        vmType (identifier |> Identifier.Value)
+                        vmText " ="
+                        vmEndLineNull
+                    ]
+                    NestedStatements = 
+                        extendedTypeInterpretation
+                        |> Option.map (fun s ->
+                            nestedStatements |> List.map fst |> List.append [s]
+                        )
+                        |> Option.defaultWith (fun () -> nestedStatements |> List.map fst) 
+                    PostCodeItems = htmlPropsInheritance (tabLevel + 1)
+                    Summary = nestedStatements |> List.map snd |> List.concat |> List.append extendedSummary
+                }
     }
 
 
