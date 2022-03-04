@@ -20,7 +20,7 @@ open System.IO
 
 module ReactTests =
 
-    let private strategy : InterpretStrategy = React.strategy
+    let private strategy : InterpretStrategy = Fable.strategy
 
     let private config : InterpretConfigV2 =
         {
@@ -51,21 +51,13 @@ module ReactTests =
             return Ports.run config (interpretV2 rootFullPath' moduleFullPath' statementList)
         }
 
+
     let private toFsStatement' relativePath statement innerConfig = 
         result {
             let! rootFullPath' = rootFullPath |> FullPath.Create
             let! moduleFullPath' = Path.Combine(rootFullPath, relativePath) |> FullPath.Create
             return Ports.run config (toFsStatement rootFullPath' moduleFullPath' statement innerConfig)
         }
-
-
-    let private interpreter modulePath fileContent =
-        let statements = 
-            match Parser.run fileContent with
-            | Ok s -> s
-            | Error err -> AssertionException(err) |> raise
-
-        Facade.interpret None modulePath statements
 
 
     let processDtsModule modulePath content =
@@ -116,7 +108,7 @@ module ReactTests =
         result {
             let! statements =
                 """
-                    export interface Foo {
+                    export interface FooProps {
                         to?: string;
                         smooth?: boolean | string | undefined;
                         onClick?(): void;
@@ -172,13 +164,13 @@ module ReactTests =
         result {
             let statementsResult =
                 """
-                    export interface Foo {
+                    export interface FooProps {
                         to?: string;
                         smooth?: boolean | string | undefined;
                         onClick?(): void;
                     }
 
-                    export interface Bar {
+                    export interface BarProps {
                         onSetActive?(to: string): void;
                         duration?: number | string | ((distance: number) => number) | undefined;
                     }
@@ -199,37 +191,37 @@ module ReactTests =
 
             conf
             |> Option.bind (fun c ->
-                c.TryGetLocal (Identifier.Create "Foo")
+                c.TryGetLocal (Identifier.Create "FooProps")
             )
-            |> shouldL be (ofCase <@ Some @>) "Has no Foo"
+            |> shouldL be (ofCase <@ Some @>) "Has no FooProps"
 
             conf
             |> Option.bind (fun c ->
-                c.TryGetLocal (Identifier.Create "Bar")
+                c.TryGetLocal (Identifier.Create "BarProps")
             )
-            |> shouldL be (ofCase <@ Some @>) "Has no Bar"
+            |> shouldL be (ofCase <@ Some @>) "Has no BarProps"
             
         }
         |> Result.runTest
 
 
     [<Test>]
-    let ``interpret type composition from two local interfaces produces fulfilled DU`` () =
+    let ``interpret type composition from two local props interfaces produces fulfilled DU`` () =
         result {
             let statementsResult =
                 """
-                    export interface Foo {
+                    export interface FooProps {
                         to?: string;
                         smooth?: boolean | string | undefined;
                         onClick?(): void;
                     }
 
-                    export interface Bar {
+                    export interface BarProps {
                         onSetActive?(to: string): void;
                         duration?: number | string | ((distance: number) => number) | undefined;
                     }
 
-                    export type BazProps = Foo & Bar;
+                    export type BazProps = FooProps & BarProps;
                 """
                 |> Parser.run
 
@@ -303,18 +295,18 @@ module ReactTests =
 
 
     [<Test>]
-    let ``when interpret type combination with outer lib module import then adds comments and summary`` () =
+    let ``when interpret type combination with outer lib module props import then adds comments and summary`` () =
         result {
             let statementsResultB =
                 """
                     import * as Foo from 'foo';
 
-                    export interface Bar {
+                    export interface BarProps {
                         onSetActive?(to: string): void;
                         duration?: number | string | ((distance: number) => number) | undefined;
                     }
 
-                    export type BazProps = Bar & Foo.FooProps<FooElement>;
+                    export type BazProps = BarProps & Foo.FooProps<FooElement>;
                 """
                 |> Parser.run
 
@@ -353,7 +345,6 @@ module ReactTests =
     [<Test>]
     let ``when export class with React.Component<FooProps> then adds open items`` () =
         ()
-
 
     [<Test>]
     let ``when export class with React Component then adds module with fs let statement`` () =
@@ -397,87 +388,52 @@ module ReactTests =
         } 
         |> Result.runTest
 
-    //[<Test>]
-    //let ``uses existing statement when there is an reference in type alias`` () =
-    //    let modulePath = "test.d.ts" |> ModulePath.createUnsafe
-    //    let input = """
-    //        export interface Foo {
-    //            smooth?: boolean | string | undefined;
-    //        }
 
-    //        export type LinkProps = Foo & React.HTMLProps<HTMLButtonElement>;
-    //    """
+    [<Test>]
+    [<Ignore("namespace interpretation is needed to implement")>]
+    let ``exported namespace interpretation test like scroll-events`` () =
+        result {
+            let! statements =
+                processDtsModule "./scroll-events"
+                    """
+                        declare namespace Events {
+                            interface ScrollEvent {
+                                register(eventName: string, callback: (to: string, element: any) => void): void;
+                                remove(eventName: string): void;
+                            }
+                        
+                            const registered: {};
+                            const scrollEvent: ScrollEvent;
+                        }
+                        
+                        export default Events;
+                    """
 
-    //    do
-    //        interpreter modulePath input
-    //        |> Interpreter.run config
-    //        |> ignore
+            let! fsStatements =
+                statements
+                |> interpretV2' "./scroll-events"
 
-    //    let actual = config.Store.Get modulePath (Identifier "LinkProps")
-    //    actual |> shouldL be (ofCase <@ Some FsStatement.Typed @>) "LinkProps type must be present in store:"
+            fsStatements 
+            |> shouldL haveLength 3 $"Wrong count of fs statements, %A{fsStatements}"
 
-    //    let actualDisplay = actual |> Option.map (fun statement -> statement.StringContent()) |> Option.defaultValue ""
-    //    actualDisplay |> should contain "type LinkProps ="
-    //    actualDisplay |> shouldL contain "abstract smooth : U2<bool, string> option" "field presentation"
+            fsStatements[0].Identifier |> should be (ofCase <@ FsStatmentKind.Interface @>)
+            fsStatements[1].Identifier |> should be (ofCase <@ FsStatmentKind.Interface @>)
+            fsStatements[2].Identifier |> should be (ofCase <@ FsStatmentKind.Object @>)
+            fsStatements[2].Open |> should contain "Fable.Core"
 
+            let sPresent0 = sprintf "%O" fsStatements[0]
+            sPresent0 |> should contain "type ScrollEvent ="
+            sPresent0 |> should contain "abstract register: eventName: string -> callback: (string -> obj -> unit) -> unit"
+            sPresent0 |> should contain "abstract remove: eventName: string -> unit"
 
+            let sPresent1 = sprintf "%O" fsStatements[1]
+            sPresent1 |> should contain "type Events ="
+            sPresent1 |> should contain "abstract registered : obj"
+            sPresent1 |> should contain "abstract scrollEvent : ScrollEvent"
 
-
-    //[<Test>]
-    //let ``exported interface interpretation test`` () =
-    //    let fileName = "test.d.ts"
-    //    let input = """
-    //        export interface Foo {
-    //            smooth?: boolean | string | undefined;
-    //        }
-    //    """
-
-    //    let dtoList = interpret fileName input
-    //    dtoList.Length |> should equal 2
-
-    //    dtoList[0].StyledFsStatements.Length |> should equal 1
-    //    dtoList[0].StyledFsStatements[0].FsCodeStyle |> should be (ofCase<@ FsCodeStyle.Universal @>)
-    //    dtoList[0].StyledFsStatements[0].FsStatement |> should be (ofCase<@ FsStatement.Named @>)
-    //    dtoList[0].StyledFsStatements[0].FsStatement |> FsStatement.name |> should be (ofCase<@ Some "Test" @>)
-
-    //    dtoList[1].StyledFsStatements.Length |> should equal 1
-    //    dtoList[1].StyledFsStatements[0].FsCodeStyle |> should be (ofCase<@ FsCodeStyle.Fable @>)
-    //    dtoList[1].StyledFsStatements[0].FsStatement |> should be (ofCase<@ FsStatement.Interface @>)
-    //    dtoList[1].StyledFsStatements[0].FsStatement |> FsStatement.name |> should be (ofCase<@ Some "Foo" @>)
-
-
-    //[<Test>]
-    //let ``exported type alias with react type interpretation test`` () =
-    //    let fileName = "test.d.ts"
-    //    let input = """
-    //        import * as React from 'react';
-
-    //        export interface Foo {
-    //            smooth?: boolean | string | undefined;
-    //        }
-
-    //        export type LinkProps = ReactScrollLinkProps & React.HTMLProps<HTMLButtonElement>;
-    //    """
-
-    //    let dtoList = interpret fileName input
-    //    dtoList.Length |> should equal 3 // module, type, type
-
-
-    //[<TestCaseSource(typeof<TestCases>, nameof TestCases.ExportCases)>]
-    //let ``interpret exported interface statement with union option field type to Fable test`` (input: string, expectedField: string) =
-    //    let statement = 
-    //        match Parser.document input with
-    //        | Ok s -> s
-    //        | Error err -> AssertionException(err) |> raise
-
-
-    //    let fableInterpreters =
-    //        {
-    //            InterpretPlainFableInterface = Fable.interpretPlainFableInterface
-    //        }
-
-    //    let vm = Facade.interpret None "test" store fableInterpreters statement
-
-    //    vm[1].StyledFsStatements[0].StringContent() |> should haveSubstring expectedField
-
+            let sPresent2 = sprintf "%O" fsStatements[1]
+            sPresent2 |> should contain "[<ImportDefault(\"react-scroll/scroll-events\")>]"
+            sPresent2 |> should contain "let events : Events = jsNative"
+        }
+        |> Result.runTest
 

@@ -30,8 +30,10 @@
     <Compile Include="Domain\Interpreters\FsInterpreter\FsInterpreter.Types.fs" />
     <Compile Include="Domain\Interpreters\FsInterpreter\FsInterpreter.TypesV2.fs" />
     <Compile Include="Domain\Interpreters\FsInterpreter\FsInterpreter.Common.fs" />
-    <Compile Include="Domain\Interpreters\FsInterpreter\FsInterpreter.React.fs" />
     <Compile Include="Domain\Interpreters\FsInterpreter\FsInterpreter.Fable.fs" />
+    <Compile Include="Domain\Interpreters\FsInterpreter\FsInterpreter.FableOld.fs" />
+    <Compile Include="Domain\Interpreters\FsInterpreter\FsInterpreter.React.fs" />
+    <Compile Include="Domain\Interpreters\FsInterpreter\FsInterpreter.FacadeOld.fs" />
     <Compile Include="Domain\Interpreters\FsInterpreter\FsInterpreter.Facade.fs" />
     <Compile Include="Domain\UseCases\UseCases.Types.fs" />
     <Compile Include="Domain\UseCases\UseCases.Implementation.fs" />

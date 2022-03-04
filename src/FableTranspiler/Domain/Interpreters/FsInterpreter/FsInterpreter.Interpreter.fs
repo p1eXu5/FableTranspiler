@@ -40,6 +40,9 @@ module Interpreter =
     let combine expr1 expr2 =
         expr1 |> bind (fun () -> expr2 )
 
+    let addTab interpreter =
+        interpreter |> withEnv (fun (c, t) -> (c, t + 1))
+
 module InterpreterBuilder =
 
     type InterpreterBuilder () =

@@ -22,5 +22,6 @@ module FsStatementV2Tests =
                 NestedStatements = []
                 PostCodeItems = []
                 Summary = []
+                Hidden = false
             }
         someType + FsStatementV2.zeroType |> should equal someType

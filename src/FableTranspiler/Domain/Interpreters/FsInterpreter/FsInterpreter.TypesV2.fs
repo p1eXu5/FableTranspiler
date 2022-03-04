@@ -7,6 +7,7 @@ open FableTranspiler.Interpreters
 open Microsoft.Extensions.Logging
 open System.Text
 
+type Summary = CodeItem list
 
 type Scope =
     | Namespace
@@ -31,6 +32,8 @@ type FsStatmentKind =
     | Field of Identifier
     | Parameter of Identifier
     | ReactComponent of Identifier
+    | Object of Identifier
+    | Const of Identifier
     | Namespace of string
     | Module of string
 
@@ -46,19 +49,20 @@ type FsStatementV2 =
         /// make sense only on root level
         PostCodeItems: CodeItem list
         Summary: CodeItem list
+        Hidden: bool
     }
     with
         member private this.ToStringInner() =
             let sb = StringBuilder()
-            
-            this.Summary
-            |> List.iter (fun s -> sb.Append(s.ToString()) |> ignore)
+            if not this.Hidden then 
+                this.Summary
+                |> List.iter (fun s -> sb.Append(s.ToString()) |> ignore)
 
-            this.CodeItems
-            |> List.iter (fun s -> sb.Append(s.ToString()) |> ignore)
+                this.CodeItems
+                |> List.iter (fun s -> sb.Append(s.ToString()) |> ignore)
             
-            this.NestedStatements
-            |> List.iter (fun s -> sb.Append(s.ToString()) |> ignore)
+                this.NestedStatements
+                |> List.iter (fun s -> sb.Append(s.ToString()) |> ignore)
 
             sb
 
@@ -76,7 +80,11 @@ type internal InnerInterpretConfig =
         LibRelativePath: Lazy<string>
         TryGetLocal: Identifier -> FsStatementV2 option
         TryGetStatement: Identifier list -> FsStatementV2 option
+        InterfacePostCodeItems: Interpreter<InnerInterpretConfig, CodeItem list>
+        FieldStartWithCodeItems: Identifier -> Interpreter<InnerInterpretConfig, CodeItem list>
     }
+
+
 
 
 type internal InterpretStrategy =
@@ -84,6 +92,7 @@ type internal InterpretStrategy =
         InterpretInterface: InterfaceDefinition -> Interpreter<InnerInterpretConfig, FsStatementV2>
         InterpretTypeAlias: TypeAlias -> Interpreter<InnerInterpretConfig, FsStatementV2>
         InterpretReactComponent: Identifier (* -> DtsType *) -> Interpreter<InnerInterpretConfig, FsStatementV2>
+        InterpretConstDefinition: ConstDefinition -> Interpreter<InnerInterpretConfig, FsStatementV2>
     }
 
 type internal InterpretConfigV2 =
@@ -110,6 +119,7 @@ module internal FsStatementV2 =
             NestedStatements = []
             PostCodeItems = []
             Summary = []
+            Hidden = false
         }
 
     let unitType =
@@ -121,6 +131,7 @@ module internal FsStatementV2 =
             NestedStatements = []
             PostCodeItems = []
             Summary = []
+            Hidden = false
         }
 
     let arrayType =
@@ -132,6 +143,7 @@ module internal FsStatementV2 =
             NestedStatements = []
             PostCodeItems = []
             Summary = []
+            Hidden = false
         }
 
     let empty =
@@ -143,6 +155,7 @@ module internal FsStatementV2 =
             NestedStatements = []
             PostCodeItems = []
             Summary = []
+            Hidden = false
         }
 
     let objType =
@@ -154,6 +167,7 @@ module internal FsStatementV2 =
             NestedStatements = []
             PostCodeItems = []
             Summary = []
+            Hidden = false
         }
 
     let comment message =
@@ -167,7 +181,8 @@ module internal FsStatementV2 =
             ]
             NestedStatements = []
             PostCodeItems = []
-            Summary = [] 
+            Summary = []
+            Hidden = false
         }
 
     let htmlPropsInheritance tabLevel =

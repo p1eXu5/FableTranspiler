@@ -9,6 +9,7 @@ open FableTranspiler.Interpreters.FsInterpreter.Common
 open FableTranspiler.Interpreters.FsInterpreter.InterpreterBuilder
 open System
 open FableTranspiler.Interpreters.FsInterpreter.FsStatementV2
+open FableTranspiler.Interpreters.FsInterpreter
 
 type Summary = CodeItem list
 
@@ -32,6 +33,7 @@ let rec interpretDTsType (type': DTsType)  : Interpreter< InnerInterpretConfig, 
             NestedStatements = []
             PostCodeItems = []
             Summary = []
+            Hidden = false
         }
 
     interpreter {
@@ -136,6 +138,7 @@ let interpretTypeCombination combination : Interpreter< InnerInterpretConfig, Fs
                         NestedStatements = []
                         PostCodeItems = []
                         Summary = []
+                        Hidden = false
                     } |> Some
                     , summary 
 
@@ -152,6 +155,7 @@ let interpretTypeCombination combination : Interpreter< InnerInterpretConfig, Fs
                         NestedStatements = types
                         PostCodeItems = []
                         Summary = []
+                        Hidden = false
                     } |> Some
                     , summary
             else return None, summary
@@ -207,6 +211,7 @@ let interpretFuncSignature fl typeDefinition identifier codeItemPrependix codeIt
                 NestedStatements = []
                 PostCodeItems = []
                 Summary = []
+                Hidden = false
             }, summary @ summary2
     }
 
@@ -222,6 +227,7 @@ let rec interpretFnParameter (field, typeDefinition) : Interpreter<InnerInterpre
             NestedStatements = nested
             PostCodeItems = []
             Summary = []
+            Hidden = false
         }
 
     interpreter {
@@ -241,9 +247,9 @@ let rec interpretFnParameter (field, typeDefinition) : Interpreter<InnerInterpre
     }
 
 
-let rec internal interpretField (field, typeDefinition) =
+let rec interpretField (field, typeDefinition) =
     interpreter {
-        let! (config: InnerInterpretConfig, tabLevel) = Interpreter.ask
+        let! (_, tabLevel) = Interpreter.ask
 
         let fieldCodeItems identifier =
             [
@@ -261,6 +267,7 @@ let rec internal interpretField (field, typeDefinition) =
                 NestedStatements = nested
                 PostCodeItems = []
                 Summary = []
+                Hidden = false
             }
 
         match field with
@@ -276,39 +283,17 @@ let rec internal interpretField (field, typeDefinition) =
         | Field.FuncReq (identifier, fl)
         | Field.FuncOpt (identifier, fl) ->
             return! interpretFuncSignature fl typeDefinition (FsStatmentKind.Field identifier) (fieldCodeItems identifier) [vmEndLineNull]
-
-            //let! returnType = interpretTypeDefinition typeDefinition
-            //let parameters = 
-            //    if fl |> List.isEmpty then [FsStatementV2.unitType]
-            //    else fl |> List.map (runFnParameterInterpretation (config, tabLevel))
-            //return
-            //    {
-            //        Identifier = FsStatmentKind.Field identifier
-            //        Scope = Inherit
-            //        Open = returnType.Open @ (parameters |> List.map (fun ns -> ns.Open) |> List.concat)
-            //        CodeItems =
-            //            [
-            //                yield! fieldCodeItems identifier
-            //                vmPrn "("
-            //                yield!
-            //                    parameters
-            //                    |> List.map (fun ns -> ns |> codeItems)
-            //                    |> List.reduce (fun t1 t2 -> t1 @ [vmPrn " -> "] @ t2)
-            //                vmPrn " -> "
-            //                yield! returnType.CodeItems
-            //                vmPrn ")"
-            //                vmEndLineNull
-            //            ]
-                
-            //        NestedStatements = []
-            //        Summary = []
-            //    }
     }
 
 
-let internal interpretInterface (interfaceDefinition: InterfaceDefinition) =
+
+
+/// common
+let interpretInterface postCodeItems (interfaceDefinition: InterfaceDefinition) =
     interpreter {
         let! (config: InnerInterpretConfig, tabLevel) = Interpreter.ask
+
+        let! postCodeItems' = postCodeItems |> Interpreter.addTab
 
         match interfaceDefinition with
         | InterfaceDefinition.Plain (identifier, fieldList) ->
@@ -328,8 +313,9 @@ let internal interpretInterface (interfaceDefinition: InterfaceDefinition) =
                         vmEndLineNull
                     ]
                     NestedStatements = nestedStatements |> List.map fst
-                    PostCodeItems = htmlPropsInheritance (tabLevel + 1)
+                    PostCodeItems = postCodeItems'
                     Summary = nestedStatements |> List.map snd |> List.concat
+                    Hidden = false
                 }
 
         | InterfaceDefinition.Extends (identifier, extendedType, fieldList) -> 
@@ -358,13 +344,14 @@ let internal interpretInterface (interfaceDefinition: InterfaceDefinition) =
                             nestedStatements |> List.map fst |> List.append [s]
                         )
                         |> Option.defaultWith (fun () -> nestedStatements |> List.map fst) 
-                    PostCodeItems = htmlPropsInheritance (tabLevel + 1)
+                    PostCodeItems = postCodeItems'
                     Summary = nestedStatements |> List.map snd |> List.concat |> List.append extendedSummary
+                    Hidden = false
                 }
     }
 
 
-let internal interpretTypeAlias (typeAlias: TypeAlias) =
+let interpretTypeAlias (typeAlias: TypeAlias) =
     interpreter {
         let! (config: InnerInterpretConfig, tabLevel) = Interpreter.ask
         
@@ -389,6 +376,7 @@ let internal interpretTypeAlias (typeAlias: TypeAlias) =
                         | None -> []
                     PostCodeItems = htmlPropsInheritance (tabLevel + 1)
                     Summary = snd comb
+                    Hidden = false
                 }
         | TypeAlias.Generic (identifier, types, combination) -> return failwith "Not implemented"
     }
@@ -414,12 +402,36 @@ let interpretReactComponent identifier =
                 NestedStatements = []
                 PostCodeItems = []
                 Summary = []
+                Hidden = false
             }
     }
 
-let internal strategy =
-    {
-        InterpretInterface = interpretInterface
-        InterpretTypeAlias = interpretTypeAlias
-        InterpretReactComponent = interpretReactComponent
+
+let interpretConstDefinition constDefinition =
+    match constDefinition with
+    | ConstDefinition.Const (identifier, td) ->
+        interpreter {
+            let! (fsStatementOpt, summary) = interpretTypeDefinition td
+            return {
+                Identifier = FsStatmentKind.Const identifier
+                Scope = Scope.Inherit
+                Open = []
+                CodeItems = []
+                NestedStatements = fsStatementOpt |> Option.map List.singleton |> Option.defaultValue []
+                PostCodeItems = []
+                Summary = summary
+                Hidden = true
+            }
+        }
+    | _ -> failwith "Not implemented"
+
+
+
+
+
+let interpretNamespace identifier fsStatements =
+    interpreter {
+        return []
     }
+
+

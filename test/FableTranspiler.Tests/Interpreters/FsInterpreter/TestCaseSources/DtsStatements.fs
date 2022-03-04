@@ -5,7 +5,7 @@ module private DtsStatements =
     [<Literal>]
     let private exportedInterfaceFormatted =
         """
-            export interface Foo {
+            export interface FooProps {
                 {field}
             }
         """
