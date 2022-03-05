@@ -4,6 +4,7 @@ open Fable.Core.JsInterop
 open Fable.React
 open Fable.ReactScroll
 open Fable.ReactScroll.ScrollEvents
+open Fable.ReactScroll.AnimateScroll
 open Feliz
 open Feliz.MaterialUI
 open Fable.Core.JS
@@ -35,6 +36,9 @@ let view =
                 )
             )
 
+            let scrollToBottom () =
+                animateScroll.scrollToBottom None
+
             React.strictMode [
                 fragment [] [
                     Mui.appBar [
@@ -59,6 +63,13 @@ let view =
                                         LinkProps.Spy true
                                         LinkProps.Smooth !^true
                                     ] [str "Test 3"]
+
+                                    Html.a [
+                                        prop.onClick (fun _ -> scrollToBottom ())
+                                        prop.children [
+                                            Html.text "Scroll To Bottom"
+                                        ]
+                                    ]
                                 ]
                             ]
                         ]

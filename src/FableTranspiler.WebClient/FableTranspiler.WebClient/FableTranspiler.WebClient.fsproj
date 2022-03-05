@@ -10,6 +10,8 @@
     <Compile Include="TranspilerOutput\Fable\ReactScroll\Element.fs" />
     <Compile Include="TranspilerOutput\Fable\ReactScroll\Link.fs" />
     <Compile Include="TranspilerOutput\Fable\ReactScroll\ScrollEvents.fs" />
+    <Compile Include="TranspilerOutput\Fable\ReactScroll\Helpers.fs" />
+    <Compile Include="TranspilerOutput\Fable\ReactScroll\AnimateScroll.fs" />
     <Compile Include="Components\Fable\ReactScroll.fs" />
     <Compile Include="Components\TestEntity.fs" />
     <Compile Include="Router.fs" />
