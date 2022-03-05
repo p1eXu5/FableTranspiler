@@ -36,6 +36,9 @@ type FsStatementKind =
     | DU of Identifier
     | AbstractClass of Identifier
     | Field of Identifier
+    /// let statement with ImportDefaultAttribute
+    | LetDefault of Identifier
+    /// let statement with ImportAttribute
     | Let of Identifier
     | Parameter of Identifier
     | ReactComponent of Identifier
@@ -83,6 +86,8 @@ type FsStatementV2 =
             sb.ToString()
 
 
+
+
 type internal InnerInterpretConfig =
     {
         LibRelativePath: Lazy<string>
@@ -92,20 +97,26 @@ type internal InnerInterpretConfig =
         FieldStartWithCodeItems: Interpreter<InnerInterpretConfig, Identifier -> CodeItem list>
         InterfaceStatementKind: Identifier -> FsStatementKind
         TypeScope: Scope
-        FuncSignatureInterpreter: FieldList -> TypeDefinition -> FsStatementKind -> CodeItem list -> CodeItem list -> Interpreter<InnerInterpretConfig, (FsStatementV2 * Summary)>
+        InterpretFuncSignature: FieldList -> ReturnTypeDefinition -> FsStatementKind -> CodeItemPrependix -> CodeItemAppendix -> Interpreter<InnerInterpretConfig, (FsStatementV2 * Summary)>
         IsTypeSearchEnabled: bool
     }
-
+and
+    ReturnTypeDefinition = TypeDefinition
+and
+    CodeItemPrependix = CodeItem list
+and
+    CodeItemAppendix = CodeItem list
 
 
 
 type internal InterpretStrategy =
     {
-        InterpretInterface: InterfaceDefinition -> Interpreter<InnerInterpretConfig, FsStatementV2>
-        InterpretTypeAlias: TypeAlias -> Interpreter<InnerInterpretConfig, FsStatementV2>
-        InterpretReactComponent: Identifier (* -> DtsType *) -> Interpreter<InnerInterpretConfig, FsStatementV2>
-        InterpretConstDefinition: ConstDefinition -> Interpreter<InnerInterpretConfig, FsStatementV2>
-        InterpretNamespace: Identifier -> FsStatementV2 list -> Interpreter<InnerInterpretConfig, FsStatementV2>
+        InterpretInterface : InterfaceDefinition -> Interpreter<InnerInterpretConfig, FsStatementV2>
+        InterpretTypeAlias : TypeAlias -> Interpreter<InnerInterpretConfig, FsStatementV2>
+        InterpretReactComponent : Identifier (* -> DtsType *) -> Interpreter<InnerInterpretConfig, FsStatementV2>
+        InterpretConstDefinition : ConstDefinition -> Interpreter<InnerInterpretConfig, FsStatementV2>
+        InterpretNamespace : Identifier -> FsStatementV2 list -> Interpreter<InnerInterpretConfig, FsStatementV2>
+        InterpretFunctionDefinition : FunctionDefinition -> Interpreter<InnerInterpretConfig, FsStatementV2>
     }
 
 type internal InterpretConfigV2 =
@@ -123,6 +134,7 @@ module internal FsStatementV2 =
         | FsStatementKind.Const id
         | FsStatementKind.Object id
         | FsStatementKind.ReactComponent id
+        | FsStatementKind.LetDefault id
         | FsStatementKind.Let id
         | FsStatementKind.Field id
         | FsStatementKind.Parameter id
@@ -234,11 +246,9 @@ module internal FsStatementV2 =
         | _ -> statement
 
 
-    let codeItems statement =
-        let rec codeItems statement =
-            statement.Summary @ statement.CodeItems @ (statement.NestedStatements |> List.map (fun ns -> ns |> codeItems) |> List.concat)
+    let rec codeItems statement =
+        statement.Summary @ statement.CodeItems @ (statement.NestedStatements |> List.map (fun ns -> ns |> codeItems) |> List.concat) @ statement.PostCodeItems
 
-        codeItems statement @ statement.PostCodeItems
 
 
     let rec opens statements : string list =
@@ -285,6 +295,10 @@ module internal FsStatementV2 =
 
     let notHidden s = not (s.Hidden)
 
+    let isLet s =
+        match s.Kind with
+        | FsStatementKind.Let _ -> true
+        | _ -> false
 
     let add statementA statementB =
         let space = [vmText " "]

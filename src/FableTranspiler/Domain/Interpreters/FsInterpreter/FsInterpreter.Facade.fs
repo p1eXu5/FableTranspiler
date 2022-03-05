@@ -1,4 +1,4 @@
-﻿module rec FableTranspiler.Interpreters.FsInterpreter.Facade
+﻿module internal rec FableTranspiler.Interpreters.FsInterpreter.Facade
 
 open System
 open System.IO
@@ -9,6 +9,12 @@ open FableTranspiler.Ports.PortsBuilder
 open FableTranspiler.Interpreters
 open FableTranspiler.Interpreters.FsInterpreter
 open FableTranspiler
+
+
+let libRelativePath rootFullPath moduleFullPath =
+    let rootPath = rootFullPath |> FullPath.Value
+    let modulePath = moduleFullPath |> FullPath.Value
+    Path.Combine(Path.GetFileName(rootPath), Path.GetRelativePath(rootPath, modulePath)[..^5])
 
 
 /// <summary>
@@ -78,9 +84,7 @@ let rec internal toFsStatement rootFullPath moduleFullPath statement interpretCo
                 {
                     LibRelativePath =
                         lazy (
-                            let rootPath = rootFullPath |> FullPath.Value
-                            let modulePath = moduleFullPath |> FullPath.Value
-                            Path.Combine(Path.GetFileName(rootPath), Path.GetRelativePath(rootPath, modulePath)[..^5])
+                            libRelativePath rootFullPath moduleFullPath
                         )
 
                     TryGetLocal =
@@ -94,7 +98,7 @@ let rec internal toFsStatement rootFullPath moduleFullPath statement interpretCo
                     InterfacePostCodeItems = Fable.inheritIHTMLProps
                     InterfaceStatementKind = FsStatementKind.DU
                     TypeScope = Scope.Namespace
-                    FuncSignatureInterpreter = Fable.interpretFuncSignature
+                    InterpretFuncSignature = Fable.interpretFuncSignature
                     IsTypeSearchEnabled = true
                 }
 
@@ -182,6 +186,7 @@ let rec internal toFsStatement rootFullPath moduleFullPath statement interpretCo
         | Statement.Structure (StructureStatement.ConstDefinition constDefinition) ->
             return! interpretFsStatement innerConfig (strategy.InterpretConstDefinition constDefinition |> Fable.withUnion)
 
+        | Statement.Export (ExportStatement.Namespace (identifier, statementList))
         | Statement.NamespaceDeclaration (identifier, statementList) ->
             let oldTypeScope = innerConfig.TypeScope
             let! namespaceFsStatements = interpretV2 rootFullPath moduleFullPath statementList ({innerConfig with TypeScope = Scope.Module ModuleScope.Main} |> Some)
@@ -191,6 +196,9 @@ let rec internal toFsStatement rootFullPath moduleFullPath statement interpretCo
             | Choice2Of3 xs, c -> return namespaceFsStatements @ xs |> Choice2Of3, c
             | Choice3Of3 _, c -> return namespaceFsStatements |> Choice2Of3, c
 
+        | Statement.Export (ExportStatement.Structure (StructureStatement.FunctionDefinition functionDefinition)) ->
+            return! interpretFsStatement innerConfig (strategy.InterpretFunctionDefinition functionDefinition |> Fable.withAbstractClass)
+
         | Statement.Export (ExportStatement.OutDefault identifier) ->
             return
                 innerConfig.TryGetLocal identifier
@@ -199,11 +207,11 @@ let rec internal toFsStatement rootFullPath moduleFullPath statement interpretCo
                     let identifier' = identifier |> Identifier.map Helpers.uncapitalizeFirstLetter
 
                     {
-                        Kind = FsStatementKind.Let identifier'
+                        Kind = FsStatementKind.LetDefault identifier'
                         Scope = Scope.Module (ModuleScope.Main)
                         Open = ["Fable.Core"]
                         CodeItems = [
-                            vmPrn "[<"; vmText "ImportDefault"; vmPrn "(\""; vmText innerConfig.LibRelativePath.Value; vmPrn "\")>]"; vmEndLineNull
+                            vmPrn "[<"; vmText "ImportDefault"; vmPrn "(@\""; vmPrn innerConfig.LibRelativePath.Value; vmPrn "\")>]"; vmEndLineNull
                             vmKeyword "let "; vmIdentifier identifier'; vmPrn " : "; vmTypeIdentifier identifier; vmPrn " = "; vmText "jsNative"; vmEndLineNull
                         ]
                         PostCodeItems = []
@@ -231,7 +239,7 @@ let rec internal toFsStatement rootFullPath moduleFullPath statement interpretCo
     }
 
 
-let internal interpretV2 rootFullPath moduleFullPath statementList innerConfig : Ports<InterpretConfigV2, FsStatementV2 list> =
+let interpretV2 rootFullPath moduleFullPath statementList innerConfig : Ports<InterpretConfigV2, FsStatementV2 list> =
     
     let rec running statementList innerConfig res =
         ports {
@@ -253,7 +261,7 @@ let internal interpretV2 rootFullPath moduleFullPath statementList innerConfig :
     }
 
 
-let internal appendNamespaceAndModules rootFullPath moduleFullPath fsStatements =
+let appendNamespaceAndModules rootFullPath moduleFullPath fsStatements =
     let (namespaceStatements, moduleStatements) =
         fsStatements
         |> List.foldBack (fun s state ->
@@ -333,3 +341,84 @@ let internal appendNamespaceAndModules rootFullPath moduleFullPath fsStatements 
         Hidden = false
     } :: (namespaceStatements @ moduleStatements)
     
+
+let collectImportDefault rootFullPath moduleFullPath fsStatementList =
+    ports {
+        let! (config : InterpretConfigV2) = Ports.ask
+
+        let toAbstractMember fsLetStatement =
+            let identifier = fsLetStatement |> FsStatementV2.identifier |> Option.get
+            {
+                Kind = FsStatementKind.Field identifier
+                Scope = Inherit
+                Open = []
+                CodeItems = [
+                    tab (TabLevel 1)
+                    vmKeyword "abstract "
+                    vmIdentifier identifier
+                    vmPrn " : "
+                ]
+                NestedStatements = fsLetStatement.NestedStatements
+                PostCodeItems = [vmEndLineNull]
+                Summary = fsLetStatement.Summary
+                Hidden = false
+            }
+
+        let fsStatements' =
+            fsStatementList
+            |> List.partition FsStatementV2.isLet
+            |> (fun (letStatements, elseStatements) ->
+                elseStatements
+                |> List.append
+                <| 
+                    letStatements
+                    |> List.groupBy (fun s -> s.Scope)
+                    |> List.map (fun (scope, s) ->
+                        let typeIdentifier =
+                            match scope with
+                            | Scope.Module (ModuleScope.Main) ->
+                                String.Join("",
+                                    (Path.GetFileName(moduleFullPath |> FullPath.Value)[..^5]).Split("-")
+                                    |> Seq.map Helpers.capitalizeFirstLetter
+                                )
+                                |> Identifier.create
+                            | _ -> failwith "Not implemented"
+
+                        let identifier' = typeIdentifier |> Identifier.map Helpers.uncapitalizeFirstLetter
+                        let libPath = libRelativePath rootFullPath moduleFullPath
+                        [
+                            {
+                                Kind = FsStatementKind.AbstractClass typeIdentifier
+                                Scope = scope
+                                Open = []
+                                CodeItems = [
+                                    vmKeyword "type "; vmTypeIdentifier typeIdentifier; vmPrn " ="; vmEndLineNull
+                                ]
+                                NestedStatements = s |> List.map toAbstractMember
+                                PostCodeItems = []
+                                Summary = []
+                                Hidden = false
+                            }
+                            {
+                                Kind = FsStatementKind.LetDefault identifier'
+                                Scope = Scope.Module (ModuleScope.Main)
+                                Open = ["Fable.Core"]
+                                CodeItems = [
+                                    vmPrn "[<"; vmText "ImportDefault"; vmPrn "(@\""; vmPrn libPath; vmPrn "\")>]"; vmEndLineNull
+                                    vmKeyword "let "; vmIdentifier identifier'; vmPrn " : "; vmTypeIdentifier typeIdentifier; vmPrn " = "; vmText "jsNative"; vmEndLineNull
+                                ]
+                                PostCodeItems = []
+                                Hidden = false
+                                Summary = []
+                                NestedStatements = []
+                            }
+                        ]
+                    )
+                    |> List.concat
+            )
+
+        do
+            config.FsStatementStore.AddOrUpdate moduleFullPath (Result.Ok fsStatements') |> ignore
+
+        return fsStatements'
+    }

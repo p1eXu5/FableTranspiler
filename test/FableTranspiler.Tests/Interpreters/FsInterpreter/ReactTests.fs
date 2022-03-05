@@ -14,6 +14,7 @@ open FableTranspiler.Tests.Common.SimpleTypesFactories
 open FsToolkit.ErrorHandling
 open FableTranspiler.Ports.PortsBuilder
 open System.IO
+open NUnit.Framework
 
 module ReactTests =
 
@@ -381,7 +382,7 @@ module ReactTests =
             let present = bar.ToString()
             // present |> should contain "module Bar ="
             present |> should contain "let inline Bar props children ="
-            present |> should contain "domEl (importDefault \"react-scroll\\modules\\components\\Link\") props children"
+            present |> should contain "domEl (importDefault @\"react-scroll\\modules\\components\\Link\") props children"
         } 
         |> Result.runTest
 
@@ -451,13 +452,147 @@ module ReactTests =
 
             fsStatements[0].Kind |> should be (ofCase <@ FsStatementKind.AbstractClass @>)
             fsStatements[1].Kind |> should be (ofCase <@ FsStatementKind.AbstractClass @>)
-            fsStatements[2].Kind |> should be (ofCase <@ FsStatementKind.Let @>)
+            fsStatements[2].Kind |> should be (ofCase <@ FsStatementKind.LetDefault @>)
             fsStatements[2].Open |> should contain "Fable.Core"
 
             let sPresent0 = sprintf "%O" fsStatements[0]
             sPresent0 |> should contain "type ScrollEvent ="
             sPresent0 |> should contain "abstract register : eventName: string -> callback: (string -> obj -> unit) -> unit"
             sPresent0 |> should contain "abstract remove : eventName: string -> unit"
+
+            let sPresent1 = sprintf "%O" fsStatements[1]
+            sPresent1 |> should contain "type Events ="
+            sPresent1 |> should contain "abstract registered : obj"
+            sPresent1 |> should contain "abstract scrollEvent : ScrollEvent"
+
+            let sPresent2 = sprintf "%O" fsStatements[2]
+            sPresent2 |> should contain @"[<ImportDefault(@""react-scroll\scroll-events"")>]"
+            sPresent2 |> should contain "let events : Events = jsNative"
+        }
+        |> Result.runTest
+
+
+    [<Test>]
+    let ``exported function interpretation test`` () =
+        result {
+            let! statements =
+                processDtsModule "./animate-scroll"
+                    """
+                        export function scrollToBottom(options?: any): void;
+                    """
+
+            let! fsStatementList =
+                interpretV2' "./animate-scroll" statements
+
+            fsStatementList |> should haveLength 1
+            TestContext.WriteLine $"%A{fsStatementList.Head}"
+
+            let fsStatement = fsStatementList.Head
+            fsStatement.Kind |> should equal (FsStatementKind.Let (Identifier "scrollToBottom"))
+            
+            let presentation = $"%O{fsStatement}"
+            presentation |> should contain @"[<Import(""scrollToBottom"", from=""react-scroll\animate-scroll"")>]"
+            presentation |> should contain "let scrollToBottom : options: obj option -> unit = jsNative"
+        }
+        |> Result.runTest
+
+
+    [<Test>]
+    let ``exported function with annonymous object type patameter interpretation test`` () =
+        result {
+            let! statements =
+                processDtsModule "./animate-scroll"
+                    """
+                        export function getAnimationType(options: { smooth: boolean | string }): (x: number) => number;
+                    """
+
+            let! fsStatementList =
+                interpretV2' "./animate-scroll" statements
+
+            fsStatementList |> should haveLength 1
+            TestContext.WriteLine $"%A{fsStatementList.Head}"
+
+            let fsStatement = fsStatementList.Head
+            fsStatement.Kind |> should equal (FsStatementKind.Let (Identifier "scrollToBottom"))
+            
+            fsStatement.Summary.ToString() |> should contain "/// options: { smooth: boolean | string }"
+
+            let presentation = $"%O{fsStatement}"
+            presentation |> should contain @"[<Import(""getAnimationType"", from=""react-scroll\animate-scroll"")>]"
+            presentation |> should contain "let getAnimationType : options: obj -> (float -> float) = jsNative"
+        }
+        |> Result.runTest
+
+
+    [<Test>]
+    let ``collectImportDefault test`` () =
+        result {
+            let! statements =
+                processDtsModule "./animate-scroll"
+                    """
+                        export function scrollToBottom(options?: any): void;
+                    """
+
+            let! fsStatementList =
+                interpretV2' "./animate-scroll" statements
+                |> Result.bind (fun xs ->
+                    result {
+                        let! rootFullPath' = rootFullPath |> FullPath.Create
+                        let! moduleFullPath' = fullPath "./animate-scroll"
+                        return Ports.run config (Facade.collectImportDefault rootFullPath' moduleFullPath' xs)
+                    }
+                )
+
+            fsStatementList |> should haveLength 2
+
+            fsStatementList[0].Kind |> should equal (FsStatementKind.AbstractClass (Identifier "AnimateScroll"))
+            fsStatementList[1].Kind |> should equal ( FsStatementKind.LetDefault (Identifier "animateScroll"))
+
+            let presentation0 = $"%O{fsStatementList[0]}"
+            presentation0 |> should contain "type AnimateScroll ="
+            presentation0 |> should contain "abstract scrollToBottom : options: obj option -> unit"
+
+            let presentation1 = $"%O{fsStatementList[1]}"
+            presentation1 |> should contain @"[<ImportDefault(@""react-scroll\animate-scroll"")>]"
+            presentation1 |> should contain "let animateScroll : AnimateScroll = jsNative"
+        }
+        |> Result.runTest
+
+
+    [<Test>]
+    [<Ignore("need to interpret functions")>]
+    let ``exported namespace interpretation test like Helpers_d_ts`` () =
+        result {
+            let! statements =
+                processDtsModule "./Helpers"
+                    """
+                        export namespace Helpers {
+                            function Scroll(component: any, customScroller?: any): any;
+                            function Element(component: any): any;
+                        }
+                    """
+
+            let! fsStatements =
+                statements
+                |> interpretV2' "./Helpers"
+                |> Result.map (List.filter FsStatementV2.notHidden)
+
+            do
+                fsStatements
+                |> List.iter (fun s -> TestContext.WriteLine($"%O{s}"))
+            
+
+            fsStatements
+            |> shouldL haveLength 2 $"Wrong count of fs statements"
+
+            fsStatements[0].Kind |> should be (ofCase <@ FsStatementKind.AbstractClass @>)
+            fsStatements[1].Kind |> should be (ofCase <@ FsStatementKind.LetDefault @>)
+            fsStatements[1].Open |> should contain "Fable.Core"
+
+            let sPresent0 = sprintf "%O" fsStatements[0]
+            sPresent0 |> should contain "type Helpers ="
+            sPresent0 |> should contain "abstract Scroll : component': any -> customScroller: obj option -> obj"
+            sPresent0 |> should contain "abstract Element : component: obj -> obj"
 
             let sPresent1 = sprintf "%O" fsStatements[1]
             sPresent1 |> should contain "type Events ="

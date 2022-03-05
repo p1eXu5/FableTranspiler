@@ -8,7 +8,7 @@ open FableTranspiler.Interpreters.FsInterpreter
 open FableTranspiler.Interpreters.FsInterpreter.Common
 open FableTranspiler.Interpreters.FsInterpreter.InterpreterBuilder
 
-
+/// run <see cref="interpretFnParameter(Field*TypeDefinition)" />
 let runFnParameterInterpretation (config, tabLevel)=
     fun (f, td) -> Interpreter.run (config, tabLevel) (interpretFnParameter (f, td))
 
@@ -173,7 +173,7 @@ let interpretTypeCombination combination : Interpreter< InnerInterpretConfig, Fs
     }
 
 
-let interpretFuncSignature fl typeDefinition identifier codeItemPrependix codeItemAppendix =
+let interpretFuncSignature fl typeDefinition kind codeItemPrependix codeItemAppendix =
     interpreter {
         let! (config: InnerInterpretConfig, tabLevel) = Interpreter.ask
 
@@ -194,7 +194,7 @@ let interpretFuncSignature fl typeDefinition identifier codeItemPrependix codeIt
 
         return 
             {
-                Kind = identifier
+                Kind = kind
                 Scope = Inherit
                 Open = returnType.Open @ (parameters |> List.map (fun ns -> ns.Open) |> List.concat)
                 CodeItems =
@@ -219,7 +219,7 @@ let interpretFuncSignature fl typeDefinition identifier codeItemPrependix codeIt
     }
 
 
-let interpretNamedFuncSignature fl typeDefinition identifier codeItemPrependix codeItemAppendix =
+let interpretNamedFuncSignature fl typeDefinition kind codeItemPrependix codeItemAppendix =
     interpreter {
         let! (config: InnerInterpretConfig, tabLevel) = Interpreter.ask
 
@@ -240,7 +240,7 @@ let interpretNamedFuncSignature fl typeDefinition identifier codeItemPrependix c
 
         return 
             {
-                Kind = identifier
+                Kind = kind
                 Scope = Inherit
                 Open = returnType.Open @ (parameters |> List.map (fun ns -> ns.Open) |> List.concat)
                 CodeItems =
@@ -289,9 +289,10 @@ let rec interpretFnParameter (field, typeDefinition) : Interpreter<InnerInterpre
         }
 
     interpreter {
+        let! (config: InnerInterpretConfig, _) = Interpreter.ask
+
         match field with
-        | Field.Required identifier
-        | Field.Optional identifier ->
+        | Field.Required identifier ->
             let! typeDef = interpretTypeDefinition typeDefinition
             match typeDef with
             | Some s, summary ->
@@ -299,9 +300,17 @@ let rec interpretFnParameter (field, typeDefinition) : Interpreter<InnerInterpre
             | None, summary -> 
                 return fsStatement identifier [FsStatementV2.objType], summary
 
+        | Field.Optional identifier ->
+            let! typeDef = interpretTypeDefinition typeDefinition
+            match typeDef with
+            | Some s, summary ->
+                return fsStatement identifier [{s with PostCodeItems = s.PostCodeItems @ [vmType " option"]}], summary
+            | None, summary -> 
+                return fsStatement identifier [{FsStatementV2.objType with PostCodeItems = FsStatementV2.objType.PostCodeItems @ [vmType " option"]}], summary
+
         | Field.FuncReq (identifier, fl)
         | Field.FuncOpt (identifier, fl) ->
-            return! interpretFuncSignature fl typeDefinition (FsStatementKind.Parameter identifier) [] []
+            return! config.InterpretFuncSignature fl typeDefinition (FsStatementKind.Parameter identifier) [] []
     }
 
 
@@ -342,7 +351,7 @@ let rec interpretField (field, typeDefinition) =
         | Field.FuncReq (identifier, fl)
         | Field.FuncOpt (identifier, fl) ->
             let! fieldCodeItems = config.FieldStartWithCodeItems
-            return! (config.FuncSignatureInterpreter fl typeDefinition (FsStatementKind.Field identifier) (fieldCodeItems identifier) [vmEndLineNull] |> withNamelessFuncSignature)
+            return! (config.InterpretFuncSignature fl typeDefinition (FsStatementKind.Field identifier) (fieldCodeItems identifier) [vmEndLineNull] |> withNamelessFuncSignature)
     }
 
 
@@ -454,7 +463,7 @@ let interpretReactComponent identifier =
                     tab tabLevel
                     vmKeyword "let inline "; vmIdentifier identifier; vmText " props children ="; vmEndLineNull
                     tab (tabLevel + 1)
-                    vmText "domEl "; vmPrn "("; vmText "importDefault "; vmPrn "\""; vmText config.LibRelativePath.Value; vmPrn "\")"; vmText " props children"; vmEndLineNull
+                    vmText "domEl "; vmPrn "("; vmText "importDefault "; vmPrn "@\""; vmPrn config.LibRelativePath.Value; vmPrn "\")"; vmText " props children"; vmEndLineNull
                 ]
                 NestedStatements = []
                 PostCodeItems = []
@@ -527,20 +536,49 @@ let interpretNamespace identifier namespaceFsStatements =
     }
 
 
+let interpretFunctionDefinition functionDefinition =
+    interpreter {
+        let! (config: InnerInterpretConfig, _) = Interpreter.ask
+
+        match functionDefinition with
+        | FunctionDefinition.Plain (identifier, fl, retType) ->
+            let! signature = config.InterpretFuncSignature fl retType (FsStatementKind.Type FsStatementType.Func) [] []
+            return
+                {
+                    Kind = FsStatementKind.Let identifier
+                    Scope = Scope.Module (ModuleScope.Main)
+                    Open = ["Fable.Core"]
+                    CodeItems = [
+                        vmPrn "[<"; vmText "Import"; vmPrn $"(\"{Identifier.value identifier}\", from=\"{config.LibRelativePath.Value}\")>]"; vmEndLineNull
+                        vmKeyword "let "; vmIdentifier identifier; vmPrn " : "
+                    ]
+                    NestedStatements = [fst signature]
+                    PostCodeItems = [
+                        vmPrn " = "
+                        vmText "jsNative"
+                        vmEndLineNull
+                    ]
+                    Summary = snd signature
+                    Hidden = false
+                }
+        | _ -> return failwith $"{functionDefinition} interpretation is not implemented"
+    }
+
+
 // ==============================================================
 
 
 let withNamedFuncSignature interpreter =
     interpreter
     |> Interpreter.withEnv (fun (config, tabLevel) ->
-        { config with FuncSignatureInterpreter = interpretNamedFuncSignature }, tabLevel
+        { config with InterpretFuncSignature = interpretNamedFuncSignature }, tabLevel
     )
 
 
 let withNamelessFuncSignature interpreter =
     interpreter
     |> Interpreter.withEnv (fun (config, tabLevel) ->
-        { config with FuncSignatureInterpreter = interpretFuncSignature }, tabLevel
+        { config with InterpretFuncSignature = interpretFuncSignature }, tabLevel
     )
 
 
@@ -594,7 +632,7 @@ let withAbstractClass interpreter =
               FieldStartWithCodeItems = abstractMember 
               InterfacePostCodeItems = emptyInterfacePostCodeItems 
               InterfaceStatementKind = FsStatementKind.AbstractClass
-              FuncSignatureInterpreter = interpretNamedFuncSignature
+              InterpretFuncSignature = interpretNamedFuncSignature
         }
         , tabLevel
     )
@@ -607,7 +645,7 @@ let withUnion interpreter =
               FieldStartWithCodeItems = unionCase
               InterfacePostCodeItems = inheritIHTMLProps
               InterfaceStatementKind = FsStatementKind.DU
-              FuncSignatureInterpreter = interpretFuncSignature
+              InterpretFuncSignature = interpretFuncSignature
         }
         , tabLevel
     )
@@ -620,4 +658,5 @@ let strategy =
         InterpretReactComponent = interpretReactComponent
         InterpretConstDefinition = interpretConstDefinition
         InterpretNamespace = interpretNamespace
+        InterpretFunctionDefinition = interpretFunctionDefinition
     }

@@ -35,7 +35,7 @@ module internal FsModule =
             MutedFsStatements = []
             InterpretConfigV2 =
                 {
-                    InterpretStrategy = React.strategy
+                    InterpretStrategy = Fable.strategy
                     StatementStore = statementStore
                     FsStatementStore = StatementStore.create FsStatementV2.identifier
                 }
@@ -43,39 +43,40 @@ module internal FsModule =
         , Cmd.none
 
     let update msg model =
-            match msg with
-            | Interpret (rootFullPath, moduleFullPath) ->
-                match model.InterpretConfigV2.FsStatementStore.TryGetStatementList moduleFullPath with
+        match msg with
+        | Interpret (rootFullPath, moduleFullPath) ->
+            match model.InterpretConfigV2.FsStatementStore.TryGetStatementList moduleFullPath with
+            | Some result ->
+                {
+                    model with
+                        FsStatements = result |> Result.map (fun fsStatements -> fsStatements |> appendNamespaceAndModules rootFullPath moduleFullPath) |> Result.mapError (CodeItem.interpretError)
+                        SelectedFsStatement = None
+                },
+                Cmd.none
+            | None ->
+                match model.InterpretConfigV2.StatementStore.TryGetStatementList moduleFullPath with
                 | Some result ->
                     {
                         model with
-                            FsStatements = result |> Result.map (fun fsStatements -> fsStatements |> appendNamespaceAndModules rootFullPath moduleFullPath) |> Result.mapError (CodeItem.interpretError)
+                            FsStatements = 
+                                result 
+                                |> Result.map (fun statements ->
+                                    interpretV2 rootFullPath moduleFullPath statements None
+                                    |> Ports.run model.InterpretConfigV2
+                                    |> appendNamespaceAndModules rootFullPath moduleFullPath
+                                )
+                                |> Result.map (List.filter FsStatementV2.notHidden)
+                                |> Result.mapError (CodeItem.interpretError)
                             SelectedFsStatement = None
                     },
                     Cmd.none
                 | None ->
-                    match model.InterpretConfigV2.StatementStore.TryGetStatementList moduleFullPath with
-                    | Some result ->
-                        {
-                            model with
-                                FsStatements = 
-                                    result 
-                                    |> Result.map (fun statements ->
-                                        interpretV2 rootFullPath moduleFullPath statements
-                                        |> Ports.run model.InterpretConfigV2
-                                        |> appendNamespaceAndModules rootFullPath moduleFullPath
-                                    )
-                                    |> Result.mapError (CodeItem.interpretError)
-                                SelectedFsStatement = None
-                        },
-                        Cmd.none
-                    | None ->
-                        {   
-                            model with
-                                FsStatements = Result.Error (CodeItem.interpretError $"Could not find {moduleFullPath} module statements")
-                                SelectedFsStatement = None
-                        },
-                        Cmd.none
+                    {   
+                        model with
+                            FsStatements = Result.Error (CodeItem.interpretError $"Could not find {moduleFullPath} module statements")
+                            SelectedFsStatement = None
+                    },
+                    Cmd.none
         
 
     open Elmish.WPF
