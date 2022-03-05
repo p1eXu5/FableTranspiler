@@ -95,7 +95,7 @@ module StructuresTests =
             ]
             |> TypeDefinition.Combination
         let expected =
-            (Identifier.Create "duration" |> Optional, typeDefinitions)
+            (Identifier.create "duration" |> Optional, typeDefinitions)
 
         let result = run Structures.field input
         result |> shouldSuccess expected
@@ -165,7 +165,7 @@ module StructuresTests =
     let ``class extends generic empty test`` (input: string) =
         let generic = Dsl.DTsTypes.genericType ["React"; "Component"] [Dsl.DTsTypes.plainType ["ButtonProps"]]
         let expected = 
-            (Identifier.Create "Button", generic) 
+            (Identifier.create "Button", generic) 
             |> ClassDefinition.ExtendsEmpty
             |> StructureStatement.ClassDefinition
 
@@ -191,7 +191,7 @@ module StructuresTests =
         let oliteral : FieldList = [field1; field2; field3;]
 
         let expected = 
-            (Identifier.Create "ElementProps", generic, oliteral) 
+            (Identifier.create "ElementProps", generic, oliteral) 
             |> InterfaceDefinition.Extends
             |> StructureStatement.InterfaceDefinition
 

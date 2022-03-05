@@ -31,16 +31,24 @@ module PortsBuilder =
             expr1 |> bind (fun () -> expr2)
 
         /// The delay operator.
-        let delay func = func()
+        let delay<'config, 'a> (func: unit -> Ports<'config, 'a>) = func
 
         let retn v = (fun _ -> v) |> Ports
 
         let withEnv f interpreter =
             Ports (fun env -> run (f env) interpreter)
 
-        let using f (v: #IDisposable) =
-            f v
-            v.Dispose()
+        let tryFinally compensation delayed =
+            let action env =
+                try
+                    run env delayed
+                finally
+                    compensation ()
+            Ports action
+
+        let using (f: 'a -> Ports<_,_>) (v: #IDisposable) =
+            tryFinally (fun () -> v.Dispose()) (f v)
+    
 
     type PortsBuilder () =
         member _.Return(v) = Ports.retn v
@@ -49,9 +57,19 @@ module PortsBuilder =
         member _.Zero() = Ports (fun _ -> ())
         member _.Combine(expr1, expr2) = Ports.combine expr1 expr2
         member _.Delay(func) = Ports.delay func
+        member this.While(guard, body) =
+            if not (guard())
+            then this.Zero()
+            else this.Bind( body (), fun () ->
+                this.While(guard, body))
+
+        member _.TryFinally(body, compensation) = Ports.tryFinally compensation body
         member _.Using(v, f) = Ports.using f v
-        member this.For(m: Ports<_,_> seq, f) =
-            m |> Seq.map (fun m' -> this.Bind(m', f))
+        member this.For(sequence: seq<_>, f) =
+            this.Using(sequence.GetEnumerator(),fun enum ->
+                this.While(enum.MoveNext,
+                    this.Delay(fun () -> f enum.Current)))
+        member _.Run(port) = port ()
 
 
     let ports = PortsBuilder()

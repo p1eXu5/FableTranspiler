@@ -8,6 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Include="Ports\PortsBuilderTests.fs" />
     <Compile Include="Factories\MockLoggerFactories.fs" />
     <Compile Include="LibTests\FParsecTests.fs" />
     <Compile Include="LibTests\FsCheckTests.fs" />

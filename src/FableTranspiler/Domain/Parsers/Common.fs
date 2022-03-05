@@ -24,4 +24,4 @@ let closedBrace : Parser<unit, unit> = skipChar '}'
 
 let identifier : Parser<Identifier, unit> = 
     FParsec.CharParsers.identifier (IdentifierOptions())
-        |>> Identifier.Create
+        |>> Identifier.create

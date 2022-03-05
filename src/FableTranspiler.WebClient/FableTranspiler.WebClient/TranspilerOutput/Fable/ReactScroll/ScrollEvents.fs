@@ -1,4 +1,4 @@
-﻿namespace Fable.ReactScroll
+﻿module Fable.ReactScroll.ScrollEvents
 
 open Fable.Core
 
@@ -10,7 +10,5 @@ type Events =
     abstract registered : obj
     abstract scrollEvent : ScrollEvent
 
-module ScrollEvents =
-
-    [<ImportDefault("react-scroll/modules/mixins/scroll-events")>]
-    let events : Events = jsNative
+[<ImportDefault(@"react-scroll\modules\mixins\scroll-events")>]
+let events : Events = jsNative

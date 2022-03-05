@@ -118,7 +118,7 @@ let rec private buildImportExportEntities builder l res =
 
 let private constructType l : CodeItem list =
     l
-    |> List.map (fun t -> [vmType (Identifier.Value(t))])
+    |> List.map (fun t -> [vmType (Identifier.value(t))])
     |> List.reduce (fun t1 t2 -> 
         [
             yield! t1

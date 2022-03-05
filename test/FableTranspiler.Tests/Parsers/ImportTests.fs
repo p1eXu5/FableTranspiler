@@ -18,7 +18,7 @@ module ImportTests =
     [<TestCase("foo as Bar;")>]
     let ``aliased test`` (input: string) =
         let result = run Import.aliased input
-        let expected = ImportEntity.Aliased ((Identifier.Create "foo"), (Identifier.Create "Bar"))
+        let expected = ImportEntity.Aliased ((Identifier.create "foo"), (Identifier.create "Bar"))
         result |> shouldSuccess expected
 
 
@@ -34,7 +34,7 @@ module ImportTests =
     [<TestCase("* as React;")>]
     let ``allAliased test`` (input: string) =
         let result = run Import.allAliased input
-        let expected = ImportEntity.AllAliased (Identifier.Create "React")
+        let expected = ImportEntity.AllAliased (Identifier.create "React")
         result |> shouldSuccess expected
 
 

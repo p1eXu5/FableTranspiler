@@ -1,6 +1,5 @@
 ﻿namespace FableTranspiler.Tests.Domain.Interpreters.FsInterpreter
 
-open FableTranspiler.Tests
 open NUnit.Framework
 open FsUnit
 open FableTranspiler
@@ -8,12 +7,10 @@ open FableTranspiler.Parsers
 open FableTranspiler.Interpreters
 open FableTranspiler.SimpleTypes
 open FableTranspiler.Interpreters.FsInterpreter
-open FableTranspiler.Interpreters.FsInterpreter.React
 open FableTranspiler.Interpreters.FsInterpreter.Facade
 open FableTranspiler.Parsers.Types
 open FableTranspiler.Tests.Common.FsUnit
 open FableTranspiler.Tests.Common.SimpleTypesFactories
-open FableTranspiler.Tests.Factories
 open FsToolkit.ErrorHandling
 open FableTranspiler.Ports.PortsBuilder
 open System.IO
@@ -48,7 +45,7 @@ module ReactTests =
         result {
             let! rootFullPath' = rootFullPath |> FullPath.Create
             let! moduleFullPath' = fullPath relativePath
-            return Ports.run config (interpretV2 rootFullPath' moduleFullPath' statementList)
+            return Ports.run config (interpretV2 rootFullPath' moduleFullPath' statementList None)
         }
 
 
@@ -151,7 +148,7 @@ module ReactTests =
 
             conf
             |> Option.bind (fun c ->
-                c.TryGetLocal (Identifier.Create "Foo")
+                c.TryGetLocal (Identifier.create "Foo")
             )
             |> should be (ofCase <@ Some @>)
             
@@ -191,13 +188,13 @@ module ReactTests =
 
             conf
             |> Option.bind (fun c ->
-                c.TryGetLocal (Identifier.Create "FooProps")
+                c.TryGetLocal (Identifier.create "FooProps")
             )
             |> shouldL be (ofCase <@ Some @>) "Has no FooProps"
 
             conf
             |> Option.bind (fun c ->
-                c.TryGetLocal (Identifier.Create "BarProps")
+                c.TryGetLocal (Identifier.create "BarProps")
             )
             |> shouldL be (ofCase <@ Some @>) "Has no BarProps"
             
@@ -238,9 +235,9 @@ module ReactTests =
             |> shouldL haveLength 3 "Wrong count of fs statements"
 
             let bazProps = fsStatements |> List.last
-            bazProps.NestedStatements[0].Identifier |> should equal (FsStatmentKind.Type FsStatementType.Composition)
+            bazProps.NestedStatements[0].Kind |> should equal (FsStatementKind.Type FsStatementType.Composition)
             bazProps.NestedStatements[0].NestedStatements |> shouldL haveLength 2 "Wrong NestedStatements count"
-            Assert.That(bazProps.NestedStatements[0].NestedStatements, Has.All.Property("Identifier").Matches( ofCase <@ FsStatmentKind.Type @> ))
+            Assert.That(bazProps.NestedStatements[0].NestedStatements, Has.All.Property("Kind").Matches( ofCase <@ FsStatementKind.Type @> ))
 
             let present = bazProps.ToString()
             present |> should contain "| To of string"
@@ -285,7 +282,7 @@ module ReactTests =
             |> shouldL haveLength 3 $"Wrong count of fs statements, %A{fsStatements}"
 
             let buttonProps = fsStatements |> List.item 1
-            buttonProps.NestedStatements[0].Identifier |> should equal (FsStatmentKind.Type FsStatementType.Composition)
+            buttonProps.NestedStatements[0].Kind |> should equal (FsStatementKind.Type FsStatementType.Composition)
             buttonProps.NestedStatements[0].NestedStatements |> shouldL haveLength 1 "Wrong NestedStatements count"
 
             let present = buttonProps.ToString()
@@ -323,15 +320,15 @@ module ReactTests =
             fsStatements 
             |> shouldL haveLength 3 "Wrong count of fs statements"
 
-            fsStatements[0].Identifier |> should be (ofCase <@ FsStatmentKind.Comment @>)
+            fsStatements[0].Kind |> should be (ofCase <@ FsStatementKind.Comment @>)
             fsStatements[0].ToString() |> should contain "// outer lib is not processed yet - import * as Foo from 'foo';"
 
             let bazProps = fsStatements |> List.last
-            bazProps.NestedStatements[0].Identifier |> should equal (FsStatmentKind.Type FsStatementType.Composition)
+            bazProps.NestedStatements[0].Kind |> should equal (FsStatementKind.Type FsStatementType.Composition)
             bazProps.NestedStatements[0].NestedStatements |> shouldL haveLength 1 "Wrong NestedStatements count" // Foo.FooProps<FooElement> is unknown
             Assert.That(
                 bazProps.NestedStatements[0].NestedStatements, 
-                Has.All.Property("Identifier").Matches( ofCase <@ FsStatmentKind.Type @> ), 
+                Has.All.Property("Kind").Matches( ofCase <@ FsStatementKind.Type @> ), 
                 fun () -> "type alias assertion fails:" )
 
             let present = bazProps.ToString()
@@ -379,7 +376,7 @@ module ReactTests =
             let bar = fsStatements |> List.last
             bar.Open |> should contain "Fable.React"
             bar.Open |> should contain "Fable.Core.JsInterop"
-            bar.Scope |> should equal (Scope.Module "Bar")
+            bar.Scope |> should equal (Scope.Module (ModuleScope.Nested "Bar"))
 
             let present = bar.ToString()
             // present |> should contain "module Bar ="
@@ -390,7 +387,37 @@ module ReactTests =
 
 
     [<Test>]
-    [<Ignore("namespace interpretation is needed to implement")>]
+    let ``interface to abstract class interpratation test`` () =
+        result {
+            let! statements =
+                processDtsModule "./scroll-events"
+                    """
+                        interface ScrollEvent {
+                            register(eventName: string, callback: (to: string, element: any) => void): void;
+                            remove(eventName: string): void;
+                        }
+                    """
+
+            let! fsStatements =
+                statements
+                |> interpretV2' "./scroll-events"
+
+            do
+                fsStatements
+                |> List.iter (fun s -> TestContext.WriteLine($"%O{s}"))
+        
+
+            fsStatements
+            |> shouldL haveLength 1 $"Wrong count of fs statements"
+
+            let sPresent0 = sprintf "%O" fsStatements[0]
+            sPresent0 |> should contain "type ScrollEvent ="
+            sPresent0 |> should contain "abstract register : eventName: string -> callback: (string -> obj -> unit) -> unit"
+            sPresent0 |> should contain "abstract remove : eventName: string -> unit"
+        }
+        |> Result.runTest
+
+    [<Test>]
     let ``exported namespace interpretation test like scroll-events`` () =
         result {
             let! statements =
@@ -412,27 +439,33 @@ module ReactTests =
             let! fsStatements =
                 statements
                 |> interpretV2' "./scroll-events"
+                |> Result.map (List.filter FsStatementV2.notHidden)
 
-            fsStatements 
-            |> shouldL haveLength 3 $"Wrong count of fs statements, %A{fsStatements}"
+            do
+                fsStatements
+                |> List.iter (fun s -> TestContext.WriteLine($"%O{s}"))
+            
 
-            fsStatements[0].Identifier |> should be (ofCase <@ FsStatmentKind.Interface @>)
-            fsStatements[1].Identifier |> should be (ofCase <@ FsStatmentKind.Interface @>)
-            fsStatements[2].Identifier |> should be (ofCase <@ FsStatmentKind.Object @>)
+            fsStatements
+            |> shouldL haveLength 3 $"Wrong count of fs statements"
+
+            fsStatements[0].Kind |> should be (ofCase <@ FsStatementKind.AbstractClass @>)
+            fsStatements[1].Kind |> should be (ofCase <@ FsStatementKind.AbstractClass @>)
+            fsStatements[2].Kind |> should be (ofCase <@ FsStatementKind.Let @>)
             fsStatements[2].Open |> should contain "Fable.Core"
 
             let sPresent0 = sprintf "%O" fsStatements[0]
             sPresent0 |> should contain "type ScrollEvent ="
-            sPresent0 |> should contain "abstract register: eventName: string -> callback: (string -> obj -> unit) -> unit"
-            sPresent0 |> should contain "abstract remove: eventName: string -> unit"
+            sPresent0 |> should contain "abstract register : eventName: string -> callback: (string -> obj -> unit) -> unit"
+            sPresent0 |> should contain "abstract remove : eventName: string -> unit"
 
             let sPresent1 = sprintf "%O" fsStatements[1]
             sPresent1 |> should contain "type Events ="
             sPresent1 |> should contain "abstract registered : obj"
             sPresent1 |> should contain "abstract scrollEvent : ScrollEvent"
 
-            let sPresent2 = sprintf "%O" fsStatements[1]
-            sPresent2 |> should contain "[<ImportDefault(\"react-scroll/scroll-events\")>]"
+            let sPresent2 = sprintf "%O" fsStatements[2]
+            sPresent2 |> should contain @"[<ImportDefault(""react-scroll\scroll-events"")>]"
             sPresent2 |> should contain "let events : Events = jsNative"
         }
         |> Result.runTest

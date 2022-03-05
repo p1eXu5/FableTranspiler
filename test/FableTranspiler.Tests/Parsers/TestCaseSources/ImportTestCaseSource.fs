@@ -135,7 +135,7 @@ type TestCases () =
 
             let field : FieldList = Dsl.Fields.singleField "x" "number"  |> List.singleton
             let typeDef = Dsl.DTsTypes.plainType ["number"] |> TypeDefinition.Single
-            let expected = Field.Required (Identifier.Create "name"), DTsType.Func (field, typeDef) |> TypeDefinition.Single
+            let expected = Field.Required (Identifier.create "name"), DTsType.Func (field, typeDef) |> TypeDefinition.Single
 
             yield 
                 TestCaseData(
@@ -161,9 +161,9 @@ type TestCases () =
                 |> TypeCombination.Union
                 |> TypeDefinition.Combination
 
-            let objectLiteral : FieldList = (Field.Required (Identifier.Create "smooth"), union) |> List.singleton
+            let objectLiteral : FieldList = (Field.Required (Identifier.create "smooth"), union) |> List.singleton
             let field : FieldList = 
-                (Identifier.Create "options" |> Field.Required, objectLiteral |> DTsType.InlineObject |> TypeDefinition.Single) |> List.singleton
+                (Identifier.create "options" |> Field.Required, objectLiteral |> DTsType.InlineObject |> TypeDefinition.Single) |> List.singleton
 
 
             let retFl : FieldList = Dsl.Fields.singleField "x" "number"  |> List.singleton
@@ -171,7 +171,7 @@ type TestCases () =
                 (retFl, Dsl.DTsTypes.plainType ["number"] |> TypeDefinition.Single) |> DTsType.Func |> TypeDefinition.Single
 
             let expected = 
-                FunctionDefinition.Plain (Identifier.Create "getAnimationType", field, ret) 
+                FunctionDefinition.Plain (Identifier.create "getAnimationType", field, ret) 
                 |> StructureStatement.FunctionDefinition
 
             yield 

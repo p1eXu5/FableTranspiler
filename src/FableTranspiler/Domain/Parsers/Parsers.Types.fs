@@ -32,7 +32,7 @@ type DTsType =
                     StringBuilder()
                         .Append(
                             idList
-                            |> List.map (Identifier.Value)
+                            |> List.map (Identifier.value)
                             |> List.reduce (fun i1 i2 -> i1 + "." + i2)
                         )
                         .Append("<")
@@ -45,14 +45,14 @@ type DTsType =
 
             | Plain idList ->
                 idList
-                |> List.map (Identifier.Value)
+                |> List.map (Identifier.value)
                 |> List.reduce (fun i1 i2 -> i1 + "." + i2)
 
             | Typeof idList ->
                 (+) 
                     "typeof "
                     (idList
-                    |> List.map (Identifier.Value)
+                    |> List.map (Identifier.value)
                     |> List.reduce (fun i1 i2 -> i1 + "." + i2))
 
             | _ -> $"%A{this}".ToLowerInvariant()

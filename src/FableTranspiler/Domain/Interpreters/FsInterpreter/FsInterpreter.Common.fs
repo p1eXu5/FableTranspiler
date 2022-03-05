@@ -11,7 +11,7 @@ open FableTranspiler.SimpleTypes
 
 let interpretQualifiers identifiers : CodeItem list =
     identifiers
-    |> List.map (fun t -> [ Identifier.Value(t) |> vmType ])
+    |> List.map (fun t -> [ Identifier.value(t) |> vmType ])
     |> List.reduce (fun t1 t2 -> 
         [
             yield! t1
@@ -30,7 +30,7 @@ let rec interpretSingleType (type': DTsType)  =
         | DTsType.Plain is -> 
             let typeNameVms = interpretQualifiers is
             let typeName = String.Join("", typeNameVms |> List.map (fun t -> t.Content))
-            match fsStatementReader.Get ([typeName |> Identifier.Create]) with
+            match fsStatementReader.Get ([typeName |> Identifier.create]) with
             | Some v -> return v |> Choice2Of2
             | None ->
                 match typeNameVms[0].Content with

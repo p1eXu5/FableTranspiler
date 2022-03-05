@@ -21,4 +21,7 @@ let (|Regex|_|) pattern input =
     else None 
 
 let capitalizeFirstLetter (s: string) =
-    Char.ToUpper(s[0]).ToString() + s[1..]
+    Char.ToUpperInvariant(s[0]).ToString() + s[1..]
+
+let uncapitalizeFirstLetter (s: string) =
+    Char.ToLowerInvariant(s[0]).ToString() + s[1..]

@@ -139,20 +139,20 @@ module Statements =
                 Statement.Const (
                     Expression.Binary (
                         ExpressionKind.Assignment
-                        , Expression.Identifier ("mimeTypes" |> Identifier.Create)
+                        , Expression.Identifier ("mimeTypes" |> Identifier.create)
                         , Expression.Binary ( 
                             ExpressionKind.Dereferentiation
-                            , Expression.Identifier ("Object" |> Identifier.Create)
+                            , Expression.Identifier ("Object" |> Identifier.create)
                             , Expression.Function (
                                 "freeze"
                                 , Expression.Binary (
                                     ExpressionKind.AsCast
                                     , Expression.ObjectLiteral [
-                                        Expression.Binary (ExpressionKind.Typification, Expression.Identifier ("allFiles" |> Identifier.Create), Expression.StringLiteral ("*/*" |> StringLiteral.Create)) 
-                                        Expression.Binary (ExpressionKind.Typification, Expression.Identifier ("audio" |> Identifier.Create), Expression.StringLiteral ("audio/*" |> StringLiteral.Create)) 
-                                        Expression.Binary (ExpressionKind.Typification, Expression.Identifier ("csv" |> Identifier.Create), Expression.StringLiteral ("text/csv" |> StringLiteral.Create)) 
+                                        Expression.Binary (ExpressionKind.Typification, Expression.Identifier ("allFiles" |> Identifier.create), Expression.StringLiteral ("*/*" |> StringLiteral.Create)) 
+                                        Expression.Binary (ExpressionKind.Typification, Expression.Identifier ("audio" |> Identifier.create), Expression.StringLiteral ("audio/*" |> StringLiteral.Create)) 
+                                        Expression.Binary (ExpressionKind.Typification, Expression.Identifier ("csv" |> Identifier.create), Expression.StringLiteral ("text/csv" |> StringLiteral.Create)) 
                                     ]
-                                    , Expression.Identifier ("const" |> Identifier.Create)
+                                    , Expression.Identifier ("const" |> Identifier.create)
                                 )
                             )
                         )
@@ -178,11 +178,11 @@ module Statements =
             Statement.Const (
                 Expression.Binary (
                     ExpressionKind.Assignment
-                    , Expression.Identifier ("mimeTypes"  |> Identifier.Create)
+                    , Expression.Identifier ("mimeTypes"  |> Identifier.create)
                     , Expression.Binary (
                         ExpressionKind.Dereferentiation
-                        ,Expression.Identifier ("Object"  |> Identifier.Create) 
-                        ,Expression.Identifier ("freeze"  |> Identifier.Create))
+                        ,Expression.Identifier ("Object"  |> Identifier.create) 
+                        ,Expression.Identifier ("freeze"  |> Identifier.create))
                 )
             )
             |> List.replicate 1
@@ -207,10 +207,10 @@ module Statements =
             Statement.Const (
                 Expression.Binary (
                     ExpressionKind.Assignment
-                    , Expression.Identifier ("mimeTypes"  |> Identifier.Create)
+                    , Expression.Identifier ("mimeTypes"  |> Identifier.create)
                     , Expression.Binary (
                         ExpressionKind.Dereferentiation
-                        , Expression.Identifier ("Object" |> Identifier.Create)
+                        , Expression.Identifier ("Object" |> Identifier.create)
                         , Expression.Function ("freeze", Expression.Empty))
                 )
             )

@@ -15,25 +15,25 @@ let ``module`` path =
 module Import =
     let allAliased alias (path: string) =
         Statement.Import (
-            [ImportEntity.AllAliased (alias |> Identifier.Create)]
+            [ImportEntity.AllAliased (alias |> Identifier.create)]
             , ``module`` path
         )
 
     let named (names: string list) (path: string) =
         Statement.Import (
-            names |> List.map (Identifier.Create >> ImportEntity.Named)
+            names |> List.map (Identifier.create >> ImportEntity.Named)
             , ``module`` path
         )
 
     let namedS (name: string) (path: string) =
         Statement.Import (
-            name |> (Identifier.Create >> ImportEntity.Named >> List.singleton)
+            name |> (Identifier.create >> ImportEntity.Named >> List.singleton)
             , ``module`` path
         )
 
     let aliasedS (name: string) (alias: string) (path: string) =
         Statement.Import (
-            (name |> Identifier.Create, alias |> Identifier.Create)
+            (name |> Identifier.create, alias |> Identifier.create)
             |> ImportEntity.Aliased 
             |> List.singleton
             , ``module`` path
@@ -44,7 +44,7 @@ module Import =
             nameAlias
             |> List.map (fun t -> 
                 let name, alias = t
-                (name |> Identifier.Create, alias |> Identifier.Create)
+                (name |> Identifier.create, alias |> Identifier.create)
                 |> ImportEntity.Aliased 
             )
             , ``module`` path
@@ -61,21 +61,21 @@ module Import =
 [<RequireQualifiedAccess>]
 module Export =
     let outAssignment name =
-        Statement.Export (Identifier.Create name |> OutAssignment)
+        Statement.Export (Identifier.create name |> OutAssignment)
 
     let outList names =
-        Statement.Export (names |> List.map Identifier.Create |> OutList)
+        Statement.Export (names |> List.map Identifier.create |> OutList)
 
 
     let namedS name (path: string) =
         Statement.Export <| Transit (
-            [ExportEntity.Named (name |> Identifier.Create)]
+            [ExportEntity.Named (name |> Identifier.create)]
             , ``module`` path
         )
 
     let defaultAliasedS alias (path: string) =
         Statement.Export <| Transit (
-            [ExportEntity.DefaultAliased (alias |> Identifier.Create)]
+            [ExportEntity.DefaultAliased (alias |> Identifier.create)]
             , ``module`` path
         )
 
@@ -89,8 +89,8 @@ module Export =
             entities
             |> List.map (function
                 | Choice1Of2 name -> 
-                    ExportEntity.DefaultAliased (name |> Identifier.Create)
-                | Choice2Of2 name -> ExportEntity.Named (name |> Identifier.Create)
+                    ExportEntity.DefaultAliased (name |> Identifier.create)
+                | Choice2Of2 name -> ExportEntity.Named (name |> Identifier.create)
             )
             , ``module`` path
         )
@@ -106,11 +106,11 @@ module Comment =
 [<RequireQualifiedAccess>]
 module DTsTypes =
     let plainType =
-        List.map Identifier.Create >> DTsType.Plain
+        List.map Identifier.create >> DTsType.Plain
         
     let genericType qualifiers typeNames =
         (
-            qualifiers |> List.map Identifier.Create
+            qualifiers |> List.map Identifier.create
             , typeNames
         )
         |> DTsType.Generic
@@ -121,7 +121,7 @@ module DTsTypes =
     let funcSimple paramName paramPlainType returnPlainType =
         let fieldList : FieldList =
             (
-                Field.Required (Identifier.Create paramName),
+                Field.Required (Identifier.create paramName),
                 plainType paramPlainType |> TypeDefinition.Single
             )
             |> List.singleton
@@ -135,7 +135,7 @@ module Structures =
 
     let typeAlias name typeCombination =
         (
-            name |> Identifier.Create
+            name |> Identifier.create
             , typeCombination
         ) |> TypeAlias.Plain |> StructureStatement.TypeAlias
 
@@ -158,13 +158,13 @@ module Fields =
     /// <param name="typeName"></param>
     let singleField name typeName =
         (
-            Identifier.Create name |> Required, 
+            Identifier.create name |> Required, 
             DTsTypes.plainType [typeName] |> TypeDefinition.Single
         )
 
     let singleArrayField name typeName =
         (
-            Identifier.Create name |> Required, 
+            Identifier.create name |> Required, 
             typeName' typeName |> DTsType.Array |> TypeDefinition.Single
         )
 
@@ -187,7 +187,7 @@ module Fields =
     /// <param name="typeName"></param>
     let optionalUnionWithUndefinedField name typeName =
         (
-            Identifier.Create name |> Optional, 
+            Identifier.create name |> Optional, 
             [
                 DTsTypes.plainType typeName
                 DTsType.Undefined
@@ -207,16 +207,16 @@ module Fields =
 
 
     let optionalFuncEmptyField name typeName : Field * TypeDefinition =
-        (Identifier.Create name, []) |> FuncOpt,
+        (Identifier.create name, []) |> FuncOpt,
         typeName' typeName |> TypeDefinition.Single
 
     let requiredFuncEmptyField name typeName : Field * TypeDefinition =
-        (Identifier.Create name, []) |> FuncReq,
+        (Identifier.create name, []) |> FuncReq,
         typeName' typeName |> TypeDefinition.Single
 
 
     let optionalFuncField name parameter typeName : Field * TypeDefinition =
-        (Identifier.Create name, (parameter ||> single) ) |> FuncOpt,
+        (Identifier.create name, (parameter ||> single) ) |> FuncOpt,
         typeName' typeName |> TypeDefinition.Single
 
 
@@ -238,12 +238,12 @@ module Functions =
     /// <param name="parameters"></param>
     /// <param name="returnType"></param>
     let plain name parameters returnType =
-        let i = Identifier.Create name
+        let i = Identifier.create name
         let parameters' : FieldList =
             parameters
             |> List.map (fun t ->
                 let (i, tn) = t
-                let paramName = Identifier.Create i |> Field.Required
+                let paramName = Identifier.create i |> Field.Required
                 let tn' = typeName' tn |> TypeDefinition.Single
                 (paramName, tn')
             )

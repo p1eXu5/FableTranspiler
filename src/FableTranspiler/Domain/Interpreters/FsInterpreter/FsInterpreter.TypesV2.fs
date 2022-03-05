@@ -12,7 +12,12 @@ type Summary = CodeItem list
 type Scope =
     | Namespace
     | Inherit
-    | Module of string
+    | Module of ModuleScope
+and 
+    ModuleScope =
+        | Nested of string
+        | Main
+
 
 type FsStatementType =
     | No
@@ -25,23 +30,26 @@ type FsStatementType =
     | Composition
     | Unknown of string
 
-type FsStatmentKind =
+type FsStatementKind =
     | Comment
     | Type of FsStatementType
-    | Interface of Identifier
+    | DU of Identifier
+    | AbstractClass of Identifier
     | Field of Identifier
+    | Let of Identifier
     | Parameter of Identifier
     | ReactComponent of Identifier
     | Object of Identifier
     | Const of Identifier
     | Namespace of string
     | Module of string
+    | Container
 
 
 
 type FsStatementV2 =
     {
-        Identifier : FsStatmentKind
+        Kind : FsStatementKind
         Scope: Scope
         Open: string list
         CodeItems: CodeItem list
@@ -81,7 +89,11 @@ type internal InnerInterpretConfig =
         TryGetLocal: Identifier -> FsStatementV2 option
         TryGetStatement: Identifier list -> FsStatementV2 option
         InterfacePostCodeItems: Interpreter<InnerInterpretConfig, CodeItem list>
-        FieldStartWithCodeItems: Identifier -> Interpreter<InnerInterpretConfig, CodeItem list>
+        FieldStartWithCodeItems: Interpreter<InnerInterpretConfig, Identifier -> CodeItem list>
+        InterfaceStatementKind: Identifier -> FsStatementKind
+        TypeScope: Scope
+        FuncSignatureInterpreter: FieldList -> TypeDefinition -> FsStatementKind -> CodeItem list -> CodeItem list -> Interpreter<InnerInterpretConfig, (FsStatementV2 * Summary)>
+        IsTypeSearchEnabled: bool
     }
 
 
@@ -93,6 +105,7 @@ type internal InterpretStrategy =
         InterpretTypeAlias: TypeAlias -> Interpreter<InnerInterpretConfig, FsStatementV2>
         InterpretReactComponent: Identifier (* -> DtsType *) -> Interpreter<InnerInterpretConfig, FsStatementV2>
         InterpretConstDefinition: ConstDefinition -> Interpreter<InnerInterpretConfig, FsStatementV2>
+        InterpretNamespace: Identifier -> FsStatementV2 list -> Interpreter<InnerInterpretConfig, FsStatementV2>
     }
 
 type internal InterpretConfigV2 =
@@ -106,13 +119,20 @@ type internal InterpretConfigV2 =
 module internal FsStatementV2 =
 
     let identifier statement =
-        match statement.Identifier with
-        | FsStatmentKind.Interface id -> id |> Some
+        match statement.Kind with
+        | FsStatementKind.Const id
+        | FsStatementKind.Object id
+        | FsStatementKind.ReactComponent id
+        | FsStatementKind.Let id
+        | FsStatementKind.Field id
+        | FsStatementKind.Parameter id
+        | FsStatementKind.AbstractClass id
+        | FsStatementKind.DU id -> id |> Some
         | _ -> None
 
     let zeroType =
         {
-            Identifier = FsStatmentKind.Type FsStatementType.No
+            Kind = FsStatementKind.Type FsStatementType.No
             Scope = Inherit
             Open = []
             CodeItems = []
@@ -124,7 +144,7 @@ module internal FsStatementV2 =
 
     let unitType =
         {
-            Identifier = FsStatmentKind.Type FsStatementType.Unit
+            Kind = FsStatementKind.Type FsStatementType.Unit
             Scope = Inherit
             Open = []
             CodeItems = [vmType "unit"]
@@ -136,7 +156,7 @@ module internal FsStatementV2 =
 
     let arrayType =
         {
-            Identifier = FsStatmentKind.Type FsStatementType.No
+            Kind = FsStatementKind.Type FsStatementType.No
             Scope = Inherit
             Open = []
             CodeItems = [vmPrn " []"]
@@ -148,7 +168,7 @@ module internal FsStatementV2 =
 
     let empty =
         {
-            Identifier = FsStatmentKind.Comment
+            Kind = FsStatementKind.Comment
             Scope = Inherit
             Open = []
             CodeItems = []
@@ -160,7 +180,7 @@ module internal FsStatementV2 =
 
     let objType =
         {
-            Identifier = FsStatmentKind.Type FsStatementType.Primitive
+            Kind = FsStatementKind.Type FsStatementType.Primitive
             Scope = Inherit
             Open = []
             CodeItems = [vmType "obj"]
@@ -172,7 +192,7 @@ module internal FsStatementV2 =
 
     let comment message =
         {
-            Identifier = FsStatmentKind.Comment
+            Kind = FsStatementKind.Comment
             Scope = Scope.Inherit
             Open = []
             CodeItems = [
@@ -206,10 +226,10 @@ module internal FsStatementV2 =
     let notZeroType = (<>) zeroType
 
     let toArray statement =
-        match statement.Identifier with
-        | FsStatmentKind.Type t ->
+        match statement.Kind with
+        | FsStatementKind.Type t ->
             {statement with 
-                Identifier = FsStatmentKind.Type (FsStatementType.Array t)
+                Kind = FsStatementKind.Type (FsStatementType.Array t)
                 NestedStatements = statement.NestedStatements @ [arrayType]}
         | _ -> statement
 
@@ -256,6 +276,14 @@ module internal FsStatementV2 =
             {statement with NestedStatements = statement.NestedStatements[..^1] @ [(addLineBreak (statement.NestedStatements |> List.last))]}
 
 
+    let isType s =
+        match s.Kind with
+        | FsStatementKind.DU _
+        | FsStatementKind.AbstractClass _ -> true
+        | _ -> false
+
+
+    let notHidden s = not (s.Hidden)
 
 
     let add statementA statementB =
@@ -282,3 +310,8 @@ type FsStatementV2 with
     static member CollectCodeItems(fsStatement) = FsStatementV2.codeItems fsStatement
         
     
+
+module Scope =
+    let isMainModule = function
+        | Scope.Module (ModuleScope.Main) -> true
+        | _ -> false

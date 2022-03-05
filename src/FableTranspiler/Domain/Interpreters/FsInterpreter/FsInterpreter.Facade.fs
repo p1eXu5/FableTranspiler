@@ -8,6 +8,7 @@ open FableTranspiler.Parsers.Types
 open FableTranspiler.Ports.PortsBuilder
 open FableTranspiler.Interpreters
 open FableTranspiler.Interpreters.FsInterpreter
+open FableTranspiler
 
 
 /// <summary>
@@ -17,7 +18,9 @@ open FableTranspiler.Interpreters.FsInterpreter
 /// <param name="moduleFullPath"></param>
 /// <param name="statement"></param>
 /// <param name="interpretConfig"></param>
-let rec internal toFsStatement rootFullPath moduleFullPath statement interpretConfig : Ports<InterpretConfigV2, (FsStatementV2 option * InnerInterpretConfig option)> =
+let rec internal toFsStatement rootFullPath moduleFullPath statement interpretConfig 
+    : Ports<InterpretConfigV2, (Choice<FsStatementV2, FsStatementV2 list, unit> * InnerInterpretConfig option)> =
+    
     let storeFsStatment (fsStatement: FsStatementV2) =
         ports {
             let! config = Ports.ask
@@ -44,7 +47,24 @@ let rec internal toFsStatement rootFullPath moduleFullPath statement interpretCo
                 storeFsStatment fsStatement
 
             return
-                fsStatement |> Some
+                fsStatement |> Choice1Of3
+                , innerConfig |> Some
+        }
+
+    let interpretFsStatementList innerConfig interpreter =
+        ports {
+            
+            let fsStatements =
+                interpreter
+                |> Interpreter.run (innerConfig, TabLevel 0)
+
+            do
+                for s in fsStatements
+                    do
+                        storeFsStatment s |> ignore
+
+            return
+                fsStatements |> Choice2Of3
                 , innerConfig |> Some
         }
 
@@ -72,13 +92,17 @@ let rec internal toFsStatement rootFullPath moduleFullPath statement interpretCo
 
                     FieldStartWithCodeItems = Fable.unionCase
                     InterfacePostCodeItems = Fable.inheritIHTMLProps
+                    InterfaceStatementKind = FsStatementKind.DU
+                    TypeScope = Scope.Namespace
+                    FuncSignatureInterpreter = Fable.interpretFuncSignature
+                    IsTypeSearchEnabled = true
                 }
 
         
         match statement with
         | Statement.Import (_, DtsModule.NodeModule _ ) ->
             return
-                ( FsStatementV2.comment $"// outer lib is not processed yet - %O{statement}" |> Some, 
+                ( FsStatementV2.comment $"// outer lib is not processed yet - %O{statement}" |> Choice1Of3, 
                   innerConfig |> Some )
 
         | Statement.Import (importEntityList, DtsModule.Relative (ModulePath relativePath) ) ->
@@ -104,7 +128,7 @@ let rec internal toFsStatement rootFullPath moduleFullPath statement interpretCo
                     running importEntityList
 
             return
-                None, // there is no fs statement
+                Choice3Of3 (), // there is no fs statement
                 Path.GetFullPath(
                     Path.Combine(
                         Path.GetDirectoryName(moduleFullPath |> FullPath.Value),
@@ -114,7 +138,7 @@ let rec internal toFsStatement rootFullPath moduleFullPath statement interpretCo
                     if not (fsStore.ContainsKey modulePath') then
                         match store.TryGetStatementList modulePath' with
                         | Some (Result.Ok xs) -> 
-                            interpretV2 rootFullPath modulePath' xs
+                            interpretV2 rootFullPath modulePath' xs None
                             |> Ports.run config
                             |> ignore
                             Some modulePath'
@@ -132,15 +156,15 @@ let rec internal toFsStatement rootFullPath moduleFullPath statement interpretCo
                 )
                 |> Option.orElse interpretConfig
 
-        | Statement.Export 
+        | Statement.Export
             (ExportStatement.Structure (StructureStatement.InterfaceDefinition interfaceDefinition))
-                when (statement |> Statement.identifier |> Option.map Identifier.Value |> Option.defaultValue "").EndsWith("Props") ->
+                when (statement |> Statement.identifier |> Option.map Identifier.value |> Option.defaultValue "").EndsWith("Props") ->
             
             return! 
                 interpretFsStatement innerConfig (strategy.InterpretInterface interfaceDefinition |> Fable.withUnion)
                 
-
-        | Statement.Export 
+        | Statement.Structure (StructureStatement.InterfaceDefinition interfaceDefinition)
+        | Statement.Export
             (ExportStatement.Structure (StructureStatement.InterfaceDefinition interfaceDefinition)) ->
 
             return! interpretFsStatement innerConfig (Fable.interpretInterface interfaceDefinition |> Fable.withAbstractClass)
@@ -148,7 +172,7 @@ let rec internal toFsStatement rootFullPath moduleFullPath statement interpretCo
         | Statement.Export (ExportStatement.Structure (StructureStatement.TypeAlias typeAlias)) ->
             return! interpretFsStatement innerConfig (strategy.InterpretTypeAlias typeAlias |> Fable.withUnion)
 
-        | Statement.Export 
+        | Statement.Export
             (ExportStatement.StructureDefault 
                 (StructureStatement.ClassDefinition (ClassDefinition.ExtendsEmpty (identifier, dtsType))))
                     when dtsType.ToString().StartsWith("React.Component") ->
@@ -159,37 +183,73 @@ let rec internal toFsStatement rootFullPath moduleFullPath statement interpretCo
             return! interpretFsStatement innerConfig (strategy.InterpretConstDefinition constDefinition |> Fable.withUnion)
 
         | Statement.NamespaceDeclaration (identifier, statementList) ->
-            let! fsStatements = interpretV2 rootFullPath moduleFullPath statementList
+            let oldTypeScope = innerConfig.TypeScope
+            let! namespaceFsStatements = interpretV2 rootFullPath moduleFullPath statementList ({innerConfig with TypeScope = Scope.Module ModuleScope.Main} |> Some)
+            
+            match! interpretFsStatement {innerConfig with TypeScope = oldTypeScope} (strategy.InterpretNamespace identifier namespaceFsStatements |> Fable.withAbstractClass) with
+            | Choice1Of3 s, c -> return namespaceFsStatements @ [s] |> Choice2Of3, c
+            | Choice2Of3 xs, c -> return namespaceFsStatements @ xs |> Choice2Of3, c
+            | Choice3Of3 _, c -> return namespaceFsStatements |> Choice2Of3, c
 
+        | Statement.Export (ExportStatement.OutDefault identifier) ->
             return
-                ( None,
-                  innerConfig |> Some )
+                innerConfig.TryGetLocal identifier
+                |> Option.filter (FsStatementV2.isType)
+                |> Option.map (fun _ ->
+                    let identifier' = identifier |> Identifier.map Helpers.uncapitalizeFirstLetter
+
+                    {
+                        Kind = FsStatementKind.Let identifier'
+                        Scope = Scope.Module (ModuleScope.Main)
+                        Open = ["Fable.Core"]
+                        CodeItems = [
+                            vmPrn "[<"; vmText "ImportDefault"; vmPrn "(\""; vmText innerConfig.LibRelativePath.Value; vmPrn "\")>]"; vmEndLineNull
+                            vmKeyword "let "; vmIdentifier identifier'; vmPrn " : "; vmTypeIdentifier identifier; vmPrn " = "; vmText "jsNative"; vmEndLineNull
+                        ]
+                        PostCodeItems = []
+                        Hidden = false
+                        Summary = []
+                        NestedStatements = []
+                    } |> Choice1Of3 
+                    , innerConfig |> Some
+                )
+                |> Option.defaultWith (fun () ->
+                    let statementString = $"{statement}".Replace(Environment.NewLine, "")
+                    ( FsStatementV2.comment $"(*\n {statementString} is not processed\n*)" |> Choice1Of3,
+                      innerConfig |> Some )
+                )
 
         | Statement.Comment comment ->
             return
-                ( FsStatementV2.comment comment |> Some,
+                ( FsStatementV2.comment comment |> Choice1Of3,
                   innerConfig |> Some )
         | _ ->
             let statementString = $"{statement}".Replace(Environment.NewLine, "")
             return
-                ( FsStatementV2.comment $"(*\n {statementString} is not processed\n*)" |> Some,
+                ( FsStatementV2.comment $"(*\n {statementString} is not processed\n*)" |> Choice1Of3,
                   innerConfig |> Some )
     }
 
 
-let internal interpretV2 rootFullPath moduleFullPath statementList : Ports<InterpretConfigV2, FsStatementV2 list> =
+let internal interpretV2 rootFullPath moduleFullPath statementList innerConfig : Ports<InterpretConfigV2, FsStatementV2 list> =
     
-    let rec running statementList reactInterpretConfig res =
+    let rec running statementList innerConfig res =
         ports {
             match statementList with
-            | [] -> return res |> List.choose id |> List.rev
+            | [] -> return res |> List.rev
             | statement :: tail ->
-                let! (fsStatement, conf) = toFsStatement rootFullPath moduleFullPath statement reactInterpretConfig
-                return! running tail conf (fsStatement::res)
+                let! (fsStatementChoice, conf) = toFsStatement rootFullPath moduleFullPath statement innerConfig
+                match fsStatementChoice with
+                | Choice1Of3 fsStatement ->
+                        return! running tail conf (fsStatement::res)
+                | Choice2Of3 fsStatementList ->
+                    return! running tail conf ((fsStatementList |> List.rev)  @ res)
+                | Choice3Of3 _ ->
+                    return! running tail conf res
         }
 
     ports {
-        return! running statementList None []
+        return! running statementList innerConfig []
     }
 
 
@@ -198,7 +258,7 @@ let internal appendNamespaceAndModules rootFullPath moduleFullPath fsStatements 
         fsStatements
         |> List.foldBack (fun s state ->
             match s.Scope with
-            | Scope.Module moduleName -> (fst state, (moduleName, s) :: snd state)
+            | Scope.Module (ModuleScope.Nested moduleName) -> (fst state, (moduleName, s) :: snd state)
             | _ -> (s :: fst state, snd state)
         ) <| ([], [])
         |> (fun (ns, ms) ->
@@ -209,7 +269,7 @@ let internal appendNamespaceAndModules rootFullPath moduleFullPath fsStatements 
             |> List.map (fun (key, t) -> (key, t |> List.map snd))
             |> List.map (fun (moduleName, xs) ->
                 {
-                    Identifier = FsStatmentKind.Module moduleName
+                    Kind = FsStatementKind.Module moduleName
                     Scope = Scope.Namespace
                     Open = []
                     CodeItems = [
@@ -247,12 +307,21 @@ let internal appendNamespaceAndModules rootFullPath moduleFullPath fsStatements 
             )
         )
 
+    let topModule = namespaceStatements |> List.exists (fun s -> s.Scope |> Scope.isMainModule)
     {
-        Identifier = FsStatmentKind.Namespace namespaceName
+        Kind =
+            if topModule then
+                FsStatementKind.Module namespaceName
+            else
+                FsStatementKind.Namespace namespaceName
+                
         Scope = Scope.Inherit
         Open = []
         CodeItems = [
-            vmKeyword "namespace "
+            if topModule then
+                vmKeyword "module "
+            else 
+                vmKeyword "namespace "
             vmText namespaceName
             vmEndLineNull
             vmEndLineNull

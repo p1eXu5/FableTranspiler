@@ -29,7 +29,7 @@ module StructuresFactory =
         let input = "class Button extends React.Component<ButtonProps> {}"
         let generic = Dsl.DTsTypes.genericType ["React"; "Component"] [Dsl.DTsTypes.plainType ["ButtonProps"]]
         let definition = 
-            (Identifier.Create "Button", generic) 
+            (Identifier.create "Button", generic) 
             |> ClassDefinition.ExtendsEmpty
             |> StructureStatement.ClassDefinition
         (input, definition)
@@ -55,7 +55,7 @@ module StructuresFactory =
         let oliteral : FieldList = [field1; field2]
 
         let definition = 
-            (Identifier.Create "ElementProps", generic, oliteral) 
+            (Identifier.create "ElementProps", generic, oliteral) 
             |> InterfaceDefinition.Extends
             |> StructureStatement.InterfaceDefinition
         (input, definition)
@@ -80,7 +80,7 @@ module StructuresFactory =
         let oliteral : FieldList = [field1; field2]
 
         let definition = 
-            (Identifier.Create "ElementProps", oliteral) 
+            (Identifier.create "ElementProps", oliteral) 
             |> InterfaceDefinition.Plain
             |> StructureStatement.InterfaceDefinition
         (input, definition)

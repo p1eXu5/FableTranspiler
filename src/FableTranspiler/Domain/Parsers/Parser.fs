@@ -38,7 +38,7 @@ let identifier =
     preIdentifier
     .>> ws
     .>> notFollowedBy (pchar '(')
-    |>> (Identifier.Create >> Expression.Identifier)
+    |>> (Identifier.create >> Expression.Identifier)
 
 
 let ``parameterless function`` =
