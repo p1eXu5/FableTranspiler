@@ -513,13 +513,11 @@ module ReactTests =
             TestContext.WriteLine $"%A{fsStatementList.Head}"
 
             let fsStatement = fsStatementList.Head
-            fsStatement.Kind |> should equal (FsStatementKind.Let (Identifier "scrollToBottom"))
+            fsStatement.Kind |> should equal (FsStatementKind.Let (Identifier "getAnimationType"))
             
-            fsStatement.Summary.ToString() |> should contain "/// options: { smooth: boolean | string }"
-
             let presentation = $"%O{fsStatement}"
             presentation |> should contain @"[<Import(""getAnimationType"", from=""react-scroll\animate-scroll"")>]"
-            presentation |> should contain "let getAnimationType : options: obj -> (float -> float) = jsNative"
+            presentation |> should contain "let getAnimationType : options: {| smooth : U2<bool, string> |} -> (float -> float) = jsNative"
         }
         |> Result.runTest
 

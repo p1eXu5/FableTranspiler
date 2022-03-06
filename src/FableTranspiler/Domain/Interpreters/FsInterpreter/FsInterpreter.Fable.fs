@@ -92,6 +92,22 @@ let rec interpretDTsType (type': DTsType)  : Interpreter< InnerInterpretConfig, 
         | DTsType.InlineObject l when l.Length = 0 ->
             return FsStatementV2.objType |> Some, []
 
+        | DTsType.InlineObject l ->
+            let! fields =
+                l |> List.map interpretField |> Interpreter.sequence |> Interpreter.withEnv (fun (c, t) -> {c with FieldStartWithCodeItems = anonymous}, t)
+
+            return
+                {
+                    Kind = FsStatementKind.Type FsStatementType.Anonymous
+                    Scope = Inherit
+                    Open = []
+                    CodeItems = [vmPrn "{| "]
+                    PostCodeItems = [vmPrn " |}"]
+                    NestedStatements = fields |> List.map fst
+                    Summary = []
+                    Hidden = false
+                } |> Some, fields |> List.map snd |> List.concat
+
         | _ -> return failwith $"%A{type'} interpretation is not implemented."
     }
 
@@ -268,7 +284,7 @@ let interpretNamedFuncSignature fl typeDefinition kind codeItemPrependix codeIte
         
                 NestedStatements = []
                 PostCodeItems = []
-                Summary = []
+                Summary = summary @ summary2
                 Hidden = false
             }, summary @ summary2
     }
@@ -282,7 +298,7 @@ let rec interpretFnParameter (field, typeDefinition) : Interpreter<InnerInterpre
             Scope = Inherit
             Open = []
             CodeItems = []
-            NestedStatements = nested
+            NestedStatements = [nested]
             PostCodeItems = []
             Summary = []
             Hidden = false
@@ -296,17 +312,17 @@ let rec interpretFnParameter (field, typeDefinition) : Interpreter<InnerInterpre
             let! typeDef = interpretTypeDefinition typeDefinition
             match typeDef with
             | Some s, summary ->
-                return fsStatement identifier [s], summary
+                return fsStatement identifier s, summary
             | None, summary -> 
-                return fsStatement identifier [FsStatementV2.objType], summary
+                return fsStatement identifier FsStatementV2.objType, summary
 
         | Field.Optional identifier ->
             let! typeDef = interpretTypeDefinition typeDefinition
             match typeDef with
             | Some s, summary ->
-                return fsStatement identifier [{s with PostCodeItems = s.PostCodeItems @ [vmType " option"]}], summary
+                return fsStatement identifier {s with PostCodeItems = s.PostCodeItems @ [vmType " option"]}, summary
             | None, summary -> 
-                return fsStatement identifier [{FsStatementV2.objType with PostCodeItems = FsStatementV2.objType.PostCodeItems @ [vmType " option"]}], summary
+                return fsStatement identifier {FsStatementV2.objType with PostCodeItems = FsStatementV2.objType.PostCodeItems @ [vmType " option"]}, summary
 
         | Field.FuncReq (identifier, fl)
         | Field.FuncOpt (identifier, fl) ->
@@ -325,7 +341,7 @@ let rec interpretField (field, typeDefinition) =
                 Scope = Inherit
                 Open = []
                 CodeItems = fieldCodeItems identifier
-                NestedStatements = nested
+                NestedStatements = [nested]
                 PostCodeItems = []
                 Summary = []
                 Hidden = false
@@ -341,17 +357,17 @@ let rec interpretField (field, typeDefinition) =
             let! td = interpretTypeDefinition typeDefinition
             match fst td with
             | Some s ->
-                let! topFsStatement = fsStatement identifier [s |> FsStatementV2.addLineBreak]
+                let! topFsStatement = fsStatement identifier s
                 return
                     (topFsStatement, snd td)
             | None -> 
-                let! topFsStatement = fsStatement identifier [FsStatementV2.objType |> FsStatementV2.addLineBreak]
+                let! topFsStatement = fsStatement identifier FsStatementV2.objType
                 return (topFsStatement, snd td)
 
         | Field.FuncReq (identifier, fl)
         | Field.FuncOpt (identifier, fl) ->
             let! fieldCodeItems = config.FieldStartWithCodeItems
-            return! (config.InterpretFuncSignature fl typeDefinition (FsStatementKind.Field identifier) (fieldCodeItems identifier) [vmEndLineNull] |> withNamelessFuncSignature)
+            return! (config.InterpretFuncSignature fl typeDefinition (FsStatementKind.Field identifier) (fieldCodeItems identifier) [] |> withNamelessFuncSignature)
     }
 
 
@@ -362,9 +378,12 @@ let interpretInterface (interfaceDefinition: InterfaceDefinition) =
 
         match interfaceDefinition with
         | InterfaceDefinition.Plain (identifier, fieldList) ->
-            let nestedStatements =
+            let! nestedStatements =
                 fieldList
-                |> List.map (interpretField >> Interpreter.run (config, tabLevel + 1))
+                |> List.map interpretField
+                |> Interpreter.sequence
+                |> Interpreter.addTab
+
             return
                 {
                     Kind = identifier |> config.InterfaceStatementKind
@@ -377,7 +396,7 @@ let interpretInterface (interfaceDefinition: InterfaceDefinition) =
                         vmText " ="
                         vmEndLineNull
                     ]
-                    NestedStatements = nestedStatements |> List.map fst
+                    NestedStatements = nestedStatements |> List.map fst |> List.map FsStatementV2.addLineBreak
                     PostCodeItems = postCodeItems'
                     Summary = nestedStatements |> List.map snd |> List.concat
                     Hidden = false
@@ -387,9 +406,11 @@ let interpretInterface (interfaceDefinition: InterfaceDefinition) =
             let! (extendedTypeInterpretation, extendedSummary) =
                 interpretDTsType extendedType
 
-            let nestedStatements =
+            let! nestedStatements =
                 fieldList
-                |> List.map (interpretField >> Interpreter.run (config, tabLevel + 1))
+                |> List.map interpretField
+                |> Interpreter.sequence
+                |> Interpreter.addTab
 
             return
                 {
@@ -408,7 +429,7 @@ let interpretInterface (interfaceDefinition: InterfaceDefinition) =
                         |> Option.map (fun s ->
                             nestedStatements |> List.map fst |> List.append [s]
                         )
-                        |> Option.defaultWith (fun () -> nestedStatements |> List.map fst) 
+                        |> Option.defaultWith (fun () -> nestedStatements |> List.map fst |> List.map FsStatementV2.addLineBreak) 
                     PostCodeItems = postCodeItems'
                     Summary = nestedStatements |> List.map snd |> List.concat |> List.append extendedSummary
                     Hidden = false
@@ -549,7 +570,7 @@ let interpretFunctionDefinition functionDefinition =
                     Scope = Scope.Module (ModuleScope.Main)
                     Open = ["Fable.Core"]
                     CodeItems = [
-                        vmPrn "[<"; vmText "Import"; vmPrn $"(\"{Identifier.value identifier}\", from=\"{config.LibRelativePath.Value}\")>]"; vmEndLineNull
+                        vmPrn "[<"; vmText "Import"; vmPrn $"(\"{Identifier.value identifier}\", "; vmText "from="; vmPrn "\"{config.LibRelativePath.Value}\")>]"; vmEndLineNull
                         vmKeyword "let "; vmIdentifier identifier; vmPrn " : "
                     ]
                     NestedStatements = [fst signature]
@@ -600,13 +621,21 @@ let abstractMember =
     }
 
 
-let unionCase  =
+let unionCase =
     interpreter {
         let! (_, tabLevel) = Interpreter.ask
         return fun identifier -> [
             tab tabLevel
             vmPrn "| "
             vmText (identifier |> Identifier.value |> capitalizeFirstLetter); vmKeyword " of "
+        ]
+    }
+
+
+let anonymous =
+    interpreter {
+        return fun identifier -> [
+            vmIdentifier identifier; vmPrn " : "
         ]
     }
 

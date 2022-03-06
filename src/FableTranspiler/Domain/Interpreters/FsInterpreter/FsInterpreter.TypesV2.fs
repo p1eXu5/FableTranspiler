@@ -26,6 +26,7 @@ type FsStatementType =
     | Func
     | Unit
     | FieldList of Qualifiers: Identifier list
+    | Anonymous
     | Union
     | Composition
     | Unknown of string

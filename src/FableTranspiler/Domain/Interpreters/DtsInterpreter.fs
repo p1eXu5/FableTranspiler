@@ -128,7 +128,7 @@ let private constructType l : CodeItem list =
     )
 
 
-let private constructSingleType tn =
+let internal constructSingleType tn =
     constructCombination "" [tn] []
 
 

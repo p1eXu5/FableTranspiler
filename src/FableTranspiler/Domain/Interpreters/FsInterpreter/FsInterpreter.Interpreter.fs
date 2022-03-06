@@ -26,7 +26,7 @@ module Interpreter =
         Interpreter newAction
 
     /// The delay operator.
-    let delay func = func()
+    let delay func = func
 
     let retn v = (fun _ -> v) |> Interpreter
 
@@ -66,7 +66,8 @@ module InterpreterBuilder =
         member _.Zero() = Interpreter (fun _ -> ())
         member _.Combine(expr1, expr2) = Interpreter.combine expr1 expr2
         member _.Delay(func) = Interpreter.delay func
-        
+        member _.Run(delayed) = delayed ()
+        member _.YieldFrom(interpreter) = interpreter
         //member this.TryFinaly(interpreter, compensation) =
         //    try this.ReturnFrom(interpreter)
         //    finally compensation ()
@@ -85,5 +86,10 @@ module InterpreterBuilder =
         //    else 
         //        this.Bind(interpreter, this.ReturnFrom)
 
+        //member _.For(sequence: seq<_>, f) =
+        //    sequence
+        //    |> Seq.map f
+        //    |> Seq.toList
+        //    |> Interpreter.sequence
 
     let interpreter = InterpreterBuilder()

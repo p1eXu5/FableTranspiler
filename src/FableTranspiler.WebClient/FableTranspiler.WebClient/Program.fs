@@ -38,6 +38,10 @@ let obj = createObj !![("a", 1)]
 console.log(obj)
 
 
+
+
+console.log("========= test interfaces ============")
+
 // ==========
 // interfaces
 // ==========
@@ -58,6 +62,38 @@ let foo : IFoo =
 
 execute foo
 
+console.log("=====================================\n")
+
+
+// ============================
+// function with anonymous type
+// ============================
+
+console.log("========= unitParameter test ============")
+console.log("'export function unitParameter(options: { foo: string | number }): (v: number) => number':")
+
+// wrong!
+type Options () =
+    member val foo : U2<string, float> = !^"asd" with get, set
+
+// ok!
+type OptionsR =
+    {
+        foo : U2<string, float>
+    }
+
+[<Import("unitParameter", from="./${outDir}/../../../NodejsConsoleApp/lib/test.js")>]
+let unitParameter: options: OptionsR -> (float -> float) = jsNative
+
+console.log("U2 with float: ", unitParameter {foo = !^13.} 12.2)
+
+
+[<Import("unitParameter", from="./${outDir}/../../../NodejsConsoleApp/lib/test.js")>]
+let unitParameter2: options: {| foo: U2<string, float> |} -> (float -> float) = jsNative
+
+console.log("U2 with string: ", unitParameter2 {| foo = !^"asd" |} 12.2)
+
+console.log("=====================================\n")
 
 
 open Elmish
