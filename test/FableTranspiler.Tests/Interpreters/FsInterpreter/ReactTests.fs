@@ -523,6 +523,38 @@ module ReactTests =
 
 
     [<Test>]
+    let ``interface with typeof member interpretation like scroller_d_ts`` () =
+        result {
+            let! statements =
+                processDtsModule "./scroller"
+                    """
+                        export function scrollTo(to: string, props: any): void;
+
+                        export interface Scroller {
+                            scrollTo: typeof scrollTo;
+                        }
+                    """
+
+            let! fsStatementList =
+                interpretV2' "./scroller" statements
+
+
+
+            fsStatementList |> should haveLength 2
+            TestContext.WriteLine $"%A{fsStatementList[0]}"
+            TestContext.WriteLine $"%A{fsStatementList[1]}"
+
+            let interfaceFsStatement = fsStatementList[1]
+            interfaceFsStatement.Kind |> should equal (FsStatementKind.AbstractClass (Identifier "Scroller"))
+            
+            let presentation = $"%O{interfaceFsStatement}"
+            presentation |> should contain @"type Scroller ="
+            presentation |> should contain "abstract scrollTo : to: string -> props: obj -> unit"
+        }
+        |> Result.runTest
+
+
+    [<Test>]
     let ``collectImportDefault test`` () =
         result {
             let! statements =
@@ -555,6 +587,8 @@ module ReactTests =
             presentation1 |> should contain "let animateScroll : AnimateScroll = jsNative"
         }
         |> Result.runTest
+
+
 
 
     [<Test>]

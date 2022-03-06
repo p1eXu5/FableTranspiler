@@ -17,6 +17,8 @@ let runDTsTypeInterpretation (config, tabLevel)=
     fun dtsType -> Interpreter.run (config, tabLevel) (interpretDTsType dtsType)
 
 
+
+
 let rec interpretDTsType (type': DTsType)  : Interpreter< InnerInterpretConfig, FsStatementV2 option * Summary> =
     let fsStatement fsStatmementType codeItems =
         {
@@ -30,13 +32,11 @@ let rec interpretDTsType (type': DTsType)  : Interpreter< InnerInterpretConfig, 
             Hidden = false
         }
 
-    interpreter {
-        let! (config: InnerInterpretConfig, tabLevel) = Interpreter.ask
+    let interpretTypeByReference qualifiers =
+        interpreter {
+            let! (config: InnerInterpretConfig, _) = Interpreter.ask
 
-        match type' with
-        | DTsType.Plain identifiers ->
-
-            match identifiers with
+            match qualifiers with
             | [identifier] ->
                 match identifier |> Identifier.value with
                 | "boolean" -> return fsStatement FsStatementType.Primitive [vmType "bool"] |> Some, []
@@ -44,21 +44,29 @@ let rec interpretDTsType (type': DTsType)  : Interpreter< InnerInterpretConfig, 
                 | typeName when config.IsTypeSearchEnabled ->
                     match config.TryGetLocal identifier with
                     | Some statement ->
-                        return fsStatement (FsStatementType.FieldList identifiers) (statement.NestedStatements |> List.map FsStatementV2.codeItems |> List.concat) |> Some, []
+                        return fsStatement (FsStatementType.FieldList qualifiers) (statement.NestedStatements |> List.map FsStatementV2.codeItems |> List.concat) |> Some, []
                     | None -> 
                         return fsStatement (FsStatementType.Unknown typeName) [vmType typeName] |> Some, []
                 | typeName ->
                     return fsStatement (FsStatementType.Unknown typeName) [vmType typeName] |> Some, []
             | _  when config.IsTypeSearchEnabled -> 
-                match config.TryGetStatement identifiers with
+                match config.TryGetStatement qualifiers with
                 | Some statement ->
-                    return fsStatement (FsStatementType.FieldList identifiers) (statement.NestedStatements |> List.map FsStatementV2.codeItems |> List.concat) |> Some, []
+                    return fsStatement (FsStatementType.FieldList qualifiers) (statement.NestedStatements |> List.map FsStatementV2.codeItems |> List.concat) |> Some, []
                 | None -> 
-                    let codeItems = interpretQualifiers identifiers
+                    let codeItems = interpretQualifiers qualifiers
                     return fsStatement (FsStatementType.Unknown ($"%O{codeItems}")) (codeItems) |> Some, []
             | _ -> 
-                let codeItems = interpretQualifiers identifiers
+                let codeItems = interpretQualifiers qualifiers
                 return fsStatement (FsStatementType.Unknown ($"%O{codeItems}")) (codeItems) |> Some, []
+        }
+
+
+
+    interpreter {
+        match type' with
+        | DTsType.Plain qualifiers ->
+            return! interpretTypeByReference qualifiers
 
 
         | DTsType.Generic _ ->
@@ -75,7 +83,7 @@ let rec interpretDTsType (type': DTsType)  : Interpreter< InnerInterpretConfig, 
         | DTsType.Void -> return FsStatementV2.unitType |> Some, []
 
         | DTsType.Typeof qualifiers ->
-            return failwith "Not implemented"
+            return! (interpretTypeByReference qualifiers)
 
         | DTsType.Array dtsType ->
             let! t = interpretDTsType dtsType 
@@ -570,7 +578,7 @@ let interpretFunctionDefinition functionDefinition =
                     Scope = Scope.Module (ModuleScope.Main)
                     Open = ["Fable.Core"]
                     CodeItems = [
-                        vmPrn "[<"; vmText "Import"; vmPrn $"(\"{Identifier.value identifier}\", "; vmText "from="; vmPrn "\"{config.LibRelativePath.Value}\")>]"; vmEndLineNull
+                        vmPrn "[<"; vmText "Import"; vmPrn $"(\"{Identifier.value identifier}\", "; vmText "from="; vmPrn $"\"{config.LibRelativePath.Value}\")>]"; vmEndLineNull
                         vmKeyword "let "; vmIdentifier identifier; vmPrn " : "
                     ]
                     NestedStatements = [fst signature]
@@ -609,6 +617,11 @@ let withDisabledTypeSearching interpreter =
         { config with IsTypeSearchEnabled = false }, tabLevel
     )
 
+let withEnableTypeSearching interpreter =
+    interpreter
+    |> Interpreter.withEnv (fun (config, tabLevel) ->
+        { config with IsTypeSearchEnabled = true }, tabLevel
+    )
 
 let abstractMember =
     interpreter {
