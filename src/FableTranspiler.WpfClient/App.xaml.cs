@@ -8,6 +8,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using Elmish.WPF;
+using FableTranspiler.WpfClient.Properties;
 
 namespace FableTranspiler.WpfClient
 {
@@ -27,8 +28,10 @@ namespace FableTranspiler.WpfClient
 
         private void StartElmish( object? sender, EventArgs e )
         {
+
             this.Activated -= StartElmish;
-            FableTranspiler.Adapters.WpfClient.App.main(MainWindow);
+            FableTranspiler.Adapters.WpfClient.App.main(MainWindow, SettingsManager.Instance);
+
         }
     }
 }

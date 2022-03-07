@@ -14,6 +14,8 @@ open FableTranspiler.Adapters.WpfClient.Components
 open FableTranspiler.Parsers.Types
 open Ookii.Dialogs.Wpf
 open System.Windows
+open Types
+open System
 
 type internal MainModel =
     {
@@ -31,6 +33,7 @@ type internal MainModel =
         //SelectedModuleKey : string list
         LastError : string option
         RootFolderToSave: string option
+        SettingsManager : Types.ISettingsManager
     }
 
 
@@ -49,10 +52,15 @@ module internal MainModel =
         | SetRootFolderToSave of string option
 
 
-    let init statementStore readFileAsync =
+    let init statementStore readFileAsync (settingsManager : ISettingsManager) =
         let (moduleTreeList, moduleTreeListMsg) = ModuleTreeList.init ()
         let (dtsModule, dtsModuleMsg) = DtsModule.init statementStore
         let (fsModule, fsModuleMsg) = FsModule.init statementStore
+        let s = 
+            match (settingsManager.Load "RootFolderToSave") with
+            | :? string as s when not (String.IsNullOrWhiteSpace(s)) -> s |> Some
+            | _ -> None
+
         {
             StatementStore = statementStore
             ReadFileAsync = readFileAsync
@@ -61,7 +69,8 @@ module internal MainModel =
             DtsModule = dtsModule
             FsModule = fsModule
             LastError = None
-            RootFolderToSave = None
+            RootFolderToSave = s
+            SettingsManager = settingsManager
         },
         Cmd.batch [
             Cmd.map ModuleTreeListMsg moduleTreeListMsg
@@ -136,10 +145,13 @@ module internal MainModel =
             else
                 match dialog.ShowDialog() |> Option.ofNullable with
                 | Some true ->
+                    model.SettingsManager.Save "RootFolderToSave" dialog.SelectedPath
                     {model with RootFolderToSave = dialog.SelectedPath |> Some}, Cmd.none
                 | _ -> model, Cmd.none
 
-        | SetRootFolderToSave v -> {model with RootFolderToSave = v}, Cmd.none
+        | SetRootFolderToSave v ->
+            v |> Option.iter (fun s -> model.SettingsManager.Save "RootFolderToSave"  s)
+            {model with RootFolderToSave = v}, Cmd.none
 
         | _ -> model, Cmd.none
 

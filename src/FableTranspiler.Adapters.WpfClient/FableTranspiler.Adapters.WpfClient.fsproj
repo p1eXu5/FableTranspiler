@@ -9,6 +9,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Include="Types.fs" />
     <Compile Include="Elmish.Extensions.fs" />
     <Compile Include="Components\DtsModule.fs" />
     <Compile Include="Components\FsModule.fs" />

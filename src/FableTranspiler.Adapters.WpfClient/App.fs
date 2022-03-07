@@ -11,7 +11,7 @@ open System.IO
 open FableTranspiler.Parsers.Types
 open FableTranspiler.Adapters.Persistence
 
-let main window =
+let main (window, settingsManager) =
     let logger =
         LoggerConfiguration()
           .MinimumLevel.Override("Elmish.WPF.Update", Events.LogEventLevel.Verbose)
@@ -33,6 +33,6 @@ let main window =
             }
         
 
-    WpfProgram.mkProgram (fun () -> MainModel.init (StatementStore.create Statement.identifier) readFile) update bindings
+    WpfProgram.mkProgram (fun () -> MainModel.init (StatementStore.create Statement.identifier) readFile settingsManager) update bindings
     |> WpfProgram.withLogger loggerFactory
     |> WpfProgram.startElmishLoop window
