@@ -10,7 +10,7 @@ open FableTranspiler.Interpreters
 open FableTranspiler.Interpreters.FsInterpreter
 open FableTranspiler
 
-
+/// Return relative path to module for Import attributes
 let libRelativePath rootFullPath moduleFullPath =
     let rootPath = rootFullPath |> FullPath.Value
     let modulePath = moduleFullPath |> FullPath.Value
@@ -186,6 +186,10 @@ let rec internal toFsStatement rootFullPath moduleFullPath statement interpretCo
         | Statement.Structure (StructureStatement.ConstDefinition constDefinition) ->
             return! interpretFsStatement innerConfig (strategy.InterpretConstDefinition constDefinition |> Fable.withUnion)
 
+        | Statement.Export (ExportStatement.StructureDefault (StructureStatement.FunctionDefinition functionDefinition))
+        | Statement.Export (ExportStatement.Structure (StructureStatement.FunctionDefinition functionDefinition)) ->
+            return! interpretFsStatement innerConfig (strategy.InterpretFunctionDefinition functionDefinition)
+
         | Statement.Export (ExportStatement.Namespace (identifier, statementList))
         | Statement.NamespaceDeclaration (identifier, statementList) ->
             let oldTypeScope = innerConfig.TypeScope
@@ -196,8 +200,6 @@ let rec internal toFsStatement rootFullPath moduleFullPath statement interpretCo
             | Choice2Of3 xs, c -> return namespaceFsStatements @ xs |> Choice2Of3, c
             | Choice3Of3 _, c -> return namespaceFsStatements |> Choice2Of3, c
 
-        | Statement.Export (ExportStatement.Structure (StructureStatement.FunctionDefinition functionDefinition)) ->
-            return! interpretFsStatement innerConfig (strategy.InterpretFunctionDefinition functionDefinition |> Fable.withAbstractClass)
 
         | Statement.Export (ExportStatement.OutDefault identifier) ->
             return
@@ -207,7 +209,7 @@ let rec internal toFsStatement rootFullPath moduleFullPath statement interpretCo
                     let identifier' = identifier |> Identifier.map Helpers.uncapitalizeFirstLetter
 
                     {
-                        Kind = FsStatementKind.LetDefault identifier'
+                        Kind = FsStatementKind.LetImportDefault identifier'
                         Scope = Scope.Module (ModuleScope.Main)
                         Open = ["Fable.Core"]
                         CodeItems = [
@@ -400,7 +402,7 @@ let collectImportDefault rootFullPath moduleFullPath fsStatementList =
                                 Hidden = false
                             }
                             {
-                                Kind = FsStatementKind.LetDefault identifier'
+                                Kind = FsStatementKind.LetImportDefault identifier'
                                 Scope = Scope.Module (ModuleScope.Main)
                                 Open = ["Fable.Core"]
                                 CodeItems = [

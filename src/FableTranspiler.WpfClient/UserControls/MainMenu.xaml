@@ -6,51 +6,69 @@
              xmlns:local="clr-namespace:FableTranspiler.WpfClient.UserControls"
              xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
              mc:Ignorable="d" 
-             d:DesignHeight="100" d:DesignWidth="800">
-    <Menu IsMainMenu="True">
-        <MenuItem Header="_File" >
-            <MenuItem Header="Open..."
-                      Icon="{materialDesign:PackIcon Kind=OpenInApp}"
-                      Command="{Binding OpenFileCommand}"
-                      >
-            </MenuItem>
+             d:DesignHeight="50" d:DesignWidth="800">
+    <Grid Background="{StaticResource MaterialDesignDarkBackground}">
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+        <Menu IsMainMenu="True" VerticalAlignment="Center">
+            <MenuItem Header="_File" >
+                <MenuItem Header="Open..."
+                          Icon="{materialDesign:PackIcon Kind=OpenInApp}"
+                          Command="{Binding OpenFileCommand}"
+                          >
+                </MenuItem>
             
-            <MenuItem Header="Save"
-                      Icon="{materialDesign:PackIcon Kind=ContentSave}">
-            </MenuItem>
+                <MenuItem Header="Save"
+                          Icon="{materialDesign:PackIcon Kind=ContentSave}">
+                </MenuItem>
 
-            <MenuItem Header="Save As.."/>
+                <MenuItem Header="Save As.."/>
 
-            <MenuItem Header="Exit"
-                      InputGestureText="Ctrl+E"
-                      Icon="{materialDesign:PackIcon Kind=ExitToApp}"/>
+                <MenuItem Header="Exit"
+                          InputGestureText="Ctrl+E"
+                          Icon="{materialDesign:PackIcon Kind=ExitToApp}"/>
 
-            <Separator/>
+                <Separator/>
 
-            <MenuItem Header="Excellent"
-                      IsCheckable="True"
-                      IsChecked="True"/>
+                <MenuItem Header="Excellent"
+                          IsCheckable="True"
+                          IsChecked="True"/>
 
-            <MenuItem Header="Rubbish"
-                      IsCheckable="True"
-                      />
-
-            <MenuItem Header="Dig Deeper"
-                      InputGestureText="Ctrl+D"
-                      >
-                <MenuItem Header="Enlightenment?"
+                <MenuItem Header="Rubbish"
                           IsCheckable="True"
                           />
-                <MenuItem Header="Disappointment"
-                          IsCheckable="True"
-                          />
-            </MenuItem>
 
-            <MenuItem Header="Look Deeper"
-                      InputGestureText="Ctrl+D">
-                <MenuItem Header="Plain"/>
-                <MenuItem Header="Ice Cream"/>
+                <MenuItem Header="Dig Deeper"
+                          InputGestureText="Ctrl+D"
+                          >
+                    <MenuItem Header="Enlightenment?"
+                              IsCheckable="True"
+                              />
+                    <MenuItem Header="Disappointment"
+                              IsCheckable="True"
+                              />
+                </MenuItem>
+
+                <MenuItem Header="Look Deeper"
+                          InputGestureText="Ctrl+D">
+                    <MenuItem Header="Plain"/>
+                    <MenuItem Header="Ice Cream"/>
+                </MenuItem>
             </MenuItem>
-        </MenuItem>
-    </Menu>
+        </Menu>
+        <Grid Grid.Column="1" HorizontalAlignment="Right" TextElement.Foreground="{StaticResource MaterialDesignBody}">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <TextBlock Grid.Column="0" Text="Root Path to Save:" VerticalAlignment="Center" Margin="0,0,10,0"/>
+            <TextBox Grid.Column="1" Text="{Binding RootFolderToSave}" MinWidth="800" MaxWidth="2000" MaxLines="1" MinLines="1" VerticalAlignment="Center" ></TextBox>
+            <Button Grid.Column="2" Style="{StaticResource MaterialDesignFlatLightButton}" Command="{Binding ChooseRootFolderToSave}">
+                <materialDesign:PackIcon Kind="FolderArrowLeftOutline" />
+            </Button>
+        </Grid>
+    </Grid>
 </UserControl>

@@ -38,8 +38,9 @@ type FsStatementKind =
     | AbstractClass of Identifier
     | Field of Identifier
     /// let statement with ImportDefaultAttribute
-    | LetDefault of Identifier
+    | LetImportDefault of Identifier
     /// let statement with ImportAttribute
+    | LetImport of Identifier
     | Let of Identifier
     | Parameter of Identifier
     | ReactComponent of Identifier
@@ -135,7 +136,8 @@ module internal FsStatementV2 =
         | FsStatementKind.Const id
         | FsStatementKind.Object id
         | FsStatementKind.ReactComponent id
-        | FsStatementKind.LetDefault id
+        | FsStatementKind.LetImportDefault id
+        | FsStatementKind.LetImport id
         | FsStatementKind.Let id
         | FsStatementKind.Field id
         | FsStatementKind.Parameter id
@@ -298,7 +300,12 @@ module internal FsStatementV2 =
 
     let isLet s =
         match s.Kind with
-        | FsStatementKind.Let _ -> true
+        | FsStatementKind.LetImport _ -> true
+        | _ -> false
+
+    let isAnonymous s =
+        match s.Kind with
+        | FsStatementKind.Type FsStatementType.Anonymous -> true
         | _ -> false
 
     let add statementA statementB =

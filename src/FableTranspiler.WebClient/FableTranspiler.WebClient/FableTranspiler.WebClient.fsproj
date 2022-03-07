@@ -12,6 +12,8 @@
     <Compile Include="TranspilerOutput\Fable\ReactScroll\ScrollEvents.fs" />
     <Compile Include="TranspilerOutput\Fable\ReactScroll\Helpers.fs" />
     <Compile Include="TranspilerOutput\Fable\ReactScroll\AnimateScroll.fs" />
+    <Compile Include="TranspilerOutput\Fable\ReactScroll\ScrollElement.fs" />
+    <Compile Include="TranspilerOutput\Fable\ReactScroll\ScrollLink.fs" />
     <Compile Include="Components\Fable\ReactScroll.fs" />
     <Compile Include="Components\TestEntity.fs" />
     <Compile Include="Router.fs" />

@@ -1,5 +1,7 @@
 ﻿namespace FableTranspiler.Interpreters
 
+open System.Text
+
 
 [<StructuralEquality; StructuralComparison>]
 type CodeItem =
@@ -39,6 +41,12 @@ type TabLevel = TabLevel of int with
 [<AutoOpen>]
 module CodeItem =
     open FableTranspiler.SimpleTypes
+
+    let toString codeItems =
+        let sb = StringBuilder()
+        codeItems
+        |> List.iter (fun ci -> sb.Append(ci.ToString()) |> ignore)
+        sb.ToString()
 
     let internal vm tag content =
         { Tag = tag; Content = content }

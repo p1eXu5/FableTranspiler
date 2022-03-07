@@ -1,5 +1,6 @@
 ﻿module internal rec FableTranspiler.Interpreters.FsInterpreter.Fable
 
+open FableTranspiler
 open FableTranspiler.Helpers
 open FableTranspiler.SimpleTypes
 open FableTranspiler.Parsers.Types
@@ -178,18 +179,38 @@ let interpretTypeCombination combination : Interpreter< InnerInterpretConfig, Fs
                     , summary 
 
         | TypeCombination.Composition dtsTypeList ->
-            let (types, summary) = interpretTypes dtsTypeList 
+            let (types, summary) = 
+                interpretTypes dtsTypeList 
 
-            if not (types |> List.isEmpty) then
+            let! fieldStartWith = config.FieldStartWithCodeItems
+
+            let fields =
+                types
+                |> List.filter FsStatementV2.isAnonymous
+                |> List.map (fun s ->
+                    s.NestedStatements
+                    |> List.map (fun ns ->
+                        {ns with 
+                            CodeItems = [
+                                tab (tabLevel + 1)
+                                yield! fieldStartWith (ns |> FsStatementV2.identifier |> Option.get) 
+                            ]
+                            NestedStatements = ns.NestedStatements |> List.map FsStatementV2.addLineBreak
+                        }
+                    )
+                )
+                |> List.concat
+
+            if not (fields |> List.isEmpty) then
                 return
                     {
                         Kind = FsStatementKind.Type FsStatementType.Composition
                         Scope = Inherit
                         Open = (types |> List.map (fun ns -> ns.Open) |> List.concat)
                         CodeItems = []
-                        NestedStatements = types
+                        NestedStatements = fields
                         PostCodeItems = []
-                        Summary = []
+                        Summary = summary
                         Hidden = false
                     } |> Some
                     , summary
@@ -451,6 +472,7 @@ let interpretTypeAlias (typeAlias: TypeAlias) =
         let! postCodeItems' = config.InterfacePostCodeItems
         
         match typeAlias with
+        | TypeAlias.Generic (identifier, _, combination)
         | TypeAlias.Plain (identifier, combination) ->
             let! comb = interpretTypeCombination combination
             return
@@ -462,7 +484,7 @@ let interpretTypeAlias (typeAlias: TypeAlias) =
                         tab tabLevel
                         vmKeyword "type "
                         vmType (identifier |> Identifier.value)
-                        vmText  "="
+                        vmText  " ="
                         vmEndLineNull
                     ]
                     NestedStatements =
@@ -473,7 +495,6 @@ let interpretTypeAlias (typeAlias: TypeAlias) =
                     Summary = snd comb
                     Hidden = false
                 }
-        | TypeAlias.Generic (identifier, types, combination) -> return failwith "Not implemented"
     }
 
 
@@ -504,6 +525,7 @@ let interpretReactComponent identifier =
 
 let interpretConstDefinition constDefinition =
     match constDefinition with
+    | ConstDefinition.DeclareConst (identifier, td)
     | ConstDefinition.Const (identifier, td) ->
         interpreter {
             let! (fsStatementOpt, summary) = interpretTypeDefinition td |> withDisabledTypeSearching
@@ -518,7 +540,6 @@ let interpretConstDefinition constDefinition =
                 Hidden = true
             }
         }
-    | _ -> failwith "Not implemented"
 
 
 let interpretNamespace identifier namespaceFsStatements =
@@ -566,15 +587,31 @@ let interpretNamespace identifier namespaceFsStatements =
 
 
 let interpretFunctionDefinition functionDefinition =
+    let isGenericType typeName = function
+        | Single t -> 
+            match t with
+            | DTsType.Generic (qualifiers, _) ->
+                qualifiers |> List.last |> Identifier.value |> (=) typeName
+            | _ -> false
+        | _ -> false
+
+    let isReactComponenetType (parameters: FieldList) =
+        parameters.Length = 1
+        && parameters.Head 
+            |> snd 
+            |> isGenericType "ComponentType"
+
+    let isReactComponenetClass = isGenericType "ComponentClass"
+
     interpreter {
-        let! (config: InnerInterpretConfig, _) = Interpreter.ask
+        let! (config: InnerInterpretConfig, tabLevel) = Interpreter.ask
 
         match functionDefinition with
         | FunctionDefinition.Plain (identifier, fl, retType) ->
             let! signature = config.InterpretFuncSignature fl retType (FsStatementKind.Type FsStatementType.Func) [] []
             return
                 {
-                    Kind = FsStatementKind.Let identifier
+                    Kind = FsStatementKind.LetImport identifier
                     Scope = Scope.Module (ModuleScope.Main)
                     Open = ["Fable.Core"]
                     CodeItems = [
@@ -590,6 +627,35 @@ let interpretFunctionDefinition functionDefinition =
                     Summary = snd signature
                     Hidden = false
                 }
+        | FunctionDefinition.GenericNameless (_, parameters, returnType) when parameters |> isReactComponenetType && returnType |> isReactComponenetClass ->
+            let funcName = config.LibRelativePath.Value |> Helpers.toModuleName Helpers.uncapitalizeFirstLetter
+            return
+                {
+                    Kind = FsStatementKind.Let (funcName |> Identifier.create)
+                    Scope = Scope.Module (ModuleScope.Main)
+                    Open = ["Fable.React"; "Fable.Core.JsInterop"; "Fable.React.Props"]
+                    CodeItems = [
+                        vmKeyword "let inline "
+                        vmText funcName
+                        vmPrn "<"; vmType "'TProps"; vmPrn "> (``"; vmText "component"; vmPrn "``: "; vmType "ReactElementType"; vmPrn "<"; vmType "'TProps"; vmPrn ">) ="
+                        vmEndLineNull
+                        tab (tabLevel + 1)
+                        vmKeyword "fun "
+                        vmText "props children"
+                        vmPrn " ->"; vmEndLineNull
+                        tab (tabLevel + 2)
+                        vmText "domEl "; vmPrn "("
+                        vmText "importDefault "
+                        vmPrn $"@\"{config.LibRelativePath.Value}\""
+                        vmText " ``component``"; vmPrn ")"
+                        vmText " props children"
+                    ]
+                    NestedStatements = []
+                    PostCodeItems = []
+                    Summary = [vmComment $"/// factory of %s{returnType |> DtsInterpreter.constructTypeDefinition |> CodeItem.toString}"; vmEndLineNull]
+                    Hidden = false
+                }
+
         | _ -> return failwith $"{functionDefinition} interpretation is not implemented"
     }
 

@@ -12,6 +12,8 @@ open FableTranspiler.Domain.UseCases.Implementation
 open FsToolkit.ErrorHandling
 open FableTranspiler.Adapters.WpfClient.Components
 open FableTranspiler.Parsers.Types
+open Ookii.Dialogs.Wpf
+open System.Windows
 
 type internal MainModel =
     {
@@ -28,6 +30,7 @@ type internal MainModel =
         //FsModules : Map<string list, FsStatementViewModel list>
         //SelectedModuleKey : string list
         LastError : string option
+        RootFolderToSave: string option
     }
 
 
@@ -42,6 +45,8 @@ module internal MainModel =
         | FsModuleMsg of FsModule.Msg
         | ParseFile of Operation<FullPath, FullPathTree>
         | SetSelectedModule of string list option
+        | ChooseRootFolderToSave
+        | SetRootFolderToSave of string option
 
 
     let init statementStore readFileAsync =
@@ -56,6 +61,7 @@ module internal MainModel =
             DtsModule = dtsModule
             FsModule = fsModule
             LastError = None
+            RootFolderToSave = None
         },
         Cmd.batch [
             Cmd.map ModuleTreeListMsg moduleTreeListMsg
@@ -121,6 +127,20 @@ module internal MainModel =
 
             {model with FsModule = fsModule'}, Cmd.map DtsModuleMsg fsModuleMsg
 
+        | ChooseRootFolderToSave ->
+            let dialog = VistaFolderBrowserDialog()
+            dialog.Description <- "Choose root folder to save"
+            dialog.UseDescriptionForTitle <- true
+            if not VistaFolderBrowserDialog.IsVistaFolderDialogSupported then
+                {model with LastError = "Dialog is not supported" |> Some}, Cmd.none
+            else
+                match dialog.ShowDialog() |> Option.ofNullable with
+                | Some true ->
+                    {model with RootFolderToSave = dialog.SelectedPath |> Some}, Cmd.none
+                | _ -> model, Cmd.none
+
+        | SetRootFolderToSave v -> {model with RootFolderToSave = v}, Cmd.none
+
         | _ -> model, Cmd.none
 
 
@@ -148,4 +168,7 @@ module internal MainModel =
             |> Binding.mapMsg FsModuleMsg
     
             "LastError" |> Binding.oneWayOpt (fun m -> m.LastError)
+
+            "RootFolderToSave" |> Binding.twoWayOpt ((fun m -> m.RootFolderToSave), SetRootFolderToSave)
+            "ChooseRootFolderToSave" |> Binding.cmd ChooseRootFolderToSave
         ]

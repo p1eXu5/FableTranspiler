@@ -214,7 +214,8 @@ let rec private constructCombination sep combination res =
                 yield! constructObjectLiteral fl (false, ", ")
                 vmPrn "}"
             ]
-                
+            |> (fun r -> constructCombination sep tail (r :: res))
+
 
         | DTsType.Plain p -> 
             constructType p
@@ -316,7 +317,7 @@ let rec private interpretStructure structure : CodeItem list =
             yield vmType identifier
             yield vmPrn "<"
             yield! constructTypeParams typeParams 
-            yield vmText " = "
+            yield vmPrn "> = "
             match combination with
             | Union l ->
                 yield! constructCombination " | " l []

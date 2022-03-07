@@ -25,3 +25,11 @@ let capitalizeFirstLetter (s: string) =
 
 let uncapitalizeFirstLetter (s: string) =
     Char.ToLowerInvariant(s[0]).ToString() + s[1..]
+
+/// Examples of modifiers: Helpers.capitalizeFirstLetter and Helpers.uncapitalizeFirstLetter
+let toModuleName modifier (moduleRelativePath: string) =
+    String.Join("",
+        Path.GetFileName(moduleRelativePath)
+            .Split("-")
+            |> Seq.map modifier
+    )

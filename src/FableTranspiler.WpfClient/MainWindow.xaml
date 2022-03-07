@@ -19,7 +19,7 @@
         >
     
     <DockPanel LastChildFill="True">
-        <local:MainMenu DockPanel.Dock="Top" DataContext="{Binding}"/>
+        <local:MainMenu DockPanel.Dock="Top" DataContext="{Binding}" Height="60"/>
         <Separator DockPanel.Dock="Top"/>
         <StatusBar DockPanel.Dock="Bottom" Height="24">
             <TextBlock Text="{Binding LastError}" />

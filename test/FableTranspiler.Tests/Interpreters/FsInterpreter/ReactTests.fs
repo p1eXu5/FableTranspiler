@@ -58,7 +58,7 @@ module ReactTests =
         }
 
 
-    let processDtsModule modulePath content =
+    let interpretDtsModule modulePath content =
         result {
             let statementsResult =
                 content
@@ -251,7 +251,7 @@ module ReactTests =
     let ``interpret Button_d_ts like module`` () =
         result {
             let! _ = 
-                processDtsModule "./Link"
+                interpretDtsModule "./Link"
                     """
                         import * as React from 'react';
 
@@ -264,7 +264,7 @@ module ReactTests =
                     """
 
             let! buttonStatements = 
-                processDtsModule "./Button"
+                interpretDtsModule "./Button"
                     """
                         import * as React from 'react';
                         import { ReactScrollLinkProps } from './Link';
@@ -391,7 +391,7 @@ module ReactTests =
     let ``interface to abstract class interpratation test`` () =
         result {
             let! statements =
-                processDtsModule "./scroll-events"
+                interpretDtsModule "./scroll-events"
                     """
                         interface ScrollEvent {
                             register(eventName: string, callback: (to: string, element: any) => void): void;
@@ -422,7 +422,7 @@ module ReactTests =
     let ``exported namespace interpretation test like scroll-events`` () =
         result {
             let! statements =
-                processDtsModule "./scroll-events"
+                interpretDtsModule "./scroll-events"
                     """
                         declare namespace Events {
                             interface ScrollEvent {
@@ -452,7 +452,7 @@ module ReactTests =
 
             fsStatements[0].Kind |> should be (ofCase <@ FsStatementKind.AbstractClass @>)
             fsStatements[1].Kind |> should be (ofCase <@ FsStatementKind.AbstractClass @>)
-            fsStatements[2].Kind |> should be (ofCase <@ FsStatementKind.LetDefault @>)
+            fsStatements[2].Kind |> should be (ofCase <@ FsStatementKind.LetImportDefault @>)
             fsStatements[2].Open |> should contain "Fable.Core"
 
             let sPresent0 = sprintf "%O" fsStatements[0]
@@ -476,7 +476,7 @@ module ReactTests =
     let ``exported function interpretation test`` () =
         result {
             let! statements =
-                processDtsModule "./animate-scroll"
+                interpretDtsModule "./animate-scroll"
                     """
                         export function scrollToBottom(options?: any): void;
                     """
@@ -488,7 +488,7 @@ module ReactTests =
             TestContext.WriteLine $"%A{fsStatementList.Head}"
 
             let fsStatement = fsStatementList.Head
-            fsStatement.Kind |> should equal (FsStatementKind.Let (Identifier "scrollToBottom"))
+            fsStatement.Kind |> should equal (FsStatementKind.LetImport (Identifier "scrollToBottom"))
             
             let presentation = $"%O{fsStatement}"
             presentation |> should contain @"[<Import(""scrollToBottom"", from=""react-scroll\animate-scroll"")>]"
@@ -501,7 +501,7 @@ module ReactTests =
     let ``exported function with annonymous object type patameter interpretation test`` () =
         result {
             let! statements =
-                processDtsModule "./animate-scroll"
+                interpretDtsModule "./animate-scroll"
                     """
                         export function getAnimationType(options: { smooth: boolean | string }): (x: number) => number;
                     """
@@ -513,7 +513,7 @@ module ReactTests =
             TestContext.WriteLine $"%A{fsStatementList.Head}"
 
             let fsStatement = fsStatementList.Head
-            fsStatement.Kind |> should equal (FsStatementKind.Let (Identifier "getAnimationType"))
+            fsStatement.Kind |> should equal (FsStatementKind.LetImport (Identifier "getAnimationType"))
             
             let presentation = $"%O{fsStatement}"
             presentation |> should contain @"[<Import(""getAnimationType"", from=""react-scroll\animate-scroll"")>]"
@@ -526,7 +526,7 @@ module ReactTests =
     let ``interface with typeof member interpretation like scroller_d_ts`` () =
         result {
             let! statements =
-                processDtsModule "./scroller"
+                interpretDtsModule "./scroller"
                     """
                         export function scrollTo(to: string, props: any): void;
 
@@ -555,10 +555,71 @@ module ReactTests =
 
 
     [<Test>]
+    let ``generic type alias with combination against inline object`` () =
+        result {
+            let! statements =
+                interpretDtsModule "./scroll-element"
+                    """
+                        export type ScrollElementProps<P> = P & {
+                            name: string;
+                            id?: string | undefined;
+                        };
+                    """
+
+            let! fsStatements = interpretV2' "./scroll-element" statements
+
+            fsStatements |> should haveLength 1
+
+            let present = fsStatements.Head.ToString()
+            present |> should contain "type ScrollElementProps ="
+            present |> should contain "| Name of string"
+            present |> should contain "| Id of string"
+        }
+        |> Result.runTest
+
+
+    [<Test>]
+    let ``generic type alias with combination against interface and inline object`` () =
+        result {
+            do!
+                interpretDtsModule "./scroll-element"
+                    """
+                        export type ScrollElementProps<P> = P & {
+                            name: string;
+                            id?: string | undefined;
+                        };
+                    """
+                |> Result.bind (interpretV2' "./scroll-element")
+                |> Result.map (fun _ -> ())
+
+            let! fsStatements =
+                interpretDtsModule "./scroll-link"
+                    """
+                        import { ReactScrollLinkProps } from './scroll-element';
+
+                        export type ScrollLinkProps<P> = ReactScrollLinkProps &
+                            P & {
+                                container?: HTMLElement | undefined;
+                            };
+                    """
+                |> Result.bind (interpretV2' "./scroll-link")
+
+
+            fsStatements |> should haveLength 1
+
+            let present = fsStatements.Head.ToString()
+            present |> should contain "type ScrollElementProps ="
+            present |> should contain "| Name of string"
+            present |> should contain "| Id of string"
+        }
+        |> Result.runTest
+
+
+    [<Test>]
     let ``collectImportDefault test`` () =
         result {
             let! statements =
-                processDtsModule "./animate-scroll"
+                interpretDtsModule "./animate-scroll"
                     """
                         export function scrollToBottom(options?: any): void;
                     """
@@ -576,7 +637,7 @@ module ReactTests =
             fsStatementList |> should haveLength 2
 
             fsStatementList[0].Kind |> should equal (FsStatementKind.AbstractClass (Identifier "AnimateScroll"))
-            fsStatementList[1].Kind |> should equal ( FsStatementKind.LetDefault (Identifier "animateScroll"))
+            fsStatementList[1].Kind |> should equal ( FsStatementKind.LetImportDefault (Identifier "animateScroll"))
 
             let presentation0 = $"%O{fsStatementList[0]}"
             presentation0 |> should contain "type AnimateScroll ="
@@ -596,7 +657,7 @@ module ReactTests =
     let ``exported namespace interpretation test like Helpers_d_ts`` () =
         result {
             let! statements =
-                processDtsModule "./Helpers"
+                interpretDtsModule "./Helpers"
                     """
                         export namespace Helpers {
                             function Scroll(component: any, customScroller?: any): any;
@@ -618,7 +679,7 @@ module ReactTests =
             |> shouldL haveLength 2 $"Wrong count of fs statements"
 
             fsStatements[0].Kind |> should be (ofCase <@ FsStatementKind.AbstractClass @>)
-            fsStatements[1].Kind |> should be (ofCase <@ FsStatementKind.LetDefault @>)
+            fsStatements[1].Kind |> should be (ofCase <@ FsStatementKind.LetImportDefault @>)
             fsStatements[1].Open |> should contain "Fable.Core"
 
             let sPresent0 = sprintf "%O" fsStatements[0]
