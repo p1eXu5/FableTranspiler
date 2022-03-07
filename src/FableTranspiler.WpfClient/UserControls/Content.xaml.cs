@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -72,6 +73,18 @@ namespace FableTranspiler.WpfClient.UserControls
             adorner.Hide();
             e.Handled= true;
             Debug.WriteLine("Mouse enter {0}", sender);
+        }
+
+        private void CommandBinding_Executed(object sender, ExecutedRoutedEventArgs e)
+        {
+            var flowDocument = m_FelizContent.Document;
+            var fileName = System.IO.Path.Combine((string)Tag, m_FsModuleFileName.Text);
+
+            using (FileStream fs = new FileStream(fileName, FileMode.OpenOrCreate, FileAccess.Write))
+            {
+                TextRange textRange = new TextRange(flowDocument.ContentStart, flowDocument.ContentEnd);
+                textRange.Save(fs, DataFormats.Text);
+            }
         }
     }
 }

@@ -17,6 +17,7 @@ type internal FsModule =
         SelectedFsStatement: int option
         MutedFsStatements: int list
         InterpretConfigV2: InterpretConfigV2
+        FileName: string option
     }
 
 
@@ -39,45 +40,51 @@ module internal FsModule =
                     StatementStore = statementStore
                     FsStatementStore = StatementStore.create FsStatementV2.identifier
                 }
+            FileName = None
         }
         , Cmd.none
 
     let update msg model =
         match msg with
         | Interpret (rootFullPath, moduleFullPath) ->
-            match model.InterpretConfigV2.FsStatementStore.TryGetStatementList moduleFullPath with
-            | Some result ->
-                {
-                    model with
-                        FsStatements = result |> Result.map (fun fsStatements -> fsStatements |> appendNamespaceAndModules rootFullPath moduleFullPath) |> Result.mapError (CodeItem.interpretError)
-                        SelectedFsStatement = None
-                },
-                Cmd.none
-            | None ->
-                match model.InterpretConfigV2.StatementStore.TryGetStatementList moduleFullPath with
-                | Some result ->
-                    {
-                        model with
-                            FsStatements = 
-                                result 
-                                |> Result.map (fun statements ->
-                                    interpretV2 rootFullPath moduleFullPath statements None
-                                    |> Ports.run model.InterpretConfigV2
-                                    |> appendNamespaceAndModules rootFullPath moduleFullPath
-                                )
-                                |> Result.map (List.filter FsStatementV2.notHidden)
-                                |> Result.mapError (CodeItem.interpretError)
-                            SelectedFsStatement = None
-                    },
-                    Cmd.none
-                | None ->
-                    {   
-                        model with
-                            FsStatements = Result.Error (CodeItem.interpretError $"Could not find {moduleFullPath} module statements")
-                            SelectedFsStatement = None
-                    },
-                    Cmd.none
+            let fsStatementResult =
+                model.InterpretConfigV2.FsStatementStore.TryGetStatementList moduleFullPath
+                |> Option.map (fun fsStatementsResult ->
+                    fsStatementsResult 
+                    |> Result.map (fun fsStatements -> fsStatements |> appendNamespaceAndModules rootFullPath moduleFullPath) 
+                    |> Result.mapError (CodeItem.interpretError)
+                )
+                |> Option.defaultWith (fun () -> 
+                    model.InterpretConfigV2.StatementStore.TryGetStatementList moduleFullPath
+                    |> Option.map (fun dtsStatementsResult ->
+                        dtsStatementsResult
+                        |> Result.map (fun statements ->
+                            interpretV2 rootFullPath moduleFullPath statements None
+                            |> Ports.run model.InterpretConfigV2
+                            |> appendNamespaceAndModules rootFullPath moduleFullPath
+                        )
+                        |> Result.map (List.filter FsStatementV2.notHidden)
+                        |> Result.mapError (CodeItem.interpretError)
+                    )
+                    |> Option.defaultWith (fun () ->  Result.Error (CodeItem.interpretError $"Could not find {moduleFullPath} module statements"))
+                )
         
+            {
+                model with
+                    FsStatements = fsStatementResult
+                    FileName =
+                        match fsStatementResult with
+                        | Ok xs when xs.Length > 0 ->
+                            match xs.Head.Kind with
+                            | FsStatementKind.Namespace n
+                            | FsStatementKind.Module n ->
+                                n.Split(".") |> Array.last |> (+) <| ".fs" |> Some
+                            | _ -> None
+                        | _ -> None
+
+                    SelectedFsStatement = None
+            },
+            Cmd.none
 
     open Elmish.WPF
 
@@ -95,4 +102,6 @@ module internal FsModule =
             | Error err -> err |> Some
             | _ -> None
         )
+
+        "FileName" |> Binding.oneWayOpt (fun m -> m.FileName)
     ]

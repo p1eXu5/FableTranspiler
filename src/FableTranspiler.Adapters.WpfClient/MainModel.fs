@@ -171,4 +171,10 @@ module internal MainModel =
 
             "RootFolderToSave" |> Binding.twoWayOpt ((fun m -> m.RootFolderToSave), SetRootFolderToSave)
             "ChooseRootFolderToSave" |> Binding.cmd ChooseRootFolderToSave
+            
+            "HasFsStatements" |> Binding.oneWay (fun m -> 
+                match m.FsModule.FsStatements with
+                | Ok s when s.Length > 0 -> true
+                | _ -> false
+            )
         ]

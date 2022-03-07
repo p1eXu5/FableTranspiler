@@ -9,6 +9,7 @@
              xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
              mc:Ignorable="d"
              d:DesignHeight="450" d:DesignWidth="1030"
+             Tag="{Binding RootFolderToSave}"
              >
     <UserControl.Resources>
         <conv:ParentWidthConverter x:Key="conv_ParentWidthConverter" />
@@ -56,19 +57,27 @@
                                  <!--prop:RichTextBoxHelper.DocumentError="{Binding SelectedDtsStatementsError, Mode=OneWay}"-->
                     </RichTextBox>
                 </Border>
-                <Border DataContext="{Binding FsModule}">
+                <DockPanel LastChildFill="True">
+                    <TextBlock x:Name="m_FsModuleFileName" DockPanel.Dock="Top" HorizontalAlignment="Center" Text="{Binding FsModule.FileName}" />
                     <RichTextBox x:Name="m_FelizContent"
                                  Visibility="{Binding ElementName=m_ContentToggler, Path=ShowFelizContent, Converter={StaticResource conv_BoolToVis}, Mode=OneWay}"
-                                 prop:FsFlowDocument.FsDocument="{Binding FsStatements, Mode=OneWay}"
-                                 prop:FsFlowDocument.FsDocumentError="{Binding FsStatementsError, Mode=OneWay}"
+                                 prop:FsFlowDocument.FsDocument="{Binding FsModule.FsStatements, Mode=OneWay}"
+                                 prop:FsFlowDocument.FsDocumentError="{Binding FsModule.FsStatementsError, Mode=OneWay}"
                                  materialDesign:HintAssist.Hint="Feliz Content"
                                  prop:FsFlowDocument.SectionMouseEnter="RichTextBox_MouseEnter"
                                  prop:FsFlowDocument.SectionMouseLeave="RichTextBox_MouseLeave"
                                  d:Visibility="Visible"
                                  d:Width="500"
                                  >
+                        <RichTextBox.CommandBindings>
+                            <CommandBinding Command="ApplicationCommands.Save"
+                                            Executed="CommandBinding_Executed"
+                                            />
+
+
+                        </RichTextBox.CommandBindings>
                     </RichTextBox>
-                </Border>
+                </DockPanel>
             </StackPanel>
         </DockPanel>
     </materialDesign:ColorZone>

@@ -615,7 +615,7 @@ let interpretFunctionDefinition functionDefinition =
                     Scope = Scope.Module (ModuleScope.Main)
                     Open = ["Fable.Core"]
                     CodeItems = [
-                        vmPrn "[<"; vmText "Import"; vmPrn $"(\"{Identifier.value identifier}\", "; vmText "from="; vmPrn $"\"{config.LibRelativePath.Value}\")>]"; vmEndLineNull
+                        vmPrn "[<"; vmText "Import"; vmPrn $"(\"{Identifier.value identifier}\", "; vmText "from="; vmPrn $"@\"{config.LibRelativePath.Value}\")>]"; vmEndLineNull
                         vmKeyword "let "; vmIdentifier identifier; vmPrn " : "
                     ]
                     NestedStatements = [fst signature]

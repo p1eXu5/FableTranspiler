@@ -54,5 +54,10 @@ namespace FableTranspiler.WpfClient.UserControls
             get { return (bool)GetValue(ShowFableContentProperty); }
             set { SetValue(ShowFableContentProperty, value); }
         }
+
+        private void SaveFsModuleButton_Click(object sender, RoutedEventArgs e)
+        {
+           // RoutedEventArgs args = 
+        }
     }
 }
