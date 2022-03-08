@@ -51,9 +51,45 @@ type FsStatementKind =
     | Module of string
     | Container
 
+type FsStatementV2 =
+    | InnerFsStatement of InnerFsStatement
+    | TopLevelFsStatement of TopLevelFsStatement
+    with
+        override this.ToString() =
+            match this with
+            | InnerFsStatement s -> s.ToString()
+            | TopLevelFsStatement s -> s.ToString()
+and
+    InnerFsStatement =
+    {
+        Type : FsStatementType
+        Open: string list
+        CodeItems: CodeItem list
+        NestedStatements: InnerFsStatement list
+        /// make sense only on root level
+        PostCodeItems: CodeItem list
+    }
+    with
+        member private this.ToStringInner() =
+            let sb = StringBuilder()
+        
+            this.CodeItems
+            |> List.iter (fun s -> sb.Append(s.ToString()) |> ignore)
+            
+            this.NestedStatements
+            |> List.iter (fun s -> sb.Append(s.ToString()) |> ignore)
 
+            sb
 
-type TopLevelFsStatement =
+        override this.ToString() =
+            let sb = this.ToStringInner()
+
+            this.PostCodeItems
+            |> List.iter (fun s -> sb.Append(s.ToString()) |> ignore)
+
+            sb.ToString()
+and
+    TopLevelFsStatement =
     {
         Kind : FsStatementKind
         Scope: Scope
