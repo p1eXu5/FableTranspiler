@@ -19,8 +19,8 @@ let runDTsTypeInterpretation (config, tabLevel)=
     fun dtsType -> Interpreter.run (config, tabLevel) (interpretDTsType dtsType)
 
 
-let rec interpretDTsType (type': DTsType)  : Interpreter< InnerInterpretConfig, FsStatementV2 option * Summary> =
-    let fsStatement fsStatmementType (nestedStatements: FsStatementV2 list) =
+let rec interpretDTsType (type': DTsType)  : Interpreter< InnerInterpretConfig, TopLevelFsStatement option * Summary> =
+    let fsStatement fsStatmementType (nestedStatements: TopLevelFsStatement list) =
         {
             Kind = FsStatementKind.Type fsStatmementType
             Scope = Inherit
@@ -135,7 +135,7 @@ let rec interpretDTsType (type': DTsType)  : Interpreter< InnerInterpretConfig, 
 
 
 /// common
-let interpretTypeDefinition (tdef: TypeDefinition) : Interpreter<InnerInterpretConfig, (FsStatementV2 option * Summary)> =
+let interpretTypeDefinition (tdef: TypeDefinition) : Interpreter<InnerInterpretConfig, (TopLevelFsStatement option * Summary)> =
     interpreter {
         match tdef with
         | TypeDefinition.Single tn -> return! interpretDTsType tn
@@ -143,7 +143,7 @@ let interpretTypeDefinition (tdef: TypeDefinition) : Interpreter<InnerInterpretC
     }
 
 
-let interpretTypeCombination combination : Interpreter< InnerInterpretConfig, FsStatementV2 option * Summary> =
+let interpretTypeCombination combination : Interpreter< InnerInterpretConfig, TopLevelFsStatement option * Summary> =
 
     let interpretTypes typeList =
         interpreter {
@@ -170,7 +170,7 @@ let interpretTypeCombination combination : Interpreter< InnerInterpretConfig, Fs
 
         match combination with
         | TypeCombination.Union union ->
-            let! (types, summary) = interpretTypes union |> InnerInterpretConfig.wrapFuncWithPrn<FsStatementV2 list * Summary>
+            let! (types, summary) = interpretTypes union |> InnerInterpretConfig.wrapFuncWithPrn<TopLevelFsStatement list * Summary>
 
             if types.Length = 0 then return None, summary
             elif types.Length = 1 then return types.Head |> Some, summary
@@ -244,7 +244,7 @@ let interpretFuncSignature fl typeDefinition kind codeItemPrependix codeItemAppe
     interpreter {
         let! (config: InnerInterpretConfig, tabLevel) = Interpreter.ask
 
-        let! returnTypeInterpretation = interpretTypeDefinition typeDefinition |> InnerInterpretConfig.wrapFuncWithPrn<FsStatementV2 option * Summary>
+        let! returnTypeInterpretation = interpretTypeDefinition typeDefinition |> InnerInterpretConfig.wrapFuncWithPrn<TopLevelFsStatement option * Summary>
         let (returnType, summary) =
             match returnTypeInterpretation with
             | Some s, summary ->
@@ -301,7 +301,7 @@ let interpretFuncSignature fl typeDefinition kind codeItemPrependix codeItemAppe
 
 let interpretNamedFuncSignature fl typeDefinition kind codeItemPrependix codeItemAppendix =
     interpreter {
-        let! returnTypeInterpretation = interpretTypeDefinition typeDefinition |> InnerInterpretConfig.wrapFuncWithPrn<FsStatementV2 option * Summary>
+        let! returnTypeInterpretation = interpretTypeDefinition typeDefinition |> InnerInterpretConfig.wrapFuncWithPrn<TopLevelFsStatement option * Summary>
         let (returnType, summary) =
             match returnTypeInterpretation with
             | Some s, summary ->
@@ -366,7 +366,7 @@ let interpretNamedFuncSignature fl typeDefinition kind codeItemPrependix codeIte
     }
 
 
-let rec interpretFnParameter (field, typeDefinition) : Interpreter<InnerInterpretConfig, (FsStatementV2 * Summary)> =
+let rec interpretFnParameter (field, typeDefinition) : Interpreter<InnerInterpretConfig, (TopLevelFsStatement * Summary)> =
     
     let fsStatement identifier nested =
         {

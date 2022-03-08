@@ -53,13 +53,13 @@ type FsStatementKind =
 
 
 
-type FsStatementV2 =
+type TopLevelFsStatement =
     {
         Kind : FsStatementKind
         Scope: Scope
         Open: string list
         CodeItems: CodeItem list
-        NestedStatements: FsStatementV2 list
+        NestedStatements: TopLevelFsStatement list
         /// make sense only on root level
         PostCodeItems: CodeItem list
         Summary: CodeItem list
@@ -94,13 +94,13 @@ type FsStatementV2 =
 type internal InnerInterpretConfig =
     {
         LibRelativePath: Lazy<string>
-        TryGetLocal: Identifier -> FsStatementV2 option
-        TryGetStatement: Identifier list -> FsStatementV2 option
+        TryGetLocal: Identifier -> TopLevelFsStatement option
+        TryGetStatement: Identifier list -> TopLevelFsStatement option
         InterfacePostCodeItems: Interpreter<InnerInterpretConfig, CodeItem list>
         FieldStartWithCodeItems: Interpreter<InnerInterpretConfig, Identifier -> CodeItem list>
         InterfaceStatementKind: Identifier -> FsStatementKind
         TypeScope: Scope
-        InterpretFuncSignature: FieldList -> ReturnTypeDefinition -> FsStatementKind -> CodeItemPrependix -> CodeItemAppendix -> Interpreter<InnerInterpretConfig, (FsStatementV2 * Summary)>
+        InterpretFuncSignature: FieldList -> ReturnTypeDefinition -> FsStatementKind -> CodeItemPrependix -> CodeItemAppendix -> Interpreter<InnerInterpretConfig, (TopLevelFsStatement * Summary)>
         IsTypeSearchEnabled: bool
         WrapFuncWithPrn: bool
     }
@@ -135,19 +135,19 @@ module internal InnerInterpretConfig =
 
 type internal InterpretStrategy =
     {
-        InterpretInterface : InterfaceDefinition -> Interpreter<InnerInterpretConfig, FsStatementV2>
-        InterpretTypeAlias : TypeAlias -> Interpreter<InnerInterpretConfig, FsStatementV2>
-        InterpretReactComponent : Identifier (* -> DtsType *) -> Interpreter<InnerInterpretConfig, FsStatementV2>
-        InterpretConstDefinition : ConstDefinition -> Interpreter<InnerInterpretConfig, FsStatementV2>
-        InterpretNamespace : Identifier -> FsStatementV2 list -> Interpreter<InnerInterpretConfig, FsStatementV2 option>
-        InterpretFunctionDefinition : FunctionDefinition -> Interpreter<InnerInterpretConfig, FsStatementV2>
+        InterpretInterface : InterfaceDefinition -> Interpreter<InnerInterpretConfig, TopLevelFsStatement>
+        InterpretTypeAlias : TypeAlias -> Interpreter<InnerInterpretConfig, TopLevelFsStatement>
+        InterpretReactComponent : Identifier (* -> DtsType *) -> Interpreter<InnerInterpretConfig, TopLevelFsStatement>
+        InterpretConstDefinition : ConstDefinition -> Interpreter<InnerInterpretConfig, TopLevelFsStatement>
+        InterpretNamespace : Identifier -> TopLevelFsStatement list -> Interpreter<InnerInterpretConfig, TopLevelFsStatement option>
+        InterpretFunctionDefinition : FunctionDefinition -> Interpreter<InnerInterpretConfig, TopLevelFsStatement>
     }
 
 type internal InterpretConfigV2 =
     {
         InterpretStrategy: InterpretStrategy
         StatementStore: FableTranspiler.Ports.Persistence.StatementStore< Statement >
-        FsStatementStore: FableTranspiler.Ports.Persistence.StatementStore< FsStatementV2 >
+        FsStatementStore: FableTranspiler.Ports.Persistence.StatementStore< TopLevelFsStatement >
     }
 
 
@@ -378,8 +378,8 @@ module internal FsStatementV2 =
         | _ -> failwith "Not implemented"
         
 
-type FsStatementV2 with
-    static member (+) (statementA: FsStatementV2, statementB: FsStatementV2) =
+type TopLevelFsStatement with
+    static member (+) (statementA: TopLevelFsStatement, statementB: TopLevelFsStatement) =
         FsStatementV2.add statementA statementB
     static member CollectCodeItems(fsStatement) = FsStatementV2.codeItems fsStatement
         

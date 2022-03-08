@@ -25,9 +25,9 @@ let libRelativePath rootFullPath moduleFullPath =
 /// <param name="statement"></param>
 /// <param name="interpretConfig"></param>
 let rec internal toFsStatement rootFullPath moduleFullPath statement interpretConfig 
-    : Ports<InterpretConfigV2, (Choice<FsStatementV2, FsStatementV2 list, unit> * InnerInterpretConfig option)> =
+    : Ports<InterpretConfigV2, (Choice<TopLevelFsStatement, TopLevelFsStatement list, unit> * InnerInterpretConfig option)> =
     
-    let storeFsStatment (fsStatement: FsStatementV2) =
+    let storeFsStatment (fsStatement: TopLevelFsStatement) =
         ports {
             let! config = Ports.ask
             let fsResult = 
@@ -264,7 +264,7 @@ let rec internal toFsStatement rootFullPath moduleFullPath statement interpretCo
     }
 
 
-let interpretV2 rootFullPath moduleFullPath statementList innerConfig : Ports<InterpretConfigV2, FsStatementV2 list> =
+let interpretV2 rootFullPath moduleFullPath statementList innerConfig : Ports<InterpretConfigV2, TopLevelFsStatement list> =
     
     let rec running statementList innerConfig res =
         ports {
@@ -298,7 +298,7 @@ let appendNamespaceAndModules rootFullPath moduleFullPath fsStatements =
             ns
             ,
             (ms 
-            |> List.groupBy (fun (t: (string * FsStatementV2)) -> fst t)
+            |> List.groupBy (fun (t: (string * TopLevelFsStatement)) -> fst t)
             |> List.map (fun (key, t) -> (key, t |> List.map snd))
             |> List.map (fun (moduleName, xs) ->
                 {

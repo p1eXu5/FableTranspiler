@@ -13,7 +13,7 @@ open FableTranspiler.SimpleTypes
 [<ReferenceEquality>]
 type internal FsModule =
     {
-        FsStatements: Result<FsStatementV2 list, ErrorDescription>
+        FsStatements: Result<TopLevelFsStatement list, ErrorDescription>
         SelectedFsStatement: int option
         MutedFsStatements: int list
         InterpretConfigV2: InterpretConfigV2
