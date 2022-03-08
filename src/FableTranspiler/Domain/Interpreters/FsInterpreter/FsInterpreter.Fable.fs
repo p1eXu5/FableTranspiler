@@ -19,7 +19,7 @@ let runDTsTypeInterpretation (config, tabLevel)=
     fun dtsType -> Interpreter.run (config, tabLevel) (interpretDTsType dtsType)
 
 
-let rec interpretDTsType (type': DTsType)  : Interpreter< InnerInterpretConfig, TopLevelFsStatement option * Summary> =
+let rec interpretDTsType (type': DTsType)  : Interpreter< InnerInterpretConfig, FsStatementV2> =
     let fsStatement fsStatmementType (nestedStatements: TopLevelFsStatement list) =
         {
             Kind = FsStatementKind.Type fsStatmementType
