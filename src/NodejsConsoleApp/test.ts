@@ -14,3 +14,4 @@ export function unitParameter(options: { foo: string | number }): (v: number) =>
         return (v: number) => v * 0.5
     }
 }
+

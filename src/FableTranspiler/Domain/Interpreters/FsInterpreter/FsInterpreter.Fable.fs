@@ -614,24 +614,27 @@ let interpretNamespace identifier namespaceFsStatements =
                 | _ -> None
             )
 
-        let nsTypeFsStatement =
-            {
-                Kind = FsStatementKind.AbstractClass identifier
-                Scope = Scope.Inherit
-                Open = []
-                CodeItems = [
-                    vmKeyword "type "
-                    vmTypeIdentifier identifier
-                    vmPrn " ="
-                    vmEndLineNull
-                ]
-                NestedStatements = fieldFsStatements
-                PostCodeItems = []
-                Summary = []
-                Hidden = false
-            }
+        if fieldFsStatements |> List.isEmpty then
+            return None
+        else
+            let nsTypeFsStatement =
+                {
+                    Kind = FsStatementKind.AbstractClass identifier
+                    Scope = Scope.Inherit
+                    Open = []
+                    CodeItems = [
+                        vmKeyword "type "
+                        vmTypeIdentifier identifier
+                        vmPrn " ="
+                        vmEndLineNull
+                    ]
+                    NestedStatements = fieldFsStatements
+                    PostCodeItems = []
+                    Summary = []
+                    Hidden = false
+                }
 
-        return nsTypeFsStatement
+            return nsTypeFsStatement |> Some
     }
 
 
@@ -665,7 +668,7 @@ let interpretFunctionDefinition functionDefinition =
                     Open = ["Fable.Core"]
                     CodeItems = [
                         vmPrn "[<"; vmText "Import"; vmPrn $"(\"{Identifier.value identifier}\", "; vmText "from="; vmPrn $"@\"{config.LibRelativePath.Value}\")>]"; vmEndLineNull
-                        vmKeyword "let "; vmIdentifier identifier; vmPrn " : "
+                        vmKeyword "let "; vmIdentifier (identifier |> Identifier.map Helpers.uncapitalizeFirstLetter); vmPrn " : "
                     ]
                     NestedStatements = [fst signature]
                     PostCodeItems = [

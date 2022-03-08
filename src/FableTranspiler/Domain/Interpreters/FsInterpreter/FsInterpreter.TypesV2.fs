@@ -139,7 +139,7 @@ type internal InterpretStrategy =
         InterpretTypeAlias : TypeAlias -> Interpreter<InnerInterpretConfig, FsStatementV2>
         InterpretReactComponent : Identifier (* -> DtsType *) -> Interpreter<InnerInterpretConfig, FsStatementV2>
         InterpretConstDefinition : ConstDefinition -> Interpreter<InnerInterpretConfig, FsStatementV2>
-        InterpretNamespace : Identifier -> FsStatementV2 list -> Interpreter<InnerInterpretConfig, FsStatementV2>
+        InterpretNamespace : Identifier -> FsStatementV2 list -> Interpreter<InnerInterpretConfig, FsStatementV2 option>
         InterpretFunctionDefinition : FunctionDefinition -> Interpreter<InnerInterpretConfig, FsStatementV2>
     }
 
@@ -329,8 +329,9 @@ module internal FsStatementV2 =
 
     let rec addLineBreak statement =
         match statement.NestedStatements with
-        | [] ->
+        | [] when (statement.CodeItems |> List.last).Tag <> Tag.EndOfLine  ->
             {statement with CodeItems = statement.CodeItems @ [vmEndLineNull]}
+        | [] -> statement
         | _ ->
             {statement with NestedStatements = statement.NestedStatements[..^1] @ [(addLineBreak (statement.NestedStatements |> List.last))]}
 

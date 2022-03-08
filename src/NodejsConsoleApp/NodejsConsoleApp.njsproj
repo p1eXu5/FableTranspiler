@@ -35,6 +35,9 @@
     <Content Include="tsconfig.json" />
   </ItemGroup>
   <ItemGroup>
+    <TypeScriptCompile Include="Helpers.js">
+      <SubType>Code</SubType>
+    </TypeScriptCompile>
     <TypeScriptCompile Include="test-interface.ts">
       <SubType>Code</SubType>
     </TypeScriptCompile>

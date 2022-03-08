@@ -57,6 +57,23 @@ let rec internal toFsStatement rootFullPath moduleFullPath statement interpretCo
                 , innerConfig |> Some
         }
 
+    let interpretFsStatementOption innerConfig interpreter =
+        ports {
+            
+            match 
+                 interpreter
+                 |> Interpreter.run (innerConfig, TabLevel 0) 
+            with
+            | Some fsStatement ->
+                do!
+                    storeFsStatment fsStatement
+
+                return
+                    fsStatement |> Choice1Of3
+                    , innerConfig |> Some
+            | None -> return Choice3Of3 (), innerConfig |> Some
+        }
+
     let interpretFsStatementList innerConfig interpreter =
         ports {
             
@@ -187,6 +204,7 @@ let rec internal toFsStatement rootFullPath moduleFullPath statement interpretCo
         | Statement.Structure (StructureStatement.ConstDefinition constDefinition) ->
             return! interpretFsStatement innerConfig (strategy.InterpretConstDefinition constDefinition |> Fable.withUnion)
 
+        | Statement.Structure (StructureStatement.FunctionDefinition functionDefinition)
         | Statement.Export (ExportStatement.StructureDefault (StructureStatement.FunctionDefinition functionDefinition))
         | Statement.Export (ExportStatement.Structure (StructureStatement.FunctionDefinition functionDefinition)) ->
             return! interpretFsStatement innerConfig (strategy.InterpretFunctionDefinition functionDefinition |> Fable.withNamedFuncSignature)
@@ -196,7 +214,11 @@ let rec internal toFsStatement rootFullPath moduleFullPath statement interpretCo
             let oldTypeScope = innerConfig.TypeScope
             let! namespaceFsStatements = interpretV2 rootFullPath moduleFullPath statementList ({innerConfig with TypeScope = Scope.Module ModuleScope.Main} |> Some)
             
-            match! interpretFsStatement {innerConfig with TypeScope = oldTypeScope} (strategy.InterpretNamespace identifier namespaceFsStatements |> Fable.withAbstractClass) with
+            match! 
+                interpretFsStatementOption 
+                    {innerConfig with TypeScope = oldTypeScope} 
+                    (strategy.InterpretNamespace identifier namespaceFsStatements |> Fable.withAbstractClass) 
+            with
             | Choice1Of3 s, c -> return namespaceFsStatements @ [s] |> Choice2Of3, c
             | Choice2Of3 xs, c -> return namespaceFsStatements @ xs |> Choice2Of3, c
             | Choice3Of3 _, c -> return namespaceFsStatements |> Choice2Of3, c

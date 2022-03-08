@@ -96,6 +96,22 @@ console.log("U2 with string: ", unitParameter2 {| foo = !^"asd" |} 12.2)
 console.log("=====================================\n")
 
 
+
+// ============================
+// namespace
+// ============================
+
+console.log("========= namespace test ============")
+[<Import("Func1", from="./${outDir}/../../../NodejsConsoleApp/lib/Helpers.js")>]
+let func1: unit -> string = jsNative
+console.log(func1 ())
+
+[<Import("Func2", from="./${outDir}/../../../NodejsConsoleApp/lib/Helpers.js")>]
+let func2: unit -> string = jsNative
+console.log(func2 ())
+
+
+
 open Elmish
 open Elmish.React
 open App

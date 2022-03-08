@@ -260,7 +260,7 @@ module ReactTests =
     [<Test>]
     let ``interpret Button_d_ts like module`` () =
         result {
-            let! _ = 
+            let! linkStatements = 
                 interpretDtsModule "./Link"
                     """
                         import * as React from 'react';
@@ -273,7 +273,6 @@ module ReactTests =
                         export default class Link extends React.Component<LinkProps> {}
                     """
                 |> Result.bind (interpretV2' "./Link")
-                |> Result.ignore
 
             let! buttonStatements = 
                 interpretDtsModule "./Button"
@@ -291,6 +290,10 @@ module ReactTests =
             let! fsStatements =
                 buttonStatements
                 |> interpretV2' "./Button"
+
+            fsStatements
+            |> List.iter (fun s -> TestContext.WriteLine(s.ToString()) )
+            
                  
             fsStatements 
             |> shouldL haveLength 3 $"Wrong count of fs statements, %A{fsStatements}"
@@ -668,7 +671,6 @@ module ReactTests =
 
 
     [<Test>]
-    [<Ignore("need to interpret functions")>]
     let ``exported namespace interpretation test like Helpers_d_ts`` () =
         result {
             let! statements =
@@ -693,23 +695,17 @@ module ReactTests =
             fsStatements
             |> shouldL haveLength 2 $"Wrong count of fs statements"
 
-            fsStatements[0].Kind |> should be (ofCase <@ FsStatementKind.AbstractClass @>)
-            fsStatements[1].Kind |> should be (ofCase <@ FsStatementKind.LetImportDefault @>)
+            fsStatements[0].Kind |> should be (ofCase <@ FsStatementKind.LetImport @>)
+            fsStatements[1].Kind |> should be (ofCase <@ FsStatementKind.LetImport @>)
             fsStatements[1].Open |> should contain "Fable.Core"
 
             let sPresent0 = sprintf "%O" fsStatements[0]
-            sPresent0 |> should contain "type Helpers ="
-            sPresent0 |> should contain "abstract Scroll : component': any -> customScroller: obj option -> obj"
-            sPresent0 |> should contain "abstract Element : component: obj -> obj"
+            sPresent0 |> should contain "[<Import(\"Scroll\", from=@\"react-scroll\Helpers\")>]"
+            sPresent0 |> should contain "let scroll : component: obj -> customScroller: obj option -> obj = jsNative"
 
             let sPresent1 = sprintf "%O" fsStatements[1]
-            sPresent1 |> should contain "type Events ="
-            sPresent1 |> should contain "abstract registered : obj"
-            sPresent1 |> should contain "abstract scrollEvent : ScrollEvent"
-
-            let sPresent2 = sprintf "%O" fsStatements[2]
-            sPresent2 |> should contain @"[<ImportDefault(""react-scroll\scroll-events"")>]"
-            sPresent2 |> should contain "let events : Events = jsNative"
+            sPresent1 |> should contain "[<Import(\"Element\", from=@\"react-scroll\Helpers\")>]"
+            sPresent1 |> should contain "let element : component: obj -> obj = jsNative"
         }
         |> Result.runTest
 
