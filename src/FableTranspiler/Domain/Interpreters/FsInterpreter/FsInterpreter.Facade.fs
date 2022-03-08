@@ -100,6 +100,7 @@ let rec internal toFsStatement rootFullPath moduleFullPath statement interpretCo
                     TypeScope = Scope.Namespace
                     InterpretFuncSignature = Fable.interpretFuncSignature
                     IsTypeSearchEnabled = true
+                    WrapFuncWithPrn = false
                 }
 
         
@@ -188,7 +189,7 @@ let rec internal toFsStatement rootFullPath moduleFullPath statement interpretCo
 
         | Statement.Export (ExportStatement.StructureDefault (StructureStatement.FunctionDefinition functionDefinition))
         | Statement.Export (ExportStatement.Structure (StructureStatement.FunctionDefinition functionDefinition)) ->
-            return! interpretFsStatement innerConfig (strategy.InterpretFunctionDefinition functionDefinition)
+            return! interpretFsStatement innerConfig (strategy.InterpretFunctionDefinition functionDefinition |> Fable.withNamedFuncSignature)
 
         | Statement.Export (ExportStatement.Namespace (identifier, statementList))
         | Statement.NamespaceDeclaration (identifier, statementList) ->
@@ -204,7 +205,7 @@ let rec internal toFsStatement rootFullPath moduleFullPath statement interpretCo
         | Statement.Export (ExportStatement.OutDefault identifier) ->
             return
                 innerConfig.TryGetLocal identifier
-                |> Option.filter (FsStatementV2.isType)
+                |> Option.filter (FsStatementV2.isInterface)
                 |> Option.map (fun _ ->
                     let identifier' = identifier |> Identifier.map Helpers.uncapitalizeFirstLetter
 

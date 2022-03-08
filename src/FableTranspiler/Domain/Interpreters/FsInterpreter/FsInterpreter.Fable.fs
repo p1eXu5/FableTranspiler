@@ -8,6 +8,7 @@ open FableTranspiler.Interpreters
 open FableTranspiler.Interpreters.FsInterpreter
 open FableTranspiler.Interpreters.FsInterpreter.Common
 open FableTranspiler.Interpreters.FsInterpreter.InterpreterBuilder
+open System
 
 /// run <see cref="interpretFnParameter(Field*TypeDefinition)" />
 let runFnParameterInterpretation (config, tabLevel)=
@@ -18,16 +19,18 @@ let runDTsTypeInterpretation (config, tabLevel)=
     fun dtsType -> Interpreter.run (config, tabLevel) (interpretDTsType dtsType)
 
 
-
-
 let rec interpretDTsType (type': DTsType)  : Interpreter< InnerInterpretConfig, FsStatementV2 option * Summary> =
-    let fsStatement fsStatmementType codeItems =
+    let fsStatement fsStatmementType (nestedStatements: FsStatementV2 list) =
         {
             Kind = FsStatementKind.Type fsStatmementType
             Scope = Inherit
             Open = []
-            CodeItems = codeItems
-            NestedStatements = []
+            CodeItems = []
+            NestedStatements = 
+                if (nestedStatements.Length = 1) && nestedStatements.Head.Kind = FsStatementKind.Type FsStatementType.Composition then
+                    nestedStatements.Head.NestedStatements
+                else
+                    nestedStatements
             PostCodeItems = []
             Summary = []
             Hidden = false
@@ -40,31 +43,37 @@ let rec interpretDTsType (type': DTsType)  : Interpreter< InnerInterpretConfig, 
             match qualifiers with
             | [identifier] ->
                 match identifier |> Identifier.value with
-                | "boolean" -> return fsStatement FsStatementType.Primitive [vmType "bool"] |> Some, []
-                | "number" -> return fsStatement FsStatementType.Primitive [vmType "float"] |> Some, []
+                | "boolean" -> return FsStatementV2.primitiveType "bool" |> Some, []
+                | "number" -> return FsStatementV2.primitiveType "float" |> Some, []
+                
                 | typeName when config.IsTypeSearchEnabled ->
                     match config.TryGetLocal identifier with
                     | Some statement ->
-                        return fsStatement (FsStatementType.FieldList qualifiers) (statement.NestedStatements |> List.map FsStatementV2.codeItems |> List.concat) |> Some, []
+                        //let codeItems = statement.NestedStatements |> List.map FsStatementV2.codeItems |> List.concat
+                        return fsStatement (FsStatementType.FieldList qualifiers) statement.NestedStatements |> Some, []
                     | None -> 
-                        return fsStatement (FsStatementType.Unknown typeName) [vmType typeName] |> Some, []
-                | typeName ->
-                    return fsStatement (FsStatementType.Unknown typeName) [vmType typeName] |> Some, []
+                        return FsStatementV2.reference typeName |> Some, []
+
+                | typeName (* when not config.IsTypeSearchEnabled *) ->
+                    return FsStatementV2.reference typeName |> Some, []
+
             | _  when config.IsTypeSearchEnabled -> 
                 match config.TryGetStatement qualifiers with
                 | Some statement ->
-                    return fsStatement (FsStatementType.FieldList qualifiers) (statement.NestedStatements |> List.map FsStatementV2.codeItems |> List.concat) |> Some, []
+                    return fsStatement (FsStatementType.FieldList qualifiers) (statement.NestedStatements) |> Some, []
                 | None -> 
-                    let codeItems = interpretQualifiers qualifiers
-                    return fsStatement (FsStatementType.Unknown ($"%O{codeItems}")) (codeItems) |> Some, []
+                    let typeName = String.Join("", qualifiers |> List.map Identifier.value)
+                    return FsStatementV2.reference typeName |> Some, []
             | _ -> 
-                let codeItems = interpretQualifiers qualifiers
-                return fsStatement (FsStatementType.Unknown ($"%O{codeItems}")) (codeItems) |> Some, []
+                let typeName = String.Join("", qualifiers |> List.map Identifier.value)
+                return FsStatementV2.reference typeName |> Some, []
         }
 
 
 
     interpreter {
+        let! (config: InnerInterpretConfig, _) = Interpreter.ask
+
         match type' with
         | DTsType.Plain qualifiers ->
             return! interpretTypeByReference qualifiers
@@ -92,7 +101,11 @@ let rec interpretDTsType (type': DTsType)  : Interpreter< InnerInterpretConfig, 
             | Some s -> return s |> FsStatementV2.toArray |> Some, snd t
             | None -> return None, snd t
 
-        | DTsType.Func (fl, typeDefinition) ->
+        | DTsType.Func (fl, typeDefinition) when config.WrapFuncWithPrn ->
+            let! t = interpretFuncSignature fl typeDefinition (FsStatementKind.Type FsStatementType.Func) [vmPrn "("] [vmPrn ")"]
+            return (fst t) |> Some, snd t
+
+        | DTsType.Func (fl, typeDefinition) (* when not config.WrapFuncWithPrn *) ->
             let! t = interpretFuncSignature fl typeDefinition (FsStatementKind.Type FsStatementType.Func) [] []
             return (fst t) |> Some, snd t
 
@@ -131,26 +144,33 @@ let interpretTypeDefinition (tdef: TypeDefinition) : Interpreter<InnerInterpretC
 
 
 let interpretTypeCombination combination : Interpreter< InnerInterpretConfig, FsStatementV2 option * Summary> =
+
+    let interpretTypes typeList =
+        interpreter {
+            let! typeListInterpretation =
+                typeList
+                |> List.map interpretDTsType
+                |> Interpreter.sequence
+
+            return
+                typeListInterpretation
+                |> List.filter (fun t ->
+                    match fst t with
+                    | Some s -> FsStatementV2.notZeroType s
+                    | _ -> true
+                )
+                |> List.foldBack (fun t state ->
+                    match fst t with
+                    | Some s -> (s :: (fst state), snd t @ snd state) 
+                    | None -> (fst state, snd t @ snd state) ) <| ([],[])
+        }
+
     interpreter {
         let! (config: InnerInterpretConfig, tabLevel) = Interpreter.ask
 
-        let interpretTypes typeList =
-            typeList
-            |> List.map (runDTsTypeInterpretation (config, tabLevel))
-            |> List.filter (fun t ->
-                match fst t with
-                | Some s -> FsStatementV2.notZeroType s
-                | _ -> true
-            )
-            |> List.foldBack (fun t state ->
-                match fst t with
-                | Some s -> (s :: (fst state), snd t @ snd state) 
-                | None -> (fst state, snd t @ snd state) ) <| ([],[])
-
-
         match combination with
         | TypeCombination.Union union ->
-            let (types, summary) = interpretTypes union
+            let! (types, summary) = interpretTypes union |> InnerInterpretConfig.wrapFuncWithPrn<FsStatementV2 list * Summary>
 
             if types.Length = 0 then return None, summary
             elif types.Length = 1 then return types.Head |> Some, summary
@@ -166,7 +186,9 @@ let interpretTypeCombination combination : Interpreter< InnerInterpretConfig, Fs
                                 vmPrn "<"
                                 yield! 
                                     types
-                                    |> List.map (fun ns -> ns |> FsStatementV2.codeItems)
+                                    |> List.map (fun s ->
+                                        s |> FsStatementV2.codeItems
+                                    )
                                     |> List.reduce (fun t1 t2 -> t1 @ [vmPrn ", "] @ t2)
                                 vmPrn ">"
                             ]
@@ -179,14 +201,14 @@ let interpretTypeCombination combination : Interpreter< InnerInterpretConfig, Fs
                     , summary 
 
         | TypeCombination.Composition dtsTypeList ->
-            let (types, summary) = 
-                interpretTypes dtsTypeList 
+            let! (types, summary) = 
+                interpretTypes dtsTypeList |> InnerInterpretConfig.unwrapFuncWithPrn
 
             let! fieldStartWith = config.FieldStartWithCodeItems
 
             let fields =
                 types
-                |> List.filter FsStatementV2.isAnonymous
+                |> List.filter (fun s -> FsStatementV2.isAnonymousType s || FsStatementV2.isFieldListType s)
                 |> List.map (fun s ->
                     s.NestedStatements
                     |> List.map (fun ns ->
@@ -222,7 +244,7 @@ let interpretFuncSignature fl typeDefinition kind codeItemPrependix codeItemAppe
     interpreter {
         let! (config: InnerInterpretConfig, tabLevel) = Interpreter.ask
 
-        let! returnTypeInterpretation = interpretTypeDefinition typeDefinition
+        let! returnTypeInterpretation = interpretTypeDefinition typeDefinition |> InnerInterpretConfig.wrapFuncWithPrn<FsStatementV2 option * Summary>
         let (returnType, summary) =
             match returnTypeInterpretation with
             | Some s, summary ->
@@ -230,34 +252,47 @@ let interpretFuncSignature fl typeDefinition kind codeItemPrependix codeItemAppe
             | None, summary -> 
                 FsStatementV2.objType, summary
 
-        let (parameters, summary2) = 
-            if fl |> List.isEmpty then [FsStatementV2.unitType], []
+        let! (parameters, summary2) = 
+            if fl |> List.isEmpty then Interpreter.retn ([FsStatementV2.unitType], [])
             else 
                 fl 
-                |> List.map (runFnParameterInterpretation (config, tabLevel))
-                |> List.foldBack (fun t state -> (fst t :: fst state, snd t @ snd state)) <| ([], [])
+                |> List.map interpretFnParameter
+                |> Interpreter.sequence
+                |> Interpreter.map (fun fl' ->
+                    fl'
+                    |> List.foldBack (fun t state -> (fst t :: fst state, snd t @ snd state)) <| ([], [])
+                )
+                |> InnerInterpretConfig.wrapFuncWithPrn
 
         return 
             {
                 Kind = kind
                 Scope = Inherit
                 Open = returnType.Open @ (parameters |> List.map (fun ns -> ns.Open) |> List.concat)
-                CodeItems =
-                    [
-                        yield! codeItemPrependix
-                        vmPrn "("
-                        yield!
-                            parameters
-                            |> List.map (fun ns -> ns |> FsStatementV2.codeItems)
-                            |> List.reduce (fun t1 t2 -> t1 @ [vmPrn " -> "] @ t2)
-                        vmPrn " -> "
-                        yield! returnType.CodeItems
-                        vmPrn ")"
-                        yield! codeItemAppendix
-                    ]
+                CodeItems = codeItemPrependix
         
-                NestedStatements = []
-                PostCodeItems = []
+                NestedStatements = [
+                    {
+                        Kind = kind
+                        Scope = Inherit
+                        Open = []
+                        CodeItems =
+                            [
+                                yield!
+                                    parameters
+                                    |> List.map (fun ns -> ns |> FsStatementV2.codeItems)
+                                    |> List.reduce (fun t1 t2 -> t1 @ [vmPrn " -> "] @ t2)
+                                vmPrn " -> "
+                                yield! returnType |> FsStatementV2.codeItems
+                            ]
+        
+                        NestedStatements = []
+                        PostCodeItems = []
+                        Summary = []
+                        Hidden = false
+                    }
+                ]
+                PostCodeItems = codeItemAppendix
                 Summary = []
                 Hidden = false
             }, summary @ summary2
@@ -266,9 +301,7 @@ let interpretFuncSignature fl typeDefinition kind codeItemPrependix codeItemAppe
 
 let interpretNamedFuncSignature fl typeDefinition kind codeItemPrependix codeItemAppendix =
     interpreter {
-        let! (config: InnerInterpretConfig, tabLevel) = Interpreter.ask
-
-        let! returnTypeInterpretation = interpretTypeDefinition typeDefinition
+        let! returnTypeInterpretation = interpretTypeDefinition typeDefinition |> InnerInterpretConfig.wrapFuncWithPrn<FsStatementV2 option * Summary>
         let (returnType, summary) =
             match returnTypeInterpretation with
             | Some s, summary ->
@@ -276,43 +309,57 @@ let interpretNamedFuncSignature fl typeDefinition kind codeItemPrependix codeIte
             | None, summary -> 
                 FsStatementV2.objType, summary
 
-        let (parameters, summary2) = 
-            if fl |> List.isEmpty then [FsStatementV2.unitType], []
+        let! (parameters, summary2) = 
+            if fl |> List.isEmpty then Interpreter.retn ([FsStatementV2.unitType], [])
             else 
                 fl 
-                |> List.map (runFnParameterInterpretation (config, tabLevel))
-                |> List.foldBack (fun t state -> (fst t :: fst state, snd t @ snd state)) <| ([], [])
+                |> List.map interpretFnParameter
+                |> Interpreter.sequence
+                |> Interpreter.map (fun fl' ->
+                    fl'
+                    |> List.foldBack (fun t state -> (fst t :: fst state, snd t @ snd state)) <| ([], [])
+                )
+                |> InnerInterpretConfig.wrapFuncWithPrn
 
         return 
             {
                 Kind = kind
                 Scope = Inherit
                 Open = returnType.Open @ (parameters |> List.map (fun ns -> ns.Open) |> List.concat)
-                CodeItems =
-                    [
-                        yield! codeItemPrependix
-                        yield!
-                            parameters
-                            |> List.map (fun ns -> 
-                            (
-                                ns |> FsStatementV2.identifier
-                                |> Option.map (fun id ->
-                                    [
-                                        vmIdentifier id
-                                        vmPrn ": "
-                                    ]
-                                )
-                                |> Option.defaultValue []
-                            )
-                             @ (ns |> FsStatementV2.codeItems))
-                            |> List.reduce (fun t1 t2 -> t1 @ [vmPrn " -> "] @ t2)
-                        vmPrn " -> "
-                        yield! returnType.CodeItems
-                        yield! codeItemAppendix
-                    ]
+                CodeItems = codeItemPrependix
+                NestedStatements = [
+                    {
+                        Kind = kind
+                        Scope = Inherit
+                        Open = []
+                        CodeItems =
+                            [
+                                yield!
+                                    parameters
+                                    |> List.map (fun ns -> 
+                                    (
+                                        ns |> FsStatementV2.identifier
+                                        |> Option.map (fun id ->
+                                            [
+                                                vmIdentifier id
+                                                vmPrn ": "
+                                            ]
+                                        )
+                                        |> Option.defaultValue []
+                                    )
+                                     @ (ns |> FsStatementV2.codeItems))
+                                    |> List.reduce (fun t1 t2 -> t1 @ [vmPrn " -> "] @ t2)
+                                vmPrn " -> "
+                                yield! returnType |> FsStatementV2.codeItems
+                            ]
         
-                NestedStatements = []
-                PostCodeItems = []
+                        NestedStatements = []
+                        PostCodeItems = []
+                        Summary = []
+                        Hidden = false
+                    }
+                ]
+                PostCodeItems = codeItemAppendix
                 Summary = summary @ summary2
                 Hidden = false
             }, summary @ summary2
@@ -355,7 +402,8 @@ let rec interpretFnParameter (field, typeDefinition) : Interpreter<InnerInterpre
 
         | Field.FuncReq (identifier, fl)
         | Field.FuncOpt (identifier, fl) ->
-            return! config.InterpretFuncSignature fl typeDefinition (FsStatementKind.Parameter identifier) [] []
+            let! signature = config.InterpretFuncSignature fl typeDefinition (FsStatementKind.Parameter identifier) [vmPrn "("] [vmPrn ")"]
+            return signature
     }
 
 
@@ -396,7 +444,8 @@ let rec interpretField (field, typeDefinition) =
         | Field.FuncReq (identifier, fl)
         | Field.FuncOpt (identifier, fl) ->
             let! fieldCodeItems = config.FieldStartWithCodeItems
-            return! (config.InterpretFuncSignature fl typeDefinition (FsStatementKind.Field identifier) (fieldCodeItems identifier) [] |> withNamelessFuncSignature)
+            let! funcSignature = (config.InterpretFuncSignature fl typeDefinition (FsStatementKind.Field identifier) (fieldCodeItems identifier) [] |> withNamelessFuncSignature)
+            return funcSignature
     }
 
 
@@ -757,7 +806,6 @@ let withUnion interpreter =
         }
         , tabLevel
     )
-
 
 let strategy =
     {

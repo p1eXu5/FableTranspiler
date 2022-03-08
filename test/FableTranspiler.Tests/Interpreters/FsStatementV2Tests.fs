@@ -1,5 +1,7 @@
 ﻿namespace FableTranspiler.Tests.Interpreters
 
+open FableTranspiler.SimpleTypes
+
 module FsStatementV2Tests =
 
     open NUnit.Framework
@@ -25,3 +27,20 @@ module FsStatementV2Tests =
                 Hidden = false
             }
         someType + FsStatementV2.zeroType |> should equal someType
+
+
+    [<Test>]
+    let ``isFieldListType test``() =
+        let someType =
+            {
+                Kind = FsStatementKind.Type (FsStatementType.FieldList [Identifier "foo"])
+                Scope = Inherit
+                Open = []
+                CodeItems = []
+                NestedStatements = []
+                PostCodeItems = []
+                Summary = []
+                Hidden = false
+            }
+
+        someType |> FsStatementV2.isFieldListType |> should be True

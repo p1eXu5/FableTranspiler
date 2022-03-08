@@ -30,6 +30,7 @@ type FsStatementType =
     | Union
     | Composition
     | Unknown of string
+    | Reference of string
 
 type FsStatementKind =
     | Comment
@@ -101,6 +102,7 @@ type internal InnerInterpretConfig =
         TypeScope: Scope
         InterpretFuncSignature: FieldList -> ReturnTypeDefinition -> FsStatementKind -> CodeItemPrependix -> CodeItemAppendix -> Interpreter<InnerInterpretConfig, (FsStatementV2 * Summary)>
         IsTypeSearchEnabled: bool
+        WrapFuncWithPrn: bool
     }
 and
     ReturnTypeDefinition = TypeDefinition
@@ -109,6 +111,26 @@ and
 and
     CodeItemAppendix = CodeItem list
 
+
+module internal InnerInterpretConfig = 
+    
+    let inline wrapFuncWithPrn<'a> (interpreter: Interpreter<InnerInterpretConfig, 'a>) : Interpreter<InnerInterpretConfig, 'a> =
+       interpreter 
+       |> Interpreter.withEnv (fun (c, tabLevel) ->
+           { c with
+                 WrapFuncWithPrn = true
+           }
+           , tabLevel
+       )
+    
+    let inline unwrapFuncWithPrn<'a> (interpreter: Interpreter<InnerInterpretConfig, 'a>) : Interpreter<InnerInterpretConfig, 'a> =
+       interpreter 
+       |> Interpreter.withEnv (fun (c, tabLevel) ->
+           { c with
+                 WrapFuncWithPrn = false
+           }
+           , tabLevel
+       )
 
 
 type internal InterpretStrategy =
@@ -151,6 +173,30 @@ module internal FsStatementV2 =
             Scope = Inherit
             Open = []
             CodeItems = []
+            NestedStatements = []
+            PostCodeItems = []
+            Summary = []
+            Hidden = false
+        }
+
+    let primitiveType ``type`` =
+        {
+            Kind = FsStatementKind.Type FsStatementType.Primitive
+            Scope = Inherit
+            Open = []
+            CodeItems = [vmType ``type``]
+            NestedStatements = []
+            PostCodeItems = []
+            Summary = []
+            Hidden = false
+        }
+
+    let reference ``type`` =
+        {
+            Kind = FsStatementKind.Type (FsStatementType.Reference ``type``)
+            Scope = Inherit
+            Open = []
+            CodeItems = [vmType ``type``]
             NestedStatements = []
             PostCodeItems = []
             Summary = []
@@ -289,7 +335,7 @@ module internal FsStatementV2 =
             {statement with NestedStatements = statement.NestedStatements[..^1] @ [(addLineBreak (statement.NestedStatements |> List.last))]}
 
 
-    let isType s =
+    let isInterface s =
         match s.Kind with
         | FsStatementKind.DU _
         | FsStatementKind.AbstractClass _ -> true
@@ -303,9 +349,14 @@ module internal FsStatementV2 =
         | FsStatementKind.LetImport _ -> true
         | _ -> false
 
-    let isAnonymous s =
+    let isAnonymousType s =
         match s.Kind with
         | FsStatementKind.Type FsStatementType.Anonymous -> true
+        | _ -> false
+
+    let isFieldListType s =
+        match s.Kind with
+        | FsStatementKind.Type (FsStatementType.FieldList _) -> true
         | _ -> false
 
     let add statementA statementB =

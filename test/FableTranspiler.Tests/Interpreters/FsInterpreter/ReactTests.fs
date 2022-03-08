@@ -20,12 +20,16 @@ module ReactTests =
 
     let private strategy : InterpretStrategy = Fable.strategy
 
-    let private config : InterpretConfigV2 =
-        {
-            InterpretStrategy = strategy
-            StatementStore = FableTranspiler.Adapters.Persistence.StatementStore.create (Statement.identifier)
-            FsStatementStore = FableTranspiler.Adapters.Persistence.StatementStore.create (FsStatementV2.identifier)
-        }
+    let mutable private config : Result<InterpretConfigV2, string> = Result.Error ""
+
+    [<SetUp>]
+    let createConfig () =
+        config <-
+            {
+                InterpretStrategy = strategy
+                StatementStore = FableTranspiler.Adapters.Persistence.StatementStore.create (Statement.identifier)
+                FsStatementStore = FableTranspiler.Adapters.Persistence.StatementStore.create (FsStatementV2.identifier)
+            } |> Ok
 
     let [<Literal>] rootFullPath = 
         @"Z:\Projects\Programming\FSharp\_wpf\FableTranspiler\node_modules\@types\react-scroll" 
@@ -46,7 +50,8 @@ module ReactTests =
         result {
             let! rootFullPath' = rootFullPath |> FullPath.Create
             let! moduleFullPath' = fullPath relativePath
-            return Ports.run config (interpretV2 rootFullPath' moduleFullPath' statementList None)
+            let! config' = config
+            return Ports.run config' (interpretV2 rootFullPath' moduleFullPath' statementList None)
         }
 
 
@@ -54,7 +59,8 @@ module ReactTests =
         result {
             let! rootFullPath' = rootFullPath |> FullPath.Create
             let! moduleFullPath' = Path.Combine(rootFullPath, relativePath) |> FullPath.Create
-            return Ports.run config (toFsStatement rootFullPath' moduleFullPath' statement innerConfig)
+            let! config' = config
+            return Ports.run config' (toFsStatement rootFullPath' moduleFullPath' statement innerConfig)
         }
 
 
@@ -65,7 +71,8 @@ module ReactTests =
                 |> Parser.run
 
             let! fullModulePath = fullPath modulePath
-            config.StatementStore.TryAdd fullModulePath statementsResult |> ignore
+            let! config' = config
+            config'.StatementStore.TryAdd fullModulePath statementsResult |> ignore
             return! statementsResult
         }
 
@@ -140,7 +147,8 @@ module ReactTests =
                 |> Parser.run
 
             let! moduleP = fullPath testRelativePath
-            config.StatementStore.TryAdd moduleP statementsResult |> ignore
+            let! config' = config
+            config'.StatementStore.TryAdd moduleP statementsResult |> ignore
             
             let! statements = statementsResult
                 
@@ -177,7 +185,8 @@ module ReactTests =
                 |> Parser.run
 
             let! moduleP = fullPath testRelativePath
-            config.StatementStore.TryAdd moduleP statementsResult |> ignore
+            let! config' = config
+            config'.StatementStore.TryAdd moduleP statementsResult |> ignore
             
             let! statements = statementsResult
                 
@@ -224,7 +233,8 @@ module ReactTests =
                 |> Parser.run
 
             let! moduleP = fullPath testRelativePath
-            config.StatementStore.TryAdd moduleP statementsResult |> ignore
+            let! config' = config
+            config'.StatementStore.TryAdd moduleP statementsResult |> ignore
 
             let! statements = statementsResult
 
@@ -237,12 +247,12 @@ module ReactTests =
 
             let bazProps = fsStatements |> List.last
             bazProps.NestedStatements[0].Kind |> should equal (FsStatementKind.Type FsStatementType.Composition)
-            bazProps.NestedStatements[0].NestedStatements |> shouldL haveLength 2 "Wrong NestedStatements count"
-            Assert.That(bazProps.NestedStatements[0].NestedStatements, Has.All.Property("Kind").Matches( ofCase <@ FsStatementKind.Type @> ))
+            bazProps.NestedStatements[0].NestedStatements |> shouldL haveLength 5 "Wrong NestedStatements count"
+            Assert.That(bazProps.NestedStatements[0].NestedStatements, Has.All.Property("Kind").Matches( ofCase <@ FsStatementKind.Field @> ))
 
             let present = bazProps.ToString()
             present |> should contain "| To of string"
-            present |> should contain "| OnSetActive of (string -> unit)"
+            present |> should contain "| OnSetActive of string -> unit"
         } 
         |> Result.runTest
 
@@ -262,6 +272,8 @@ module ReactTests =
                         export type LinkProps = ReactScrollLinkProps & React.HTMLProps<HTMLButtonElement>;
                         export default class Link extends React.Component<LinkProps> {}
                     """
+                |> Result.bind (interpretV2' "./Link")
+                |> Result.ignore
 
             let! buttonStatements = 
                 interpretDtsModule "./Button"
@@ -274,11 +286,12 @@ module ReactTests =
                         export default class Button extends React.Component<ButtonProps> {}
                     """
 
+            do ()
 
             let! fsStatements =
                 buttonStatements
                 |> interpretV2' "./Button"
-
+                 
             fsStatements 
             |> shouldL haveLength 3 $"Wrong count of fs statements, %A{fsStatements}"
 
@@ -309,7 +322,8 @@ module ReactTests =
                 |> Parser.run
 
             let! moduleFullPath = fullPath testRelativePath
-            config.StatementStore.TryAdd moduleFullPath statementsResultB |> ignore
+            let! config' = config
+            config'.StatementStore.TryAdd moduleFullPath statementsResultB |> ignore
 
 
             let! statements = statementsResultB
@@ -326,15 +340,15 @@ module ReactTests =
 
             let bazProps = fsStatements |> List.last
             bazProps.NestedStatements[0].Kind |> should equal (FsStatementKind.Type FsStatementType.Composition)
-            bazProps.NestedStatements[0].NestedStatements |> shouldL haveLength 1 "Wrong NestedStatements count" // Foo.FooProps<FooElement> is unknown
+            bazProps.NestedStatements[0].NestedStatements |> shouldL haveLength 2 "Wrong NestedStatements count" // Foo.FooProps<FooElement> is unknown
             Assert.That(
                 bazProps.NestedStatements[0].NestedStatements, 
-                Has.All.Property("Kind").Matches( ofCase <@ FsStatementKind.Type @> ), 
+                Has.All.Property("Kind").Matches( ofCase <@ FsStatementKind.Field @> ), 
                 fun () -> "type alias assertion fails:" )
 
             let present = bazProps.ToString()
             present |> should contain "/// see also Foo.FooProps<FooElement>"
-            present |> should contain "| OnSetActive of (string -> unit)"
+            present |> should contain "| OnSetActive of string -> unit"
             present |> should contain "| Duration of U3<float, string, (float -> float)>"
         } 
         |> Result.runTest
@@ -363,7 +377,8 @@ module ReactTests =
                 |> Parser.run
 
             let! moduleFullPath = fullPath testRelativePath
-            config.StatementStore.TryAdd moduleFullPath statementsResultB |> ignore
+            let! config' = config
+            config'.StatementStore.TryAdd moduleFullPath statementsResultB |> ignore
 
             let! statements = statementsResultB
 
@@ -491,7 +506,7 @@ module ReactTests =
             fsStatement.Kind |> should equal (FsStatementKind.LetImport (Identifier "scrollToBottom"))
             
             let presentation = $"%O{fsStatement}"
-            presentation |> should contain @"[<Import(""scrollToBottom"", from=""react-scroll\animate-scroll"")>]"
+            presentation |> should contain @"[<Import(""scrollToBottom"", from=@""react-scroll\animate-scroll"")>]"
             presentation |> should contain "let scrollToBottom : options: obj option -> unit = jsNative"
         }
         |> Result.runTest
@@ -516,7 +531,7 @@ module ReactTests =
             fsStatement.Kind |> should equal (FsStatementKind.LetImport (Identifier "getAnimationType"))
             
             let presentation = $"%O{fsStatement}"
-            presentation |> should contain @"[<Import(""getAnimationType"", from=""react-scroll\animate-scroll"")>]"
+            presentation |> should contain @"[<Import(""getAnimationType"", from=@""react-scroll\animate-scroll"")>]"
             presentation |> should contain "let getAnimationType : options: {| smooth : U2<bool, string> |} -> (float -> float) = jsNative"
         }
         |> Result.runTest
@@ -590,14 +605,14 @@ module ReactTests =
                         };
                     """
                 |> Result.bind (interpretV2' "./scroll-element")
-                |> Result.map (fun _ -> ())
+                |> Result.ignore
 
             let! fsStatements =
                 interpretDtsModule "./scroll-link"
                     """
-                        import { ReactScrollLinkProps } from './scroll-element';
+                        import { ScrollElementProps } from './scroll-element';
 
-                        export type ScrollLinkProps<P> = ReactScrollLinkProps &
+                        export type ScrollLinkProps<P> = ScrollElementProps &
                             P & {
                                 container?: HTMLElement | undefined;
                             };
@@ -608,9 +623,8 @@ module ReactTests =
             fsStatements |> should haveLength 1
 
             let present = fsStatements.Head.ToString()
-            present |> should contain "type ScrollElementProps ="
-            present |> should contain "| Name of string"
-            present |> should contain "| Id of string"
+            present |> should contain "type ScrollLinkProps ="
+            present |> should contain "| Container of HTMLElement"
         }
         |> Result.runTest
 
@@ -630,7 +644,8 @@ module ReactTests =
                     result {
                         let! rootFullPath' = rootFullPath |> FullPath.Create
                         let! moduleFullPath' = fullPath "./animate-scroll"
-                        return Ports.run config (Facade.collectImportDefault rootFullPath' moduleFullPath' xs)
+                        let! config' = config
+                        return Ports.run config' (Facade.collectImportDefault rootFullPath' moduleFullPath' xs)
                     }
                 )
 
