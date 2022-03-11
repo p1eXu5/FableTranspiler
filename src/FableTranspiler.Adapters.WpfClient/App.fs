@@ -1,15 +1,14 @@
 ﻿module FableTranspiler.Adapters.WpfClient.App
 
-open Elmish.WPF
+open System.IO
 open Serilog
 open Serilog.Extensions.Logging
-open MainModel
-open FableTranspiler.Ports.Persistence
-open FableTranspiler.Ports.PortsBuilder
+open Elmish.WPF
 open FableTranspiler.SimpleTypes
-open System.IO
 open FableTranspiler.Parsers.Types
+open FableTranspiler.Ports.Persistence
 open FableTranspiler.Adapters.Persistence
+open MainModel
 
 let main (window, settingsManager) =
     let logger =
