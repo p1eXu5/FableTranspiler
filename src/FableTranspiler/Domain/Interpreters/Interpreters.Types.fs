@@ -90,14 +90,21 @@ module CodeItem =
     let internal tab (TabLevel tabLevel) =
         { Tag = Tag.Tab; Content = String.replicate (4 * tabLevel) " " }
 
+
+    let private checkIdentifierValue = function
+        | "component" -> "``component``"
+        | v -> v
+
+
     let internal vmIdentifier (Identifier identifier) =
-        { Tag = Tag.Text; Content = identifier }
+        { Tag = Tag.Text; Content = identifier |> checkIdentifierValue }
 
     let internal vmIdentifierS (Identifier identifier) =
-        { Tag = Tag.Text; Content = identifier + " " }
+        { Tag = Tag.Text; Content = (identifier |> checkIdentifierValue) + " " }
 
     let internal vmTypeIdentifier (Identifier identifier) =
-        { Tag = Tag.Type; Content = identifier }
+        { Tag = Tag.Type; Content = identifier |> checkIdentifierValue }
+
 
     let internal vmNo =
         { Tag = Tag.NoContent; Content = null }

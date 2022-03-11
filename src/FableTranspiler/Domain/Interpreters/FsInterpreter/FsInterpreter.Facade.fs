@@ -18,6 +18,34 @@ let libRelativePath rootFullPath moduleFullPath =
     Path.Combine(Path.GetFileName(rootPath), Path.GetRelativePath(rootPath, modulePath)[..^5])
 
 
+let defaultInnerInterpretConfig 
+    (fsStore: Ports.Persistence.StatementStore<TopLevelFsStatement>) 
+    rootFullPath 
+    moduleFullPath 
+        =
+    {
+        LibRelativePath =
+            lazy (
+                libRelativePath rootFullPath moduleFullPath
+            )
+
+        TryGetLocal =
+            fun identifier ->
+                fsStore.TryGetStatement moduleFullPath identifier
+
+        TryGetStatement =
+            fun identifierList -> None
+
+        FieldStartWithCodeItems = Fable.unionCase
+        InterfacePostCodeItems = Fable.inheritIHTMLProps
+        InterfaceStatementKind = FsStatementKind.DU
+        TypeScope = Scope.Namespace
+        FuncParameterMapper = Fable.namedFuncSignature
+        IsTypeSearchEnabled = true
+        WrapFuncWithPrn = false
+    }
+
+
 /// <summary>
 /// 
 /// </summary>

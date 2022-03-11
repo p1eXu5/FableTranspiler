@@ -50,12 +50,12 @@ namespace FableTranspiler.WpfClient.Converters
         }
 
 
-        internal object Convert(FSharpList<FsStatementV2> vmList)
+        internal object Convert(FSharpList<TopLevelFsStatement> vmList)
         {
             var fd = new FlowDocument();
 
-            foreach (FsStatementV2 vm in vmList) {
-                Section section = BuildSection(FsStatementV2.CollectCodeItems(vm), true);
+            foreach (TopLevelFsStatement vm in vmList) {
+                Section section = BuildSection(TopLevelFsStatement.CollectCodeItems(vm), true);
                 //if (vm.FsCodeStyle() != FsCodeStyle.Universal) {
                 //    section.MouseEnter += SectionEnter;
                 //}

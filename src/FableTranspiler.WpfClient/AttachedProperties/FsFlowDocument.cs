@@ -23,11 +23,11 @@ namespace FableTranspiler.WpfClient.AttachedProperties
         public static readonly DependencyProperty FsDocumentProperty =
             DependencyProperty.RegisterAttached(
                 "FsDocument",
-                typeof(FSharpList< FsStatementV2 >),
+                typeof(FSharpList< TopLevelFsStatement >),
                 typeof(FsFlowDocument),
                 new FrameworkPropertyMetadata {
                     BindsTwoWayByDefault = false,
-                    PropertyChangedCallback = FsDocumentChangedCallback<FsStatementV2>
+                    PropertyChangedCallback = FsDocumentChangedCallback<TopLevelFsStatement>
                 });
 
 
@@ -36,12 +36,12 @@ namespace FableTranspiler.WpfClient.AttachedProperties
         /// </summary>
         /// <param name="obj"></param>
         /// <returns></returns>
-        public static FSharpList<FsStatementV2> GetFsDocument(DependencyObject obj)
+        public static FSharpList<TopLevelFsStatement> GetFsDocument(DependencyObject obj)
         {
-            return (FSharpList<FsStatementV2>)obj.GetValue(FsDocumentProperty);
+            return (FSharpList<TopLevelFsStatement>)obj.GetValue(FsDocumentProperty);
         }
 
-        public static void SetFsDocument(DependencyObject obj, FSharpList<FsStatementV2> value)
+        public static void SetFsDocument(DependencyObject obj, FSharpList<TopLevelFsStatement> value)
         {
             obj.SetValue(FsDocumentProperty, value);
         }
@@ -135,7 +135,7 @@ namespace FableTranspiler.WpfClient.AttachedProperties
             var richTextBox = (RichTextBox)d;
 
             object? statements = typeof(TViewModel).Name switch {
-                nameof(FsStatementV2) => GetFsDocument(richTextBox),
+                nameof(TopLevelFsStatement) => GetFsDocument(richTextBox),
                 nameof(CodeItem) => GetFsDocumentError(richTextBox),
                 _ => null
             };

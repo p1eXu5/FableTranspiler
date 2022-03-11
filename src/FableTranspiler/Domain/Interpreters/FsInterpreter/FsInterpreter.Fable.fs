@@ -8,62 +8,28 @@ open FableTranspiler.Interpreters
 open FableTranspiler.Interpreters.FsInterpreter
 open FableTranspiler.Interpreters.FsInterpreter.Common
 open FableTranspiler.Interpreters.FsInterpreter.InterpreterBuilder
+open FsToolkit.ErrorHandling
 open System
+
+
+let (|Qualifiers|_|) expected (qualifiers: Identifier list) =
+    if expected |> List.isEmpty || expected.Length > qualifiers.Length then None
+    else
+        let rec compare l =
+            match l with
+            | [] -> true
+            | (s, Identifier id) :: tail when s <> id -> false
+            | (s, Identifier id) :: tail ->
+                compare tail
+
+        if List.zip expected qualifiers |> compare then qualifiers |> List.take (expected.Length) |> Some
+        else None
 
 
 type TypeDefInterpretResult =
     | Type of InnerFsStatement * Summary: Summary
     | Composition of FieldList: TopLevelFsStatement list * UnprocessedStatements: Summary
 
-
-//let interpretTypeByReference qualifiers =
-//    interpreter {
-//        let! (config: InnerInterpretConfig, _) = Interpreter.ask
-
-//        match qualifiers with
-//        | [identifier] ->
-//            match identifier |> Identifier.value with
-//            | "boolean" -> return InnerFsStatement.primitiveType "bool" |> FsStatementV2.InnerFsStatement
-//            | "number" -> return InnerFsStatement.primitiveType "float" |> FsStatementV2.InnerFsStatement
-            
-//            | typeName when config.IsTypeSearchEnabled ->
-//                match config.TryGetLocal identifier with
-//                | Some statement ->
-//                    //let codeItems = statement.NestedStatements |> List.map FsStatementV2.codeItems |> List.concat
-//                    return statement |> FsStatementV2.TopLevelFsStatement
-//                | None -> 
-//                    return InnerFsStatement.reference typeName |> FsStatementV2.InnerFsStatement
-
-//            | typeName (* when not config.IsTypeSearchEnabled *) ->
-//                return InnerFsStatement.reference typeName |> FsStatementV2.InnerFsStatement
-
-//        | _  when config.IsTypeSearchEnabled -> 
-//            match config.TryGetStatement qualifiers with
-//            | Some statement ->
-//                return statement |> FsStatementV2.TopLevelFsStatement
-//            | None -> 
-//                let typeName = String.Join("", qualifiers |> List.map Identifier.value)
-//                return InnerFsStatement.reference typeName |> FsStatementV2.InnerFsStatement
-//        | _ -> 
-//            let typeName = String.Join("", qualifiers |> List.map Identifier.value)
-//            return InnerFsStatement.reference typeName |> FsStatementV2.InnerFsStatement
-//    }
-
-//let fsStatement fsStatmementType (nestedStatements: TopLevelFsStatement list) =
-//    {
-//        Kind = FsStatementKind.Type fsStatmementType
-//        Scope = Inherit
-//        Open = []
-//        CodeItems = []
-//        NestedStatements = 
-//            if (nestedStatements.Length = 1) && nestedStatements.Head.Kind = FsStatementKind.Type FsStatementType.Composition then
-//                nestedStatements.Head.NestedStatements
-//            else
-//                nestedStatements
-//        PostCodeItems = []
-//        Summary = []
-//        Hidden = false
-//    }
 
 let rec interpretDTsType (type': DTsType)  : Interpreter< InnerInterpretConfig, (InnerFsStatement * Summary) > =
 
@@ -73,6 +39,7 @@ let rec interpretDTsType (type': DTsType)  : Interpreter< InnerInterpretConfig, 
                 match identifier |> Identifier.value with
                 | "boolean" -> InnerFsStatement.primitiveType "bool", []
                 | "number" -> InnerFsStatement.primitiveType "float", []
+                | "string" -> InnerFsStatement.primitiveType "string", []
                 | _ -> InnerFsStatement.reference qualifiers, []
             | _ -> InnerFsStatement.reference qualifiers, []
 
@@ -85,16 +52,56 @@ let rec interpretDTsType (type': DTsType)  : Interpreter< InnerInterpretConfig, 
         | DTsType.Plain qualifiers -> 
             return (interpretTypeByReference qualifiers)
 
-        | DTsType.Generic (qualifiers, _) ->
-            let codeItems = DtsInterpreter.constructSingleType type'
-            return
-                {
-                    Type = FsStatementType.ReferenceGeneric qualifiers
-                    Open = []
-                    CodeItems = codeItems
-                    PostCodeItems = []
-                    NestedStatements = []
-                }, []
+        | DTsType.Generic (qualifiers, typaParameters) ->
+            match qualifiers with
+            | Qualifiers ["React"; "ComponentType"] ids ->
+                let! nestedStatements =
+                    typaParameters
+                    |> List.map interpretDTsType
+                    |> Interpreter.sequence
+
+                return
+                    {
+                        Type = FsStatementType.ReferenceGeneric ids
+                        Open = ["Fable.React"]
+                        CodeItems = [
+                            vmType "ReactElementType"
+                            vmPrn "<"
+
+                        ]
+                        PostCodeItems = [vmPrn ">"]
+                        NestedStatements = 
+                            nestedStatements 
+                            |> List.map fst
+                            |> List.map (fun inner ->
+                                match inner.Type with
+                                | FsStatementType.Reference _ ->
+                                    {inner with CodeItems = [vmPrn "'"] @ inner.CodeItems}
+                                | _ -> inner
+                            )
+
+                    }, nestedStatements |> List.map snd |> List.concat
+            | Qualifiers ["React"; "ComponentClass"] ids ->
+                return
+                    {
+                        Type = FsStatementType.ReferenceGeneric ids
+                        Open = ["Fable.React"]
+                        CodeItems = [
+                            vmType "ReactElement"
+                        ]
+                        PostCodeItems = []
+                        NestedStatements = []
+                    }, []
+            | _ ->
+                let codeItems = DtsInterpreter.constructSingleType type'
+                return
+                    {
+                        Type = FsStatementType.ReferenceGeneric qualifiers
+                        Open = []
+                        CodeItems = codeItems
+                        PostCodeItems = []
+                        NestedStatements = []
+                    }, []
 
         | DTsType.Any -> return InnerFsStatement.objType, []
         | DTsType.Void -> return InnerFsStatement.unitType, []

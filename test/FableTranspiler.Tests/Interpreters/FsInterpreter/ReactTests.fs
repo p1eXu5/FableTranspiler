@@ -55,6 +55,16 @@ module ReactTests =
         }
 
 
+    let inline private interpret interpreter p pmap =
+        result {
+            let! rootFullPath' = rootFullPath |> FullPath.Create
+            let! moduleFullPath' = fullPath testRelativePath
+            let! config' = config
+            let innerConfig = defaultInnerInterpretConfig (config'.FsStatementStore) rootFullPath' moduleFullPath'
+            return interpreter (pmap p) |> Interpreter.run (innerConfig, TabLevel 0)
+        }
+
+
     let private toFsStatement' relativePath statement innerConfig = 
         result {
             let! rootFullPath' = rootFullPath |> FullPath.Create
@@ -82,7 +92,9 @@ module ReactTests =
         | FsStatementV2.TopLevelFsStatement s -> Ok s
         | FsStatementV2.InnerFsStatement s -> Error $"%O{s} - is not top level statement"
 
+
     let private writeStatements = fun statements -> statements |> List.iter (sprintf "%O" >> writeLineS ); statements
+
 
     module private Result =
         let writeStatements = fun statementsResult -> statementsResult |> Result.map writeStatements
@@ -118,6 +130,14 @@ module ReactTests =
         }
         |> Result.runTest
 
+    [<TestCaseSource(typeof<ReactTestCases>, nameof ReactTestCases.DtsTypeCases)>]
+    let ``interpretDTsType test`` (dtsType, expectedStringFs, expectedSummary) =
+        result {
+            let! (innerFsStatement, summary) = interpret Fable.interpretDTsType dtsType id
+            innerFsStatement.ToString() |> should equal expectedStringFs
+            summary |> should equivalent expectedSummary
+        }
+        |> Result.runTest
 
     [<Test>]
     let ``interpret interface produces statement with expected line breaks`` () =
@@ -700,11 +720,11 @@ module ReactTests =
 
             let sPresent0 = sprintf "%O" fsStatements[0]
             sPresent0 |> should contain "[<Import(\"Scroll\", from=@\"react-scroll\Helpers\")>]"
-            sPresent0 |> should contain "let scroll : component: obj -> customScroller: obj option -> obj = jsNative"
+            sPresent0 |> should contain "let scroll : ``component``: obj -> customScroller: obj option -> obj = jsNative"
 
             let sPresent1 = sprintf "%O" fsStatements[1]
             sPresent1 |> should contain "[<Import(\"Element\", from=@\"react-scroll\Helpers\")>]"
-            sPresent1 |> should contain "let element : component: obj -> obj = jsNative"
+            sPresent1 |> should contain "let element : ``component``: obj -> obj = jsNative"
         }
         |> Result.runTest
 

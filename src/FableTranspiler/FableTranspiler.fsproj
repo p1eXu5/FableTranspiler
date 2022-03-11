@@ -15,7 +15,6 @@
     <Compile Include="Domain\Parsers\Dsl.fs" />
     <Compile Include="Domain\Parsers\Common.fs" />
     <Compile Include="Domain\Parsers\Structures.fs" />
-    <Compile Include="Domain\Parsers\Misc.fs" />
     <Compile Include="Domain\Parsers\Comment.fs" />
     <Compile Include="Domain\Parsers\Module.fs" />
     <Compile Include="Domain\Parsers\Import.fs" />
