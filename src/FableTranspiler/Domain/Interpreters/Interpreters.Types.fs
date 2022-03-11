@@ -93,6 +93,9 @@ module CodeItem =
     let internal vmIdentifier (Identifier identifier) =
         { Tag = Tag.Text; Content = identifier }
 
+    let internal vmIdentifierS (Identifier identifier) =
+        { Tag = Tag.Text; Content = identifier + " " }
+
     let internal vmTypeIdentifier (Identifier identifier) =
         { Tag = Tag.Type; Content = identifier }
 

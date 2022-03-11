@@ -10,25 +10,33 @@
   <ItemGroup>
     <Compile Include="Base\CommonSteps.fs" />
     <Compile Include="Base\FeatureFixtures.fs" />
-    <Compile Include="Domain\Interpreters\FableInterpretationSteps.fs" />
     <Compile Include="Domain\UseCases\ParseFileSteps.fs" />
+    <EmbeddedResource Include="Domain\UseCases\ParseFile.feature" />
+    <Compile Include="Domain\Interpreters\FableInterpretationSteps.fs" />
     <Compile Include="FileProcessingSteps.fs" />
     <EmbeddedResource Include="Domain\Interpreters\FableInterpretation.feature" />
-    <EmbeddedResource Include="Domain\UseCases\ParseFile.feature" />
     <None Include="FileProcessing.feature" />
     <None Include="StyleChange.features" />
     <Compile Include="Program.fs" />
   </ItemGroup>
 
-  <ItemGroup />
-
-  <ItemGroup />
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.1.0" />
+    <PackageReference Include="NUnit" Version="3.13.2" />
+    <PackageReference Include="NUnit3TestAdapter" Version="4.2.1" />
+    <PackageReference Include="coverlet.collector" Version="3.1.2">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.11.0" />
-    <PackageReference Include="NUnit" Version="3.13.2" />
-    <PackageReference Include="NUnit3TestAdapter" Version="4.0.0" />
-    <PackageReference Include="coverlet.collector" Version="3.1.0" />
+    <ProjectReference Include="..\..\src\FableTranspiler.Adapters.Persistence\FableTranspiler.Adapters.Persistence.fsproj" />
+    <ProjectReference Include="..\FableTranspiler.Tests.Common\FableTranspiler.Tests.Common.fsproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Update="FSharp.Core" Version="6.0.3" />
   </ItemGroup>
 
 </Project>

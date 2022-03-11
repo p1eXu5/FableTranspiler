@@ -14,6 +14,7 @@ module FsUnit =
 
 
     let inline writeLine s = TestContext.WriteLine(sprintf "%A" s)
+    let inline writeLineS (s: string) = TestContext.WriteLine(s)
 
     let toTask computation : Task = Async.StartAsTask computation :> _
 

@@ -12,6 +12,7 @@ module ModuleTreeListTests =
     open FableTranspiler.Adapters.WpfClient.Components
     open FsToolkit.ErrorHandling
     open FsUnit
+    open System.IO
 
     module ModuleTree = FableTranspiler.Adapters.WpfClient.Components.ModuleTreeList.ModuleTree
 
@@ -19,7 +20,8 @@ module ModuleTreeListTests =
 
     //let dirPath = faker.System.DirectoryPath()
     //let f1 = faker.System.FileName()
-    let rootedFilePath () = "z:" + faker.System.DirectoryPath() + faker.System.CommonFileName("d.ts")
+    let rootedFilePath () = 
+        Path.GetFullPath(Path.Combine("z:\\node_modules\\@types", faker.System.DirectoryPath()[3..], faker.System.CommonFileName("d.ts")))
 
     let fullPath () =
         rootedFilePath() |> FullPath.createUnsafe
@@ -50,5 +52,5 @@ module ModuleTreeListTests =
         moduleTree.SubModules |> List.map (fun mt -> mt.Key.Length) |> List.distinct |> should equivalent [2]
 
         let allModules = moduleTree |> ModuleTree.allModules
-        allModules |> should haveLength (tree |> FullPathTree.allNodes |> List.length)
+        allModules |> should haveLength (tree |> FullPathTree.allNodes |> List.length |> (+) 1 (*lib name on top*))
         allModules |> List.map (fun mt -> mt.IsSelected) |> should not' (contain true)

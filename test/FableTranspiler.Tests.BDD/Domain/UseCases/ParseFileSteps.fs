@@ -15,6 +15,7 @@ open FableTranspiler.SimpleTypes
 open FsToolkit.ErrorHandling
 open FableTranspiler.Domain.UseCases.Implementation
 open FableTranspiler.Tests.Common.FsUnit
+open FableTranspiler.Parsers.Types
 
 [<TestFixture(TestName="Feature: Parse file")>]
 type ParseFileFeature() = 
@@ -32,7 +33,7 @@ type ParseFileFeature() =
 
 type TestConfig =
     {
-        StatementStore : StatementStore
+        StatementStore : StatementStore<Statement>
         ReadFileAsync: ReadFileAsync
     }
 
@@ -42,7 +43,7 @@ module ParseFileSteps =
         result {
             let! uri = path |> FullPath.Create
             return {
-                StatementStore = StatementStore.create ()
+                StatementStore = StatementStore.create (Statement.identifier)
                 ReadFileAsync =
                     fun uri' ->
                         task {
@@ -61,7 +62,7 @@ module ParseFileSteps =
             let! uri = path |> FullPath.Create
             return {
                 config with
-                    StatementStore = StatementStore.create ()
+                    StatementStore = StatementStore.create (Statement.identifier)
                     ReadFileAsync =
                         fun uri' ->
                             task {

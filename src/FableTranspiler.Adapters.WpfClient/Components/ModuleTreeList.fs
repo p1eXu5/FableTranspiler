@@ -171,7 +171,7 @@ module internal ModuleTreeList =
                 match pathTree |> FullPathTree.fullPath |> FullPath.Value with
                 | Regex libTypesPattern [path] -> (path |> FullPath.Create |> Result.defaultWith (fun _ -> failwith "Wrong path"), [pathTree]) |> FullPathTree.Node
                 | _ -> 
-                    raise (System.NotImplementedException("Need to add open folder dialog"))
+                    raise (System.NotImplementedException("Path does not contain '...\\node_modules\\@types\\...'"))
 
             let rootFullPath = root |> FullPathTree.fullPath
             let moduleTree = root |> FullPathTree.apply (ModuleTree.toModuleTree rootFullPath)

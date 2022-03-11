@@ -28,7 +28,7 @@ module ReactTests =
             {
                 InterpretStrategy = strategy
                 StatementStore = FableTranspiler.Adapters.Persistence.StatementStore.create (Statement.identifier)
-                FsStatementStore = FableTranspiler.Adapters.Persistence.StatementStore.create (FsStatementV2.identifier)
+                FsStatementStore = FableTranspiler.Adapters.Persistence.StatementStore.create (TopLevelFsStatement.identifier)
             } |> Ok
 
     let [<Literal>] rootFullPath = 
@@ -64,7 +64,7 @@ module ReactTests =
         }
 
 
-    let interpretDtsModule modulePath content =
+    let private interpretDtsModule modulePath content =
         result {
             let statementsResult =
                 content
@@ -75,6 +75,17 @@ module ReactTests =
             config'.StatementStore.TryAdd fullModulePath statementsResult |> ignore
             return! statementsResult
         }
+
+
+    let private topLevelStatement (statement: FsStatementV2) =
+        match statement with
+        | FsStatementV2.TopLevelFsStatement s -> Ok s
+        | FsStatementV2.InnerFsStatement s -> Error $"%O{s} - is not top level statement"
+
+    let private writeStatements = fun statements -> statements |> List.iter (sprintf "%O" >> writeLineS ); statements
+
+    module private Result =
+        let writeStatements = fun statementsResult -> statementsResult |> Result.map writeStatements
 
 
     [<Test>]
@@ -92,7 +103,7 @@ module ReactTests =
                 interpretV2' testRelativePath statements
 
             fsStatements[0]
-            |> FsStatementV2.identifier 
+            |> TopLevelFsStatement.identifier 
             |> shouldL equal (statements.Head |> Statement.identifier) "Wrong identifier"
         } 
         |> Result.runTest
@@ -125,7 +136,7 @@ module ReactTests =
                 interpretV2' testRelativePath statements
 
             fsStatements[0]
-            |> FsStatementV2.codeItems
+            |> TopLevelFsStatement.codeItems
             |> List.filter ((=) vmEndLineNull)
             |> shouldL haveLength 5 "Wrong count of vmEndLineNull"
         } 
@@ -215,40 +226,36 @@ module ReactTests =
     [<Test>]
     let ``interpret type composition from two local props interfaces produces fulfilled DU`` () =
         result {
-            let statementsResult =
-                """
-                    export interface FooProps {
-                        to?: string;
-                        smooth?: boolean | string | undefined;
-                        onClick?(): void;
-                    }
-
-                    export interface BarProps {
-                        onSetActive?(to: string): void;
-                        duration?: number | string | ((distance: number) => number) | undefined;
-                    }
-
-                    export type BazProps = FooProps & BarProps;
-                """
-                |> Parser.run
-
-            let! moduleP = fullPath testRelativePath
-            let! config' = config
-            config'.StatementStore.TryAdd moduleP statementsResult |> ignore
-
-            let! statements = statementsResult
-
             let! fsStatements =
-                statements
-                |> interpretV2' testRelativePath
+                interpretDtsModule "./Foo"
+                    """
+                        export interface FooProps {
+                            to?: string;
+                            smooth?: boolean | string | undefined;
+                            onClick?(): void;
+                        }
+
+                        export interface BarProps {
+                            onSetActive?(to: string): void;
+                            duration?: number | string | ((distance: number) => number) | undefined;
+                        }
+
+                        export type BazProps = FooProps & BarProps;
+                    """
+                |> Result.bind (interpretV2' "./Foo")
+
+            fsStatements |> List.iter (fun s -> TestContext.WriteLine(s.ToString()))
 
             fsStatements 
             |> shouldL haveLength 3 "Wrong count of fs statements"
 
+
+
             let bazProps = fsStatements |> List.last
-            bazProps.NestedStatements[0].Kind |> should equal (FsStatementKind.Type FsStatementType.Composition)
-            bazProps.NestedStatements[0].NestedStatements |> shouldL haveLength 5 "Wrong NestedStatements count"
-            Assert.That(bazProps.NestedStatements[0].NestedStatements, Has.All.Property("Kind").Matches( ofCase <@ FsStatementKind.Field @> ))
+            bazProps.Kind |> should be (ofCase <@ FsStatementKind.DU @>)
+            bazProps.NestedStatements |> shouldL haveLength 5 "Wrong NestedStatements count"
+            Assert.That(bazProps.NestedStatements, Has.All.Matches( ofCase <@ FsStatementV2.TopLevelFsStatement @> ))
+            Assert.That(bazProps.NestedStatements |> List.choose FsStatementV2.topLevel, Has.All.Property("Kind").Matches( ofCase <@ FsStatementKind.Field @> ))
 
             let present = bazProps.ToString()
             present |> should contain "| To of string"
@@ -299,8 +306,9 @@ module ReactTests =
             |> shouldL haveLength 3 $"Wrong count of fs statements, %A{fsStatements}"
 
             let buttonProps = fsStatements |> List.item 1
-            buttonProps.NestedStatements[0].Kind |> should equal (FsStatementKind.Type FsStatementType.Composition)
-            buttonProps.NestedStatements[0].NestedStatements |> shouldL haveLength 1 "Wrong NestedStatements count"
+            let! composition = topLevelStatement buttonProps.NestedStatements[0]
+            //composition.Kind |> should equal (FsStatementKind.Type FsStatementType.Composition)
+            composition.NestedStatements |> shouldL haveLength 1 "Wrong NestedStatements count"
 
             let present = buttonProps.ToString()
             present |> should contain "| To of string"
@@ -311,29 +319,22 @@ module ReactTests =
     [<Test>]
     let ``when interpret type combination with outer lib module props import then adds comments and summary`` () =
         result {
-            let statementsResultB =
-                """
-                    import * as Foo from 'foo';
-
-                    export interface BarProps {
-                        onSetActive?(to: string): void;
-                        duration?: number | string | ((distance: number) => number) | undefined;
-                    }
-
-                    export type BazProps = BarProps & Foo.FooProps<FooElement>;
-                """
-                |> Parser.run
-
-            let! moduleFullPath = fullPath testRelativePath
-            let! config' = config
-            config'.StatementStore.TryAdd moduleFullPath statementsResultB |> ignore
-
-
-            let! statements = statementsResultB
-
             let! fsStatements =
-                statements
-                |> interpretV2' testRelativePath
+                interpretDtsModule "./Baz"
+                    """
+                        import * as Foo from 'foo';
+
+                        export interface BarProps {
+                            onSetActive?(to: string): void;
+                            duration?: number | string | ((distance: number) => number) | undefined;
+                        }
+
+                        export type BazProps = BarProps & Foo.FooProps<FooElement>;
+                    """
+                |> Result.bind (interpretV2' "./Baz")
+                |> Result.map (fun xs -> xs |> List.iter (sprintf "%O" >> writeLineS ); xs)
+
+
 
             fsStatements 
             |> shouldL haveLength 3 "Wrong count of fs statements"
@@ -342,12 +343,8 @@ module ReactTests =
             fsStatements[0].ToString() |> should contain "// outer lib is not processed yet - import * as Foo from 'foo';"
 
             let bazProps = fsStatements |> List.last
-            bazProps.NestedStatements[0].Kind |> should equal (FsStatementKind.Type FsStatementType.Composition)
-            bazProps.NestedStatements[0].NestedStatements |> shouldL haveLength 2 "Wrong NestedStatements count" // Foo.FooProps<FooElement> is unknown
-            Assert.That(
-                bazProps.NestedStatements[0].NestedStatements, 
-                Has.All.Property("Kind").Matches( ofCase <@ FsStatementKind.Field @> ), 
-                fun () -> "type alias assertion fails:" )
+            //composition.Kind |> should equal (FsStatementKind.Type FsStatementType.Composition)
+            bazProps.NestedStatements |> shouldL haveLength 2 "Wrong NestedStatements count" // Foo.FooProps<FooElement> is unknown
 
             let present = bazProps.ToString()
             present |> should contain "/// see also Foo.FooProps<FooElement>"
@@ -435,6 +432,7 @@ module ReactTests =
             sPresent0 |> should contain "abstract remove : eventName: string -> unit"
         }
         |> Result.runTest
+
 
     [<Test>]
     let ``exported namespace interpretation test like scroll-events`` () =
@@ -559,8 +557,8 @@ module ReactTests =
 
 
             fsStatementList |> should haveLength 2
-            TestContext.WriteLine $"%A{fsStatementList[0]}"
-            TestContext.WriteLine $"%A{fsStatementList[1]}"
+            TestContext.WriteLine $"%O{fsStatementList[0]}"
+            TestContext.WriteLine $"%O{fsStatementList[1]}"
 
             let interfaceFsStatement = fsStatementList[1]
             interfaceFsStatement.Kind |> should equal (FsStatementKind.AbstractClass (Identifier "Scroller"))
@@ -633,24 +631,27 @@ module ReactTests =
 
 
     [<Test>]
-    let ``collectImportDefault test`` () =
+    let ``wrapLetImportDefaultWithType test`` () =
         result {
-            let! statements =
+            writeLineS "Before:"
+            let! fsStatements =
                 interpretDtsModule "./animate-scroll"
                     """
                         export function scrollToBottom(options?: any): void;
                     """
+                |> Result.bind (interpretV2' "./animate-scroll")
+                |> Result.writeStatements
 
+            writeLineS "After:"
             let! fsStatementList =
-                interpretV2' "./animate-scroll" statements
-                |> Result.bind (fun xs ->
-                    result {
-                        let! rootFullPath' = rootFullPath |> FullPath.Create
-                        let! moduleFullPath' = fullPath "./animate-scroll"
-                        let! config' = config
-                        return Ports.run config' (Facade.collectImportDefault rootFullPath' moduleFullPath' xs)
-                    }
-                )
+                result {
+                    let! rootFullPath' = rootFullPath |> FullPath.Create
+                    let! moduleFullPath' = fullPath "./animate-scroll"
+                    let! config' = config
+                    return Ports.run config' (Facade.wrapLetImportsWithType rootFullPath' moduleFullPath' fsStatements)
+                }
+                |> Result.writeStatements
+                
 
             fsStatementList |> should haveLength 2
 
@@ -666,8 +667,6 @@ module ReactTests =
             presentation1 |> should contain "let animateScroll : AnimateScroll = jsNative"
         }
         |> Result.runTest
-
-
 
 
     [<Test>]

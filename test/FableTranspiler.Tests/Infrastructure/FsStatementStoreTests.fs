@@ -9,6 +9,7 @@ open FableTranspiler.Tests.Common.SimpleTypesFactories
 open FableTranspiler.Tests.Factories
 open FsUnit
 
+[<Ignore("Obsolete")>]
 module FsStatementStoreTests =
 
     let private store = 

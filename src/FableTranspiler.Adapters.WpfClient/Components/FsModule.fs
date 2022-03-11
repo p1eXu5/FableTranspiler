@@ -38,7 +38,7 @@ module internal FsModule =
                 {
                     InterpretStrategy = Fable.strategy
                     StatementStore = statementStore
-                    FsStatementStore = StatementStore.create FsStatementV2.identifier
+                    FsStatementStore = StatementStore.create TopLevelFsStatement.identifier
                 }
             FileName = None
         }
