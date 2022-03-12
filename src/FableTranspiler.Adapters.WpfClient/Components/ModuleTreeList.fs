@@ -230,43 +230,4 @@ module internal ModuleTreeList =
                 ),
                 moduleTreeBindings
             )
-
-            //"SelectedDtsStatements" |> Binding.oneWayOpt (
-            //    fun m -> 
-            //        m.DtsStatements
-            //        |> Option.bind (fun dvm ->
-            //            match dvm with
-            //            | Choice1Of2 xvm -> xvm |> Some
-            //            | Choice2Of2 _ -> None
-            //        )
-            //)
-
-            //"SelectedDtsStatementsError" |> Binding.oneWayOpt(fun m -> 
-            //    m.DtsStatements
-            //    |> Option.bind (fun dvm ->
-            //        match dvm with
-            //        | Choice1Of2 _ -> None
-            //        | Choice2Of2 err -> err |> Some
-            //    )
-            //)
-
-            //"SelectedFsStatements" |> Binding.oneWayOpt (
-            //    fun m -> 
-            //        m.FsStatements
-            //        |> Option.bind (fun dvm ->
-            //            match dvm with
-            //            | Choice1Of2 xvm -> xvm |> Some
-            //            | Choice2Of2 _ -> None
-            //        )
-            //)
-
-            //"SelectedFsStatementsError" |> Binding.oneWayOpt(
-            //    fun m -> 
-            //        m.FsStatements
-            //        |> Option.bind (fun dvm ->
-            //            match dvm with
-            //            | Choice1Of2 _ -> None
-            //            | Choice2Of2 err -> err |> Some
-            //        )
-            //)
         ]

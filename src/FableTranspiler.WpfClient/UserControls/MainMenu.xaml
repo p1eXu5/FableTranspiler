@@ -58,17 +58,5 @@
                 </MenuItem>
             </MenuItem>
         </Menu>
-        <Grid Grid.Column="1" HorizontalAlignment="Right" TextElement.Foreground="{StaticResource MaterialDesignBody}">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="Auto"/>
-                <ColumnDefinition Width="*"/>
-                <ColumnDefinition Width="Auto" />
-            </Grid.ColumnDefinitions>
-            <TextBlock Grid.Column="0" Text="Root Path to Save:" VerticalAlignment="Center" Margin="0,0,10,0"/>
-            <TextBox Grid.Column="1" Text="{Binding RootFolderToSave}" MinWidth="800" MaxWidth="2000" MaxLines="1" MinLines="1" VerticalAlignment="Center" ></TextBox>
-            <Button Grid.Column="2" Style="{StaticResource MaterialDesignFlatLightButton}" Command="{Binding ChooseRootFolderToSave}">
-                <materialDesign:PackIcon Kind="FolderArrowLeftOutline" />
-            </Button>
-        </Grid>
     </Grid>
 </UserControl>

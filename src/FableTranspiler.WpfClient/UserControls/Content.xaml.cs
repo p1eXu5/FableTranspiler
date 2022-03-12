@@ -38,8 +38,8 @@ namespace FableTranspiler.WpfClient.UserControls
                     return _adorner;
                 }
 
-                var adornerLayer = AdornerLayer.GetAdornerLayer(m_FelizContent);
-                _adorner = new FsCodeStyleAdorner(m_FelizContent);
+                var adornerLayer = AdornerLayer.GetAdornerLayer(m_FableContent);
+                _adorner = new FsCodeStyleAdorner(m_FableContent);
                 adornerLayer.Add(_adorner);
                 return _adorner;
             }
@@ -75,10 +75,17 @@ namespace FableTranspiler.WpfClient.UserControls
             Debug.WriteLine("Mouse enter {0}", sender);
         }
 
-        private void CommandBinding_Executed(object sender, ExecutedRoutedEventArgs e)
+        private async void SaveDocument(object sender, RoutedEventArgs e)
         {
-            var flowDocument = m_FelizContent.Document;
+            var flowDocument = m_FableContent.Document;
             var fileName = System.IO.Path.Combine((string)Tag, m_FsModuleFileName.Text);
+
+            if (File.Exists(fileName)) {
+                var view = new OverwriteFileDialog();
+                var result = await MaterialDesignThemes.Wpf.DialogHost.Show(view);
+
+                if ( !(result is not null && result is bool b && b ) ) return;
+            }
 
             using (FileStream fs = new FileStream(fileName, FileMode.OpenOrCreate, FileAccess.Write))
             {

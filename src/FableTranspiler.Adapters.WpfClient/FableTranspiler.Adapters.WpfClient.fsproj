@@ -13,7 +13,6 @@
     <Compile Include="Elmish.Extensions.fs" />
     <Compile Include="Components\DtsModule.fs" />
     <Compile Include="Components\FsModule.fs" />
-    <Compile Include="Components\ModuleTree.fs" />
     <Compile Include="Components\ModuleTreeList.fs" />
     <Compile Include="MainModel.fs" />
     <Compile Include="App.fs" />

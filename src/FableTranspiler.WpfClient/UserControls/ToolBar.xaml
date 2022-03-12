@@ -3,50 +3,49 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:root="clr-namespace:FableTranspiler.WpfClient"
              xmlns:local="clr-namespace:FableTranspiler.WpfClient.UserControls"
              xmlns:conv="clr-namespace:FableTranspiler.WpfClient.Converters"
              xmlns:materialDesign="http://materialdesigninxaml.net/winfx/xaml/themes"
              mc:Ignorable="d" 
-             d:DesignHeight="55" d:DesignWidth="600"
+             d:DesignHeight="60" d:DesignWidth="500"
              >
     <UserControl.Resources>
         <conv:MultiBooleanConverter x:Key="conv_multiBool" />
     </UserControl.Resources>
-    <ToolBarTray>
+    <ToolBarTray VerticalAlignment="Center">
         <ToolBar Style="{DynamicResource MaterialDesignToolBar}"
-                    ClipToBounds="False"
-                    x:Name="b"
-                    >
-            <ListBox SelectionMode="Extended" x:Name="c" >
-                <ListBoxItem x:Name="m_TsContent" 
-                                Content="{materialDesign:PackIcon Kind=LanguageTypescript}" 
-                                IsSelected="{Binding RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=local:ToolBar}, Path=ShowTsContent, Mode=TwoWay}" 
-                                />
-                <ListBoxItem x:Name="m_FelizContent"
-                             IsSelected="{Binding RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=local:ToolBar}, Path=ShowFelizContent, Mode=TwoWay}"
+                 ClipToBounds="False"
+                 x:Name="b"
+                 >
+            <ListBox SelectionMode="Extended" x:Name="c">
+                <ListBoxItem Content="{materialDesign:PackIcon Kind=LanguageTypescript}" 
+                             IsSelected="{Binding RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=root:MainWindow}, Path=ShowTsContent, Mode=TwoWay}" 
+                             Padding="10,10" Margin="0"    
+                             />
+                <ListBoxItem
+                             IsSelected="{Binding RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=root:MainWindow}, Path=ShowFableContent, Mode=TwoWay}"
+                             Padding="10,10" Margin="0" 
                              >
                     <StackPanel Orientation="Horizontal">
                         <materialDesign:PackIcon Kind="React" Margin="0,0,5,0" />
-                        <TextBlock VerticalAlignment="Center">Feliz</TextBlock>
+                        <TextBlock VerticalAlignment="Center">Fable</TextBlock>
                     </StackPanel>
                 </ListBoxItem>
             </ListBox>
-            <Separator />
-            <Button
-                Style="{StaticResource MaterialDesignFlatAccentButton}"
-                ToolTip="Save"
-                Content="{materialDesign:PackIcon Kind=ContentSave}"
-                Command="ApplicationCommands.Save"
-                >
-                <Button.IsEnabled>
-                    <MultiBinding Mode="OneWay" Converter="{StaticResource conv_multiBool}">
-                        <Binding RelativeSource="{RelativeSource Mode=FindAncestor, AncestorType=local:ToolBar}" Path="ShowFelizContent" />
-                        <Binding Path="HasFsStatements" />
-                    </MultiBinding>
-                </Button.IsEnabled>
-            </Button>
-            <!--<TextBlock Text="{Binding RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=local:ToolBar}, Path=ShowFelizContent}"/>
-            <TextBlock Text="{Binding HasFsStatements}"/>-->
+            <Separator Margin="5,0" />
+            <Grid HorizontalAlignment="Right" TextElement.Foreground="{StaticResource MaterialDesignBody}" d:DesignWidth="300">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <TextBlock Grid.Column="0" Text="Root Path to Save:" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                <TextBox Grid.Column="1" Text="{Binding RootFolderToSave}" MinWidth="800" MaxWidth="2000" MaxLines="1" MinLines="1" VerticalAlignment="Center" ></TextBox>
+                <Button Grid.Column="2" Style="{StaticResource MaterialDesignFlatLightButton}" Command="{Binding ChooseRootFolderToSave}">
+                    <materialDesign:PackIcon Kind="FolderArrowLeftOutline" />
+                </Button>
+            </Grid>
         </ToolBar>
     </ToolBarTray>
 </UserControl>

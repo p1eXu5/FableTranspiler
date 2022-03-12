@@ -3,6 +3,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:root="clr-namespace:FableTranspiler.WpfClient"
              xmlns:local="clr-namespace:FableTranspiler.WpfClient.UserControls"
              xmlns:conv="clr-namespace:FableTranspiler.WpfClient.Converters"
              xmlns:prop="clr-namespace:FableTranspiler.WpfClient.AttachedProperties"
@@ -14,7 +15,10 @@
     <UserControl.Resources>
         <conv:ParentWidthConverter x:Key="conv_ParentWidthConverter" />
         <materialDesign:BooleanToVisibilityConverter x:Key="conv_BoolToVis"/>
+        <conv:MultiBooleanConverter x:Key="conv_multiBool" />
+        <conv:MultiBooleanToVisibilityConverter x:Key="conv_multiBoolToVis" />
     </UserControl.Resources>
+    
     <materialDesign:ColorZone Padding="16" VerticalAlignment="Stretch">
         <DockPanel LastChildFill="True">
             <DockPanel.Resources>
@@ -26,27 +30,30 @@
                     <Setter Property="VerticalScrollBarVisibility" Value="Visible" />
                     <Setter Property="SpellCheck.IsEnabled" Value="True" />
                     <Setter Property="VerticalContentAlignment" Value="Stretch" />
-                    <Setter Property="Width">
-                        <Setter.Value>
-                            <MultiBinding Converter="{StaticResource conv_ParentWidthConverter}" Mode="OneWay">
-                                <Binding ElementName="m_ContentContainer" Path="ActualWidth" />
-                                <Binding ElementName="m_ContentToggler" Path="ShowTsContent" />
-                                <Binding ElementName="m_ContentToggler" Path="ShowFelizContent" />
-                                <Binding Path="Margin" RelativeSource="{RelativeSource Mode=Self}" />
-                            </MultiBinding>
-                        </Setter.Value>
-                    </Setter>
                 </Style>
                 <Style TargetType="{x:Type materialDesign:SmartHint}">
                     <Setter Property="HorizontalAlignment" Value="Center"/>
+                    <Setter Property="VerticalAlignment" Value="Center"/>
                 </Style>
             </DockPanel.Resources>
             
-            <local:ToolBar x:Name="m_ContentToggler" DockPanel.Dock="Top" MouseEnter="_MouseEnter"/>
+            <!--<local:ToolBar x:Name="m_ContentToggler" DockPanel.Dock="Top" MouseEnter="_MouseEnter"/>-->
 
             <StackPanel x:Name="m_ContentContainer" HorizontalAlignment="Stretch" Orientation="Horizontal">
-                <Border DataContext="{Binding DtsModule}">
-                    <RichTextBox Visibility="{Binding ElementName=m_ContentToggler, Path=ShowTsContent, Converter={StaticResource conv_BoolToVis}, Mode=OneWay}"
+                <Border DataContext="{Binding DtsModule}"
+                        Visibility="{Binding RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=root:MainWindow}, 
+                                             Path=ShowTsContent, 
+                                             Converter={StaticResource conv_BoolToVis}, Mode=OneWay}"
+                        >
+                    <Border.Width>
+                        <MultiBinding Converter="{StaticResource conv_ParentWidthConverter}" Mode="OneWay">
+                            <Binding ElementName="m_ContentContainer" Path="ActualWidth" />
+                            <Binding RelativeSource="{RelativeSource Mode=FindAncestor, AncestorType=root:MainWindow}" Path="ShowTsContent" />
+                            <Binding RelativeSource="{RelativeSource Mode=FindAncestor, AncestorType=root:MainWindow}" Path="ShowFableContent" />
+                            <Binding Path="Margin" RelativeSource="{RelativeSource Mode=Self}" />
+                        </MultiBinding>
+                    </Border.Width>
+                    <RichTextBox 
                                  prop:DtsFlowDocument.DtsDocument="{Binding DtsStatements, Mode=OneWay}"
                                  prop:DtsFlowDocument.DtsDocumentError="{Binding DtsStatementsError, Mode=OneWay}"
                                  materialDesign:HintAssist.Hint="TS Content"
@@ -57,27 +64,84 @@
                                  <!--prop:RichTextBoxHelper.DocumentError="{Binding SelectedDtsStatementsError, Mode=OneWay}"-->
                     </RichTextBox>
                 </Border>
-                <DockPanel LastChildFill="True">
-                    <TextBlock x:Name="m_FsModuleFileName" DockPanel.Dock="Top" HorizontalAlignment="Center" Text="{Binding FsModule.FileName}" />
-                    <RichTextBox x:Name="m_FelizContent"
-                                 Visibility="{Binding ElementName=m_ContentToggler, Path=ShowFelizContent, Converter={StaticResource conv_BoolToVis}, Mode=OneWay}"
-                                 prop:FsFlowDocument.FsDocument="{Binding FsModule.FsStatements, Mode=OneWay}"
-                                 prop:FsFlowDocument.FsDocumentError="{Binding FsModule.FsStatementsError, Mode=OneWay}"
-                                 materialDesign:HintAssist.Hint="Feliz Content"
-                                 prop:FsFlowDocument.SectionMouseEnter="RichTextBox_MouseEnter"
-                                 prop:FsFlowDocument.SectionMouseLeave="RichTextBox_MouseLeave"
-                                 d:Visibility="Visible"
-                                 d:Width="500"
-                                 >
-                        <RichTextBox.CommandBindings>
-                            <CommandBinding Command="ApplicationCommands.Save"
-                                            Executed="CommandBinding_Executed"
-                                            />
-
-
-                        </RichTextBox.CommandBindings>
-                    </RichTextBox>
-                </DockPanel>
+                
+                <materialDesign:DialogHost>
+                    <DockPanel DataContext="{Binding FsModule}" LastChildFill="True"
+                           Visibility="{Binding RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=root:MainWindow}, 
+                                                Path=ShowFableContent, 
+                                                Converter={StaticResource conv_BoolToVis}, 
+                                                Mode=OneWay}"
+                           >
+                        <DockPanel.Width>
+                            <MultiBinding Converter="{StaticResource conv_ParentWidthConverter}" Mode="OneWay">
+                                <Binding ElementName="m_ContentContainer" Path="ActualWidth" />
+                                <Binding RelativeSource="{RelativeSource Mode=FindAncestor, AncestorType=root:MainWindow}" Path="ShowTsContent" />
+                                <Binding RelativeSource="{RelativeSource Mode=FindAncestor, AncestorType=root:MainWindow}" Path="ShowFableContent" />
+                                <Binding Path="Margin" RelativeSource="{RelativeSource Mode=Self}" />
+                            </MultiBinding>
+                        </DockPanel.Width>
+                    
+                    
+                        <!-- ==================== -->
+                        <!-- Fs Document Top Menu -->
+                        <!-- ==================== -->
+                        <StackPanel x:Name="m_FsDocumentTopMenu"
+                                    Orientation="Horizontal"
+                                    DockPanel.Dock="Top" 
+                                    HorizontalAlignment="Center">
+                            <StackPanel.Visibility>
+                                <MultiBinding Mode="OneWay" Converter="{StaticResource conv_multiBoolToVis}">
+                                    <Binding RelativeSource="{RelativeSource Mode=FindAncestor, AncestorType=root:MainWindow}" Path="ShowFableContent" />
+                                    <Binding Path="HasFsStatements" />
+                                </MultiBinding>
+                            </StackPanel.Visibility>
+                        
+                            <Border VerticalAlignment="Center" Margin="0,0,10,0">
+                                <TextBlock x:Name="m_FsModuleFileName"  Text="{Binding FileName}" />
+                            </Border>
+                        
+                            <Button Style="{DynamicResource MaterialDesignFlatLightButton}"
+                                    Padding="10,0"
+                                    Content="{materialDesign:PackIcon Kind=ApplicationBraces}"
+                                    ToolTip="Wrap let imports with type"
+                                    ToolTipService.InitialShowDelay="500"
+                                    Command="{Binding WrapLetImportsCommand}"
+                                    />
+                            <Button
+                                Style="{StaticResource MaterialDesignFlatAccentButton}"
+                                VerticalAlignment="Center"
+                                Margin="0"
+                                Padding="10,0"
+                                ToolTip="Save document"
+                                ToolTipService.InitialShowDelay="500"
+                                Content="{materialDesign:PackIcon Kind=ContentSave}"
+                                Click="SaveDocument"
+                                >
+                            </Button>
+                        </StackPanel>
+                    
+                        <Separator DockPanel.Dock="Top" Visibility="{Binding ElementName=m_FsDocumentTopMenu, Path=Visibility}" />
+                    
+                        <!-- ==================== -->
+                        <!--     Fable Content    -->
+                        <!-- ==================== -->
+                        <RichTextBox x:Name="m_FableContent"
+                                     prop:FsFlowDocument.FsDocument="{Binding FsStatements, Mode=OneWay}"
+                                     prop:FsFlowDocument.FsDocumentError="{Binding FsStatementsError, Mode=OneWay}"
+                                     materialDesign:HintAssist.Hint="Fable Content"
+                                     prop:FsFlowDocument.SectionMouseEnter="RichTextBox_MouseEnter"
+                                     prop:FsFlowDocument.SectionMouseLeave="RichTextBox_MouseLeave"
+                                     d:Visibility="Visible"
+                                     d:Width="500"
+                                     >
+                            <!--<RichTextBox.CommandBindings>
+                                <CommandBinding Command="ApplicationCommands.Save"
+                                                Executed="CommandBinding_Executed"
+                                                />
+                            </RichTextBox.CommandBindings>-->
+                        </RichTextBox>
+                    </DockPanel>
+                </materialDesign:DialogHost>
             </StackPanel>
         </DockPanel>
     </materialDesign:ColorZone>

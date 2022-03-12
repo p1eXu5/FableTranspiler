@@ -19,8 +19,9 @@
         >
     
     <DockPanel LastChildFill="True">
-        <local:MainMenu DockPanel.Dock="Top" DataContext="{Binding}" Height="60"/>
-        <Separator DockPanel.Dock="Top"/>
+        <local:MainMenu DockPanel.Dock="Top" DataContext="{Binding}" Height="50"/>
+        <local:ToolBar x:Name="m_ContentToggler" DockPanel.Dock="Top" DataContext="{Binding}"  HorizontalAlignment="Stretch"/>
+        <!--<Separator DockPanel.Dock="Top"/>-->
         <StatusBar DockPanel.Dock="Bottom" Height="24">
             <TextBlock Text="{Binding LastError}" />
         </StatusBar>

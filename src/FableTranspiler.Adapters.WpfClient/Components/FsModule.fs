@@ -86,6 +86,7 @@ module internal FsModule =
             },
             Cmd.none
 
+
     open Elmish.WPF
 
     let bindings () = [
@@ -104,4 +105,10 @@ module internal FsModule =
         )
 
         "FileName" |> Binding.oneWayOpt (fun m -> m.FileName)
+
+        "HasFsStatements" |> Binding.oneWay (fun m -> 
+            match m.FsStatements with
+            | Ok l when not (l |> List.isEmpty) -> true
+            | _ -> false
+        )
     ]

@@ -16,11 +16,11 @@ using System.Windows.Shapes;
 namespace FableTranspiler.WpfClient.UserControls
 {
     /// <summary>
-    /// Interaction logic for ToolBar.xaml
+    /// Interaction logic for OverwriteFileDialog.xaml
     /// </summary>
-    public partial class ToolBar : UserControl
+    public partial class OverwriteFileDialog : UserControl
     {
-        public ToolBar()
+        public OverwriteFileDialog()
         {
             InitializeComponent();
         }

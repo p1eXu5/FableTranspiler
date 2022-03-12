@@ -23,6 +23,9 @@ namespace FableTranspiler.WpfClient
         public MainWindow()
         {
             InitializeComponent();
+            ShowTsContent = true;
+            ShowFableContent = true;
+            ShowFelizContent = false;
         }
 
         private void CommandBinding_OnExecuted( object sender, ExecutedRoutedEventArgs e )
@@ -44,5 +47,34 @@ namespace FableTranspiler.WpfClient
             add => AddHandler(PastEvent, value);
             remove => RemoveHandler(PastEvent, value);
         }
+
+        public static readonly DependencyProperty ShowTsContentProperty =
+            DependencyProperty.Register("ShowTsContent", typeof(bool), typeof(MainWindow), new UIPropertyMetadata(null));
+
+        public bool ShowTsContent
+        {
+            get { return (bool)GetValue(ShowTsContentProperty); }
+            set { SetValue(ShowTsContentProperty, value); }
+        }
+
+
+        public static readonly DependencyProperty ShowFelizContentProperty =
+            DependencyProperty.Register("ShowFelizContent", typeof(bool), typeof(MainWindow), new UIPropertyMetadata(null));
+
+        public bool ShowFelizContent
+        {
+            get { return (bool)GetValue(ShowFelizContentProperty); }
+            set { SetValue(ShowFelizContentProperty, value); }
+        }
+
+        public static readonly DependencyProperty ShowFableContentProperty =
+            DependencyProperty.Register("ShowFableContent", typeof(bool), typeof(MainWindow), new UIPropertyMetadata(null));
+
+        public bool ShowFableContent
+        {
+            get { return (bool)GetValue(ShowFableContentProperty); }
+            set { SetValue(ShowFableContentProperty, value); }
+        }
+
     }
 }
