@@ -107,16 +107,16 @@
                                     ToolTipService.InitialShowDelay="500"
                                     Command="{Binding WrapLetImportsCommand}"
                                     />
-                            <Button
-                                Style="{StaticResource MaterialDesignFlatAccentButton}"
-                                VerticalAlignment="Center"
-                                Margin="0"
-                                Padding="10,0"
-                                ToolTip="Save document"
-                                ToolTipService.InitialShowDelay="500"
-                                Content="{materialDesign:PackIcon Kind=ContentSave}"
-                                Click="SaveDocument"
-                                >
+                            
+                            <Button Style="{StaticResource MaterialDesignFlatAccentButton}"
+                                    VerticalAlignment="Center"
+                                    Margin="0"
+                                    Padding="10,0"
+                                    ToolTip="Save document"
+                                    ToolTipService.InitialShowDelay="500"
+                                    Content="{materialDesign:PackIcon Kind=ContentSave}"
+                                    Click="SaveDocument"
+                                    >
                             </Button>
                         </StackPanel>
                     
