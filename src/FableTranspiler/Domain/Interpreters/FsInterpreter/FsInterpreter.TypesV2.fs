@@ -35,6 +35,8 @@ type FsStatementType =
     | Unknown of string
     | Reference of Identifier list
     | ReferenceGeneric of Identifier list
+    | ReactElement
+    | ReactElementType
 
 type FsStatementKind =
     | Comment

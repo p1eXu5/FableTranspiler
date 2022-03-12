@@ -73,7 +73,7 @@ module ReactTests =
             return Ports.run config' (toFsStatement rootFullPath' moduleFullPath' statement innerConfig)
         }
 
-
+    /// root: @"Z:\Projects\Programming\FSharp\_wpf\FableTranspiler\node_modules\@types\react-scroll"
     let private interpretDtsModule modulePath content =
         result {
             let statementsResult =
@@ -509,7 +509,7 @@ module ReactTests =
 
 
     [<Test>]
-    let ``exported function interpretation test`` () =
+    let ``function: 'export function scrollToBottom(options?: any): void;'`` () =
         result {
             let! statements =
                 interpretDtsModule "./animate-scroll"
@@ -527,8 +527,68 @@ module ReactTests =
             fsStatement.Kind |> should equal (FsStatementKind.LetImport (Identifier "scrollToBottom"))
             
             let presentation = $"%O{fsStatement}"
-            presentation |> should contain @"[<Import(""scrollToBottom"", from=@""react-scroll\animate-scroll"")>]"
+            presentation |> should contain @"[<Import(""scrollToBottom"", from = @""react-scroll\animate-scroll"")>]"
             presentation |> should contain "let scrollToBottom : options: obj option -> unit = jsNative"
+        }
+        |> Result.runTest
+
+    [<Test>]
+    let ``function: 'export default function<P>(component: React.ComponentType<P>): React.ComponentClass<ScrollElementProps<P>>;'`` () =
+        result {
+            let! fsStatementList =
+                interpretDtsModule "./scroll-element"
+                    """
+                        export default function<P>(component: React.ComponentType<P>): React.ComponentClass<ScrollElementProps<P>>;
+                    """
+                |> Result.bind (interpretV2' "./scroll-element")
+                |> Result.writeStatements
+
+
+            fsStatementList |> should haveLength 2
+            
+            fsStatementList[0].Kind |> should equal (FsStatementKind.LetImportDefault (Identifier "ScrollElement"))
+            fsStatementList[1].Kind |> should equal (FsStatementKind.Let (Identifier "scrollElement"))
+                        
+            let presentation0 = $"%O{fsStatementList[0]}"
+            presentation0 |> should contain @"[<ImportDefault(@""react-scroll\scroll-element"")>]"
+            presentation0 |> should contain @"let private _scrollElement<'P> (``component``: ReactElementType<'P>) : string = jsNative"
+            
+            let presentation1 = $"%O{fsStatementList[1]}"
+            presentation1 |> should contain @"let inline scrollElement<'P> (``component``: ReactElementType<'P>) ="
+            presentation1 |> should contain "fun props children ->"
+            presentation1 |> should contain "domEl (_scrollElement ``component``) props children"
+        }
+        |> Result.runTest
+
+
+    [<Test>]
+    let ``function: 'export default function ScrollLink<P>(component: React.ComponentType<P>, customScroller?: Scroller,): React.ComponentClass<ScrollLinkProps<P>>;'`` () =
+        result {
+            let! fsStatementList =
+                interpretDtsModule "./scroll-link"
+                    """
+                        export default function ScrollLink<P>(
+                            component: React.ComponentType<P>,
+                            customScroller?: Scroller,
+                        ): React.ComponentClass<ScrollLinkProps<P>>;
+                    """
+                |> Result.bind (interpretV2' "./scroll-link")
+                |> Result.writeStatements
+
+
+            fsStatementList |> should haveLength 2
+
+            fsStatementList[0].Kind |> should equal (FsStatementKind.LetImportDefault (Identifier "ScrollLink"))
+            fsStatementList[1].Kind |> should equal (FsStatementKind.Let (Identifier "scrollLink"))
+            
+            let presentation0 = $"%O{fsStatementList[0]}"
+            presentation0 |> should contain @"[<ImportDefault(@""react-scroll\scroll-link"")>]"
+            presentation0 |> should contain @"let private _scrollLink<'P> (``component``: ReactElementType<'P>) (customScroller: Scroller option) : string = jsNative"
+
+            let presentation1 = $"%O{fsStatementList[1]}"
+            presentation1 |> should contain @"let inline scrollLink<'P> (``component``: ReactElementType<'P>) (customScroller: Scroller option) ="
+            presentation1 |> should contain "fun props children ->"
+            presentation1 |> should contain "domEl (_scrollLink ``component`` customScroller) props children"
         }
         |> Result.runTest
 
@@ -552,7 +612,7 @@ module ReactTests =
             fsStatement.Kind |> should equal (FsStatementKind.LetImport (Identifier "getAnimationType"))
             
             let presentation = $"%O{fsStatement}"
-            presentation |> should contain @"[<Import(""getAnimationType"", from=@""react-scroll\animate-scroll"")>]"
+            presentation |> should contain @"[<Import(""getAnimationType"", from = @""react-scroll\animate-scroll"")>]"
             presentation |> should contain "let getAnimationType : options: {| smooth : U2<bool, string> |} -> (float -> float) = jsNative"
         }
         |> Result.runTest
@@ -719,11 +779,11 @@ module ReactTests =
             fsStatements[1].Open |> should contain "Fable.Core"
 
             let sPresent0 = sprintf "%O" fsStatements[0]
-            sPresent0 |> should contain "[<Import(\"Scroll\", from=@\"react-scroll\Helpers\")>]"
+            sPresent0 |> should contain "[<Import(\"Scroll\", from = @\"react-scroll\Helpers\")>]"
             sPresent0 |> should contain "let scroll : ``component``: obj -> customScroller: obj option -> obj = jsNative"
 
             let sPresent1 = sprintf "%O" fsStatements[1]
-            sPresent1 |> should contain "[<Import(\"Element\", from=@\"react-scroll\Helpers\")>]"
+            sPresent1 |> should contain "[<Import(\"Element\", from = @\"react-scroll\Helpers\")>]"
             sPresent1 |> should contain "let element : ``component``: obj -> obj = jsNative"
         }
         |> Result.runTest

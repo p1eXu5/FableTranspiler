@@ -38,7 +38,7 @@ type Elem () =
             ]
         ]
     
-let customScrollElement = scrollElement ReactElementType.ofComponent<Elem,_,_>
+let customScrollElement = scrollElement ReactElementType.ofComponent<Elem,_,_> 
 
 
 let scrl =
@@ -58,10 +58,13 @@ type Scrl (props') =
 
 
 //let customScrollLink = scrollLink (ReactElementType.ofFunction scrl)
-let customScrollLink2 = scrollLink ReactElementType.ofComponent<Scrl,_,_>
+let customScrollLink2 = scrollLink ReactElementType.ofComponent<Scrl,_,_> None
 
 let foo = Browser.Dom.document.createElement("div")
 console.log(foo)
+
+//console.log("========== f =========")
+//console.log(f ReactElementType.ofComponent<Scrl,_,_> None)
 
 let view =
     FunctionComponent.Of(

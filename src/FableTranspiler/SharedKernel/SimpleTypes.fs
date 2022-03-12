@@ -24,6 +24,11 @@ type ModulePath = ModulePath of string with
     static member Value(ModulePath v) = v
 
 
+type NameStyle =
+    | CamelCase
+    | PascalCase
+
+
 open System.IO
 
 [<Struct>]

@@ -78,12 +78,23 @@ let rec internal toFsStatement rootFullPath moduleFullPath statement interpretCo
                 interpreter
                 |> Interpreter.run (innerConfig, TabLevel 0)
 
-            do!
-                storeFsStatment fsStatement
+            if fsStatement.Kind = FsStatementKind.Container then
+                let topLevelStatements = fsStatement.NestedStatements |> List.choose FsStatementV2.topLevel
+                do
+                    for s in topLevelStatements
+                        do
+                            storeFsStatment s |> ignore
 
-            return
-                fsStatement |> Choice1Of3
-                , innerConfig |> Some
+                return
+                    topLevelStatements |> Choice2Of3
+                    , innerConfig |> Some
+            else 
+                do!
+                    storeFsStatment fsStatement
+
+                return
+                    fsStatement |> Choice1Of3
+                    , innerConfig |> Some
         }
 
     let interpretFsStatementOption innerConfig interpreter =

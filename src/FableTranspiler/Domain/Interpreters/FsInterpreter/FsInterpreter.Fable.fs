@@ -54,7 +54,7 @@ let rec interpretDTsType (type': DTsType)  : Interpreter< InnerInterpretConfig, 
 
         | DTsType.Generic (qualifiers, typaParameters) ->
             match qualifiers with
-            | Qualifiers ["React"; "ComponentType"] ids ->
+            | Qualifiers ["React"; "ComponentType"] _ ->
                 let! nestedStatements =
                     typaParameters
                     |> List.map interpretDTsType
@@ -62,7 +62,7 @@ let rec interpretDTsType (type': DTsType)  : Interpreter< InnerInterpretConfig, 
 
                 return
                     {
-                        Type = FsStatementType.ReferenceGeneric ids
+                        Type = FsStatementType.ReactElementType
                         Open = ["Fable.React"]
                         CodeItems = [
                             vmType "ReactElementType"
@@ -81,10 +81,10 @@ let rec interpretDTsType (type': DTsType)  : Interpreter< InnerInterpretConfig, 
                             )
 
                     }, nestedStatements |> List.map snd |> List.concat
-            | Qualifiers ["React"; "ComponentClass"] ids ->
+            | Qualifiers ["React"; "ComponentClass"] _ ->
                 return
                     {
-                        Type = FsStatementType.ReferenceGeneric ids
+                        Type = FsStatementType.ReactElement
                         Open = ["Fable.React"]
                         CodeItems = [
                             vmType "ReactElement"
@@ -813,44 +813,64 @@ let interpretFunctionDefinition functionDefinition =
 
     let isReactComponenetClass = isGenericType "ComponentClass"
 
-    interpreter {
-        let! (config: InnerInterpretConfig, tabLevel) = Interpreter.ask
 
-        match functionDefinition with
-        | FunctionDefinition.Plain (identifier, fl, retType) ->
-            let! (signature, summary) = 
-                interpretFuncSignature fl retType  [] [] 
-                |> InnerInterpretConfig.withFuncSignature namedFuncSignature
+    let letImportStatement identifier signature summary =
+        interpreter {
+            let! (config: InnerInterpretConfig, _) = Interpreter.ask
+            return {
+                Kind = FsStatementKind.LetImport identifier
+                Scope = Scope.Module (ModuleScope.Main)
+                Open = ["Fable.Core"]
+                CodeItems = [
+                    vmPrn "[<"; vmText "Import"; vmPrn $"(\"{Identifier.value identifier}\", "; vmText "from = "; vmPrn $"@\"{config.LibRelativePath.Value}\")>]"; vmEndLineNull
+                    vmKeyword "let "; vmIdentifier (identifier |> Identifier.map Helpers.uncapitalizeFirstLetter); vmPrn " : "
+                ]
+                NestedStatements = [signature |> FsStatementV2.InnerFsStatement]
+                PostCodeItems = [
+                    vmPrn " = "
+                    vmText "jsNative"
+                    vmEndLineNull
+                ]
+                Summary = summary
+                Hidden = false
+            }
+        }
 
-            return
-                {
-                    Kind = FsStatementKind.LetImport identifier
-                    Scope = Scope.Module (ModuleScope.Main)
-                    Open = ["Fable.Core"]
-                    CodeItems = [
-                        vmPrn "[<"; vmText "Import"; vmPrn $"(\"{Identifier.value identifier}\", "; vmText "from="; vmPrn $"@\"{config.LibRelativePath.Value}\")>]"; vmEndLineNull
-                        vmKeyword "let "; vmIdentifier (identifier |> Identifier.map Helpers.uncapitalizeFirstLetter); vmPrn " : "
-                    ]
-                    NestedStatements = [signature |> FsStatementV2.InnerFsStatement]
-                    PostCodeItems = [
-                        vmPrn " = "
-                        vmText "jsNative"
-                        vmEndLineNull
-                    ]
-                    Summary = summary
-                    Hidden = false
-                }
-        | FunctionDefinition.GenericNameless (_, parameters, returnType) when parameters |> isReactComponenetType && returnType |> isReactComponenetClass ->
-            let funcName = config.LibRelativePath.Value |> Helpers.toModuleName Helpers.uncapitalizeFirstLetter
+    let domEl typeParams returnType funcName (parameters: InnerFsStatement list) (importDefaultFunc: CodeItem list option) =
+        interpreter {
+            let! (config: InnerInterpretConfig, tabLevel) = Interpreter.ask
+
+            let opens =
+                (importDefaultFunc |> Option.map (fun _ -> "") |> Option.defaultValue "Fable.Core.JsInterop")
+                :: ["Fable.React"; "Fable.React.Props"]
+
             return
                 {
                     Kind = FsStatementKind.Let (funcName |> Identifier.create)
                     Scope = Scope.Module (ModuleScope.Main)
-                    Open = ["Fable.React"; "Fable.Core.JsInterop"; "Fable.React.Props"]
+                    Open = opens
                     CodeItems = [
                         vmKeyword "let inline "
-                        vmText funcName
-                        vmPrn "<"; vmType "'TProps"; vmPrn "> (``"; vmText "component"; vmPrn "``: "; vmType "ReactElementType"; vmPrn "<"; vmType "'TProps"; vmPrn ">) ="
+                        vmText (funcName |> Helpers.uncapitalizeFirstLetter)
+                        vmPrn "<";
+                        yield! 
+                            typeParams 
+                            |> List.partitionLast 
+                            |> (fun (xs, (Identifier id)) -> 
+                               (xs |> List.map (fun (Identifier i) -> [vmType $"'{i}"; vmPrn ", "]) |> List.concat) 
+                                @ [vmType $"'{id}"]
+                            )
+                        vmPrn "> " //(``"; vmText "component"; vmPrn "``: "; vmType "ReactElementType"; vmPrn "<"; vmType "'TProps"; vmPrn ">) ="
+                    ]
+                    NestedStatements =
+                        parameters 
+                        |> List.map (fun inner ->
+                            {inner with CodeItems = [vmPrn "("] @ inner.CodeItems ; PostCodeItems = [vmPrn ") "]}
+                        )
+                        |> List.map FsStatementV2.InnerFsStatement
+
+                    PostCodeItems = [
+                        vmPrn "="
                         vmEndLineNull
                         tab (tabLevel + 1)
                         vmKeyword "fun "
@@ -858,18 +878,106 @@ let interpretFunctionDefinition functionDefinition =
                         vmPrn " ->"; vmEndLineNull
                         tab (tabLevel + 2)
                         vmText "domEl "; vmPrn "("
-                        vmText "importDefault "
-                        vmPrn $"@\"{config.LibRelativePath.Value}\""
-                        vmText " ``component``"; vmPrn ")"
+                        yield!
+                            importDefaultFunc
+                            |> Option.defaultValue [
+                                vmText "importDefault "
+                                vmPrn $"@\"{config.LibRelativePath.Value}\" "
+                            ]
+                        yield!
+                            parameters
+                            |> List.partitionLast
+                            |> (fun (xs, s) ->
+                                (xs |> List.map (fun inner -> vmIdentifierS (inner |> InnerFsStatement.identifier |> List.head)))
+                                @ [vmIdentifier (s |> InnerFsStatement.identifier |> List.head)]
+                            )
+                
+                        vmPrn ")"
                         vmText " props children"
                     ]
-                    NestedStatements = []
-                    PostCodeItems = []
                     Summary = [vmComment $"/// factory of %s{returnType |> DtsInterpreter.constructTypeDefinition |> CodeItem.toString}"; vmEndLineNull]
                     Hidden = false
                 }
+        }
 
-        | _ -> return failwith $"{functionDefinition} interpretation is not implemented"
+    let interpretGeneric typeParams parameters returnType funcName =
+        interpreter {
+            let! (config: InnerInterpretConfig, tabLevel) = Interpreter.ask
+
+            let! (signature, summary) = 
+                interpretFuncSignature parameters returnType  [] [] 
+
+            let domEl' = domEl typeParams returnType 
+
+            if signature.NestedStatements |> List.last |> (fun s -> s.Type = FsStatementType.ReactElement) then
+                // cut returned ReactElement
+                let parameters' = signature.NestedStatements |> List.skipLast
+                let privateLet =
+                    {
+                        Kind = FsStatementKind.LetImportDefault (funcName |> Identifier.create)
+                        Scope = Scope.Module (ModuleScope.Main)
+                        Open = ["Fable.React"; "Fable.Core"]
+                        CodeItems = [
+                            vmPrn "[<"; vmText "ImportDefault"; vmPrn $"(@\"{config.LibRelativePath.Value}\")>]"; vmEndLineNull
+                            vmKeyword "let "; vmModifier "private "; vmText $"_{funcName |> Helpers.uncapitalizeFirstLetter}";
+                            vmPrn "<";
+                            yield! 
+                                typeParams 
+                                |> List.partitionLast 
+                                |> (fun (xs, (Identifier id)) -> 
+                                    (xs |> List.map (fun (Identifier i) -> [vmType $"'{i}"; vmPrn ", "]) |> List.concat) 
+                                    @ [vmType $"'{id}"]
+                                )
+                            vmPrn "> "
+                        ]
+                        NestedStatements =
+                            parameters' 
+                            |> List.map (fun inner ->
+                                {inner with CodeItems = [vmPrn "("] @ inner.CodeItems ; PostCodeItems = [vmPrn ") "]}
+                            )
+                            |> List.map FsStatementV2.InnerFsStatement
+                        PostCodeItems = [
+                            vmPrn ": "; vmType "string "; vmPrn "= "; vmText "jsNative"; vmEndLineNull
+                        ]
+                        Summary = [vmComment $"/// factory of %s{returnType |> DtsInterpreter.constructTypeDefinition |> CodeItem.toString}"; vmEndLineNull]
+                        Hidden = false
+                    }
+
+                let! letFunc = domEl' (funcName |> Helpers.uncapitalizeFirstLetter) parameters' ([vmText $"_{funcName |> Helpers.uncapitalizeFirstLetter} "] |> Some)
+                return
+                    {
+                        Kind = FsStatementKind.Container
+                        Scope = Scope.Module (ModuleScope.Main)
+                        Open = []
+                        CodeItems = []
+                        NestedStatements = [privateLet; letFunc] |> List.map FsStatementV2.TopLevelFsStatement
+                        PostCodeItems = []
+                        Summary = []
+                        Hidden = false
+                    }
+            else
+                return! letImportStatement (Identifier funcName) signature summary
+        }
+
+
+    interpreter {
+        let! (config: InnerInterpretConfig, tabLevel) = Interpreter.ask
+
+        match functionDefinition with
+        | FunctionDefinition.Plain (identifier, parameters, returnType) ->
+            let! (signature, summary) = 
+                interpretFuncSignature parameters returnType  [] [] 
+
+            return! letImportStatement identifier signature summary
+
+        | FunctionDefinition.GenericNameless (typeParams, parameters, returnType)(* when parameters |> isReactComponenetType && returnType |> isReactComponenetClass*) ->
+            let funcName = config.LibRelativePath.Value |> Helpers.toModuleName PascalCase
+
+            return! interpretGeneric typeParams parameters returnType funcName
+
+        | FunctionDefinition.Generic (identifier, typeParams, parameters, returnType) -> 
+            let (Identifier funcName) = identifier
+            return! interpretGeneric typeParams parameters returnType funcName
     }
 
 

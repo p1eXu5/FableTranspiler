@@ -17,9 +17,31 @@ let uncapitalizeFirstLetter (s: string) =
     Char.ToLowerInvariant(s[0]).ToString() + s[1..]
 
 /// Examples of modifiers: Helpers.capitalizeFirstLetter and Helpers.uncapitalizeFirstLetter
-let toModuleName modifier (moduleRelativePath: string) =
-    String.Join("",
+let toModuleName nameStyle (moduleRelativePath: string) =
+    let nameSegments =
         Path.GetFileName(moduleRelativePath)
             .Split("-")
-            |> Seq.map modifier
+            |> Seq.map capitalizeFirstLetter
+            |> Seq.toList
+        
+    String.Join("",
+        match nameStyle with
+        | CamelCase ->
+            (nameSegments |> List.head |> uncapitalizeFirstLetter) :: (nameSegments |> List.tail)
+        | PascalCase -> nameSegments
     )
+
+
+module List =
+
+    let inline skipLast<'a> (l: 'a list) : 'a list =
+        if l.Length = 0 then []
+        else l |> List.take (l.Length - 1)
+
+    /// <summary>
+    /// </summary>
+    /// <param name="l"></param>
+    /// <exception> <see cref="InvalidOperationException"/> </exception>
+    let inline partitionLast<'a> (l: 'a list) : 'a list * 'a =
+        if l.Length = 0 then raise (InvalidOperationException("List is empty"))
+        else (l |> List.take (l.Length - 1), l |> List.last)
