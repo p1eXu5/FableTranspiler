@@ -8,24 +8,24 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Include="Ports\PortsBuilderTests.fs" />
-    <Compile Include="Factories\MockLoggerFactories.fs" />
     <Compile Include="LibTests\FParsecTests.fs" />
     <Compile Include="LibTests\FsCheckTests.fs" />
-    <Compile Include="Parsers\TestCaseSources\StructuresFactory.fs" />
-    <Compile Include="Parsers\TestCaseSources\ImportTestCaseSource.fs" />
-    <Compile Include="Parsers\CommentTests.fs" />
-    <Compile Include="Parsers\ModuleTests.fs" />
-    <Compile Include="Parsers\StructuresTests.fs" />
-    <Compile Include="Parsers\MiscTests.fs" />
-    <Compile Include="Parsers\ImportTests.fs" />
-    <Compile Include="Parsers\ExportTests.fs" />
-    <Compile Include="Parsers\ParserUTests.fs" />
-    <Compile Include="Interpreters\FsStatementV2Tests.fs" />
-    <Compile Include="Interpreters\FsInterpreter\TestCaseSources\DtsStatements.fs" />
-    <Compile Include="Interpreters\FsInterpreter\TestCaseSources\FableTestCases.fs" />
-    <Compile Include="Interpreters\FsInterpreter\TestCaseSources\ReactTestCases.fs" />
-    <Compile Include="Interpreters\FsInterpreter\ReactTests.fs" />
+    <Compile Include="Domain\Parsers\TestCaseSources\StructuresFactory.fs" />
+    <Compile Include="Domain\Parsers\TestCaseSources\ImportTestCaseSource.fs" />
+    <Compile Include="Domain\Parsers\CommentTests.fs" />
+    <Compile Include="Domain\Parsers\ModuleTests.fs" />
+    <Compile Include="Domain\Parsers\StructuresTests.fs" />
+    <Compile Include="Domain\Parsers\MiscTests.fs" />
+    <Compile Include="Domain\Parsers\ImportTests.fs" />
+    <Compile Include="Domain\Parsers\ExportTests.fs" />
+    <Compile Include="Domain\Parsers\ParserUTests.fs" />
+    <Compile Include="Domain\Ports\PortsBuilderTests.fs" />
+    <Compile Include="Domain\Interpreters\FsStatementV2Tests.fs" />
+    <Compile Include="Domain\Interpreters\FsInterpreter\TestCaseSources\DtsStatements.fs" />
+    <Compile Include="Domain\Interpreters\FsInterpreter\TestCaseSources\FableTestCases.fs" />
+    <Compile Include="Domain\Interpreters\FsInterpreter\TestCaseSources\ReactTestCases.fs" />
+    <Compile Include="Domain\Interpreters\FsInterpreter\ReactTests.fs" />
+    <Compile Include="Domain\UseCases\ImplementationTests.fs" />
     <Compile Include="Infrastructure\FsStatementStoreTests.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>

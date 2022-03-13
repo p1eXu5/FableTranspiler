@@ -9,6 +9,12 @@ open NUnit.Framework.Constraints
 open System.Threading.Tasks
 open FableTranspiler.SimpleTypes
 
+module Result =
+
+    let runTest = function
+        | Result.Ok _ -> ()
+        | Result.Error err -> raise (AssertionException(err))
+
 
 module FsUnit =
 
@@ -59,8 +65,3 @@ module FsUnit =
         | Result.Ok ok -> ok |> shouldL be expected ""
         | Result.Error err -> raise (AssertionException($"Should be %A{expected} but there is an error: %A{err}"))
 
-    module Result =
-
-        let runTest = function
-            | Result.Ok _ -> ()
-            | Result.Error err -> raise (AssertionException(err))

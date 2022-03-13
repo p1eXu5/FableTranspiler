@@ -9,6 +9,7 @@ open FableTranspiler.SimpleTypes
 open FableTranspiler.Interpreters.FsInterpreter
 open FableTranspiler.Interpreters.FsInterpreter.Facade
 open FableTranspiler.Parsers.Types
+open FableTranspiler.Tests.Common
 open FableTranspiler.Tests.Common.FsUnit
 open FableTranspiler.Tests.Common.SimpleTypesFactories
 open FsToolkit.ErrorHandling
