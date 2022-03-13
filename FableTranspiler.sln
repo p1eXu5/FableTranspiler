@@ -14,9 +14,6 @@ EndProject
 Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "FableTranspiler.Tests", "test\FableTranspiler.Tests\FableTranspiler.Tests.fsproj", "{F8B52129-F584-433C-9A00-90CF05BFD209}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "node-modules", "node-modules", "{A571C6EA-E1C8-4FE9-8C53-EF52D3992A36}"
-	ProjectSection(SolutionItems) = preProject
-		node_modules\@types\react-scroll\index.d.ts = node_modules\@types\react-scroll\index.d.ts
-	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "modules", "modules", "{EAC0E465-4CA5-46B3-90C8-3917F830EA07}"
 	ProjectSection(SolutionItems) = preProject
@@ -68,7 +65,17 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "docs", "docs", "{FC400DB9-1
 		docs\Interop.fs = docs\Interop.fs
 	EndProjectSection
 EndProject
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "FableTranspiler.Tests.BDD", "test\FableTranspiler.Tests.BDD\FableTranspiler.Tests.BDD.fsproj", "{6FDF3322-0E5E-4C5D-A338-CA55F9930816}"
+Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "FableTranspiler.Tests.BDD", "test\FableTranspiler.Tests.BDD\FableTranspiler.Tests.BDD.fsproj", "{6FDF3322-0E5E-4C5D-A338-CA55F9930816}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "react-scroll", "react-scroll", "{23E4FB1A-DDA3-4A91-89F5-EE074C950207}"
+	ProjectSection(SolutionItems) = preProject
+		node_modules\@types\react-scroll\index.d.ts = node_modules\@types\react-scroll\index.d.ts
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "material-ui", "material-ui", "{94931433-0E97-452C-A5A0-4AD32627696D}"
+	ProjectSection(SolutionItems) = preProject
+		node_modules\@types\material-ui\index.d.ts = node_modules\@types\material-ui\index.d.ts
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -124,7 +131,7 @@ Global
 		{1FF0EE9A-FB56-45F9-9D64-5F0D622DE019} = {936223DC-03A8-40AB-88C4-6F05B109AB89}
 		{71C3219B-379C-450C-AE62-87EEA286221A} = {936223DC-03A8-40AB-88C4-6F05B109AB89}
 		{F8B52129-F584-433C-9A00-90CF05BFD209} = {C6301060-9B3D-4539-B206-948B36129937}
-		{EAC0E465-4CA5-46B3-90C8-3917F830EA07} = {A571C6EA-E1C8-4FE9-8C53-EF52D3992A36}
+		{EAC0E465-4CA5-46B3-90C8-3917F830EA07} = {23E4FB1A-DDA3-4A91-89F5-EE074C950207}
 		{EAE939E3-06E5-4B45-9F7F-2FDA54428F85} = {EAC0E465-4CA5-46B3-90C8-3917F830EA07}
 		{00C42972-8E25-4A06-BF4F-585BCD13F87F} = {EAC0E465-4CA5-46B3-90C8-3917F830EA07}
 		{323C6771-1149-4C54-9FB3-DEE039C4AEDF} = {936223DC-03A8-40AB-88C4-6F05B109AB89}
@@ -136,6 +143,8 @@ Global
 		{FB2A8750-8ED7-424C-9552-EBE548C74B38} = {C6301060-9B3D-4539-B206-948B36129937}
 		{6D2251BA-1AFB-4D6B-97A0-24F14E316AE1} = {C6301060-9B3D-4539-B206-948B36129937}
 		{6FDF3322-0E5E-4C5D-A338-CA55F9930816} = {C6301060-9B3D-4539-B206-948B36129937}
+		{23E4FB1A-DDA3-4A91-89F5-EE074C950207} = {A571C6EA-E1C8-4FE9-8C53-EF52D3992A36}
+		{94931433-0E97-452C-A5A0-4AD32627696D} = {A571C6EA-E1C8-4FE9-8C53-EF52D3992A36}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {94509709-A3DE-4954-B4F0-0C9AE004BF3F}

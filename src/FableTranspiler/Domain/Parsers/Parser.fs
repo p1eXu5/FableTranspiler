@@ -107,9 +107,11 @@ let stmt = choice [
 
 
 let namespaceDefinition, namespaceDefinitionR = createParserForwardedToRef ()
+let moduleDefinition, moduleDefinitionR = createParserForwardedToRef ()
 
 let statement =
     choice [
+        skipString "declare" >>? ws1 >>? moduleDefinition |>> ModuleDeclaration
         skipString "declare" >>? ws1 >>? namespaceDefinition |>> NamespaceDeclaration
         skipString "export" >>? ws1 >>? namespaceDefinition |>> (ExportStatement.Namespace >> Statement.Export)
         Import.statement
@@ -127,6 +129,18 @@ do
     namespaceDefinitionR.Value <-
         skipString "namespace "
         >>. Common.identifier
+        .>> ws
+        .>> skipChar '{'
+        .>> ws
+        .>>. query
+        .>> ws
+        .>> skipChar '}'
+
+do 
+    moduleDefinitionR.Value <-
+        skipString "module"
+        >>. ws
+        >>. Module.modulePath
         .>> ws
         .>> skipChar '{'
         .>> ws

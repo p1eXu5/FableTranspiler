@@ -12,7 +12,7 @@ let ``type``, typeR = createParserForwardedToRef()
 let typeDefinition, typeDefinitionR = createParserForwardedToRef()
 
 let notFollowedByChars chars = notFollowedBy (skipAnyOf chars)
-let attemptSep ch = attempt (ws >>. skipChar ch >>. ws)
+
 
 
 let typeParams = 
@@ -49,7 +49,7 @@ let objectLiteral : Parser<FieldList, _> =
     .>> (skipChar '}' <?> "object literal must be terminated by '}'")
 
 
-let qualifiers = sepBy1 identifier (attemptSep '.') 
+ 
 
 let planeType = qualifiers .>>? notFollowedByChars ['<'] |>> DTsType.Plain
 

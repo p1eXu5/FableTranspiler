@@ -1,7 +1,10 @@
 ﻿namespace FableTranspiler.Tests.Parsers
 
 open NUnit.Framework
+open FsUnit
 open FableTranspiler.Tests.Common.FsUnit
+open FsToolkit.ErrorHandling
+open FableTranspiler.Domain
 
 [<Category("Parsers.ExportTests")>]
 module ExportTests =
@@ -18,10 +21,19 @@ module ExportTests =
     let ``export statement test`` (input: string) =
         let result = run Export.statement input
         let expected = Export.outAssignment "ReactScroll"
-        result |> shouldSuccess expected
+        result |> shouldSuccessEqual expected
 
 
     [<TestCaseSource(typeof<TestCases>, nameof TestCases.ExportCases)>]
     let ``import statements - module name test`` (content: string, expected: Statement) =
         let result = run Export.statement content
-        result |> shouldSuccess expected
+        result |> shouldSuccessEqual expected
+
+    [<Test>]
+    let ``export import test`` () =
+            let statement =
+                """
+                export import ActionAccessibility = __MaterialUI.SvgIcon; // require('material-ui/svg-icons/action/accessibility');
+                """
+            let result = run Export.statement statement
+            result |> should be (ofCase <@ ParserResult<Statement, unit>.Success @>)

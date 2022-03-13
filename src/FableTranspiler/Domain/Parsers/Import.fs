@@ -66,7 +66,7 @@ let statement =
         ]
         .>>. choice [
             Module.relative
-            Module.node
+            Module.nodeModuleTilda
         ]
         .>> ws
         .>> skipChar ';'

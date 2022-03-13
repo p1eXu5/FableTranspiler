@@ -22,7 +22,7 @@ module MiscTests =
         let expected = ConstDefinition.DeclareConst (i, typeDef) |> StructureStatement.ConstDefinition |> Statement.Structure
 
         let result = run Parser.statement input
-        result |> shouldSuccess expected
+        result |> shouldSuccessEqual expected
 
 
     [<Test>]

@@ -63,7 +63,7 @@ let transit =
     .>>? (skipString "from " <?> "expected 'from' keyword in transit export statement")
     .>>. choice [
         Module.relative
-        Module.node
+        Module.nodeModuleTilda
     ]
     |>> ExportStatement.Transit
     .>> ws
@@ -82,9 +82,25 @@ let outDefault =
     .>> (skipChar ';' <?> "expected ';' out default terminator")
 
 
+let import =
+    exportKeyword
+    >>? ws1
+    >>? skipString "import"
+    >>. ws1
+    >>. identifier
+    .>> ws
+    .>> skipChar '='
+    .>> ws
+    .>>. qualifiers
+    |>> ExportStatement.Import
+    .>> ws
+    .>> skipChar ';'
+
+
 let statement =
     ws
     >>? choice [
+        import <?> "not `export import`"
         outDefault <?> "out default error"
         outAssignment <?> "out alias error"
         outList <?> "out list error"

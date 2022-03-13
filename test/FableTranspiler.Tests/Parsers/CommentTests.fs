@@ -17,4 +17,4 @@ module CommentTests =
         let input = """// sdfsfsfd// sdfsdf"""
         let result = run Comment.statement input
         let expected = Statement.Comment "// sdfsfsfd// sdfsdf"
-        result |> shouldSuccess expected
+        result |> shouldSuccessEqual expected

@@ -15,6 +15,7 @@
     <Compile Include="Parsers\TestCaseSources\StructuresFactory.fs" />
     <Compile Include="Parsers\TestCaseSources\ImportTestCaseSource.fs" />
     <Compile Include="Parsers\CommentTests.fs" />
+    <Compile Include="Parsers\ModuleTests.fs" />
     <Compile Include="Parsers\StructuresTests.fs" />
     <Compile Include="Parsers\MiscTests.fs" />
     <Compile Include="Parsers\ImportTests.fs" />

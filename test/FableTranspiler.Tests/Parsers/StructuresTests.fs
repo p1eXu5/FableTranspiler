@@ -1,16 +1,18 @@
 ﻿namespace FableTranspiler.Tests.Parsers
 
 open NUnit.Framework
-open FableTranspiler.Parsers.Types
-open FableTranspiler.SimpleTypes
-open FableTranspiler.Tests.Common.FsUnit
 
 [<Category("Parsers.StructuresTests")>]
 module StructuresTests =
 
+    open FsUnit
+    open FableTranspiler.Parsers.Types
+    open FableTranspiler.SimpleTypes
+    open FableTranspiler.Tests.Common.FsUnit
     open FableTranspiler.Parsers
     open FParsec
     open FableTranspiler.Tests.Common
+    open FsToolkit.ErrorHandling
 
     // -------------------
     //       Types        
@@ -22,9 +24,9 @@ module StructuresTests =
     let ``plane type test`` (input: string) =
         let planeType = Dsl.DTsTypes.plainType (input.Split('.') |> Array.toList)
         let result = run Structures.planeType input
-        result |> shouldSuccess planeType
+        result |> shouldSuccessEqual planeType
         let result = run Structures.``type`` input
-        result |> shouldSuccess planeType
+        result |> shouldSuccessEqual planeType
 
     [<TestCase("Foo", "Bar")>]
     [<TestCase("Foo.Bar", "Foo.Bar")>]
@@ -33,9 +35,9 @@ module StructuresTests =
         let generic = Dsl.DTsTypes.genericType (input1.Split('.') |> Array.toList) [planeType]
         let input = (input1 + "<" + input2 + ">")
         let result = run Structures.genericType input
-        result |> shouldSuccess generic
+        result |> shouldSuccessEqual generic
         let result = run Structures.``type`` input
-        result |> shouldSuccess generic
+        result |> shouldSuccessEqual generic
 
 
     [<Test>]
@@ -45,7 +47,7 @@ module StructuresTests =
         let plain = Dsl.DTsTypes.plainType ["ReactScrollLinkProps"]
         let composition = [plain; generic] |> Composition
         let result = run Structures.typeComposition input
-        result |> shouldSuccess composition
+        result |> shouldSuccessEqual composition
 
     [<Test>]
     let ``type union test`` () =
@@ -54,7 +56,7 @@ module StructuresTests =
         let plain = Dsl.DTsTypes.plainType ["ReactScrollLinkProps"]
         let composition = [plain; generic] |> Union
         let result = run Structures.typeUnion input
-        result |> shouldSuccess composition
+        result |> shouldSuccessEqual composition
 
 
     [<Test>]
@@ -66,12 +68,12 @@ module StructuresTests =
         let expected = DTsType.Func (field, type')
 
         let result = run Structures.``type`` input
-        result |> shouldSuccess expected
+        result |> shouldSuccessEqual expected
 
     [<TestCaseSource(typeof<TestCases>, nameof(TestCases.DTsTypeCases))>]
     let ``type test`` (input: string, expected: DTsType) = 
         let result = run Structures.``type`` input
-        result |> shouldSuccess expected
+        result |> shouldSuccessEqual expected
 
     // -------------------
     //       Field        
@@ -80,7 +82,7 @@ module StructuresTests =
     [<TestCaseSource(typeof<TestCases>, nameof(TestCases.FieldCases))>]
     let ``field test`` (input: string, expected: (Field * TypeDefinition)) = 
         let result = run Structures.field input
-        result |> shouldSuccess expected
+        result |> shouldSuccessEqual expected
 
 
     [<Test>]
@@ -98,7 +100,7 @@ module StructuresTests =
             (Identifier.create "duration" |> Optional, typeDefinitions)
 
         let result = run Structures.field input
-        result |> shouldSuccess expected
+        result |> shouldSuccessEqual expected
 
 
     // -------------------
@@ -115,7 +117,7 @@ module StructuresTests =
                 ([plain; generic] |> TypeCombination.Composition)
 
         let result = run Structures.statement input
-        result |> shouldSuccess expected
+        result |> shouldSuccessEqual expected
 
 
     [<TestCase("type LinkProps = React.HTMLProps<HTMLButtonElement> & ReactScrollLinkProps;")>]
@@ -128,7 +130,7 @@ module StructuresTests =
                 ([generic; plain] |> TypeCombination.Composition)
 
         let result = run Structures.statement input
-        result |> shouldSuccess expected
+        result |> shouldSuccessEqual expected
 
 
     [<TestCase("type LinkProps = ReactScrollLinkProps | React.HTMLProps<HTMLButtonElement>;")>]
@@ -141,7 +143,7 @@ module StructuresTests =
                 ([plain; generic] |> TypeCombination.Union)
 
         let result = run Structures.statement input
-        result |> shouldSuccess expected
+        result |> shouldSuccessEqual expected
 
 
     [<TestCase("type LinkProps = React.HTMLProps<HTMLButtonElement> | ReactScrollLinkProps;")>]
@@ -154,7 +156,7 @@ module StructuresTests =
                 ([generic; plain] |> TypeCombination.Union)
 
         let result = run Structures.statement input
-        result |> shouldSuccess expected
+        result |> shouldSuccessEqual expected
 
 
     // -------------------
@@ -170,7 +172,7 @@ module StructuresTests =
             |> StructureStatement.ClassDefinition
 
         let result = run Structures.statement input
-        result |> shouldSuccess expected
+        result |> shouldSuccessEqual expected
 
 
     // -------------------
@@ -196,7 +198,7 @@ module StructuresTests =
             |> StructureStatement.InterfaceDefinition
 
         let result = run Structures.statement input
-        result |> shouldSuccess expected
+        result |> shouldSuccessEqual expected
     
 
     [<Test>]
@@ -204,7 +206,7 @@ module StructuresTests =
         let (input, definition) = StructuresFactory.interfaceDefinitioPlain
 
         let result = run Structures.statement input
-        result |> shouldSuccess definition
+        result |> shouldSuccessEqual definition
 
 
     // -------------------
@@ -213,4 +215,48 @@ module StructuresTests =
     [<TestCaseSource(typeof<TestCases>, nameof(TestCases.FunctionCases))>]
     let ``function test`` (input: string, expected: StructureStatement) =
         let result = run Structures.statement input
-        result |> shouldSuccess expected
+        result |> shouldSuccessEqual expected
+
+
+    // -------------------
+    //   declare module
+    // -------------------
+    [<Test>]
+    let ``declare module test`` () =
+        result {
+            let statement =
+                """
+                    declare module 'material-ui/svg-icons/av/mic-none' {
+                    }
+                """
+
+            let! res = Parser.run statement
+            ()
+        }
+        |> Result.runTest
+
+    [<Test>]
+    let ``declared module with exported imports test`` () =
+        result {
+            let statement =
+                """
+                declare module 'material-ui/svg-icons' {
+                    // DO NOT EDIT
+                    // This code is generated by scripts/material-ui/generate.js
+                    // {{{
+                        export import ActionAccessibility = __MaterialUI.SvgIcon; // require('material-ui/svg-icons/action/accessibility');
+                        export import ActionAccessible = __MaterialUI.SvgIcon; // require('material-ui/svg-icons/action/accessible');
+                        export import ActionAccountBalance = __MaterialUI.SvgIcon; // require('material-ui/svg-icons/action/account-balance');
+                    // }}}
+                        export import NavigationArrowDropRight = __MaterialUI.SvgIcon; // require('material-ui/svg-icons/navigation-arrow-drop-right');
+                    }
+                """
+
+            let! res = Parser.run statement
+            res |> should haveLength 1
+            match res[0] with
+            | Statement.ModuleDeclaration (_, md) ->
+                md |> should haveLength 12
+            | _ -> raise (AssertionException("first statement is not module declaration"))
+        }
+        |> Result.runTest

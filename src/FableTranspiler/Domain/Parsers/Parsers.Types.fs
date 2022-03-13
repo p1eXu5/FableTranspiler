@@ -172,6 +172,7 @@ type ExportStatement =
     | Structure of StructureStatement
     | StructureDefault of StructureStatement
     | Namespace of Identifier * StatementList
+    | Import of Identifier * Identifier list
 
 
 
@@ -181,7 +182,9 @@ type Statement =
     | Export of ExportStatement
     | Const of Expression
     | Structure of StructureStatement
+    /// declare namespace ...
     | NamespaceDeclaration of Identifier * StatementList
+    | ModuleDeclaration of ModulePath * StatementList
     with
         override this.ToString() =
             match this with

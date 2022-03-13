@@ -37,8 +37,14 @@ module FsUnit =
 
 
     [<DebuggerStepThrough>]
-    let shouldSuccess res = function
+    let shouldSuccessEqual res = function
     | Success (s, _, _) -> s |> shouldL equal res ""
+    | Failure (t, _, _) -> raise (AssertionException($"Should be %A{res} but was %A{t}"))
+
+
+    [<DebuggerStepThrough>]
+    let shouldSuccess ``constraint`` res = function
+    | Success (s, _, _) -> s |> should ``constraint`` res
     | Failure (t, _, _) -> raise (AssertionException($"Should be %A{res} but was %A{t}"))
 
 
